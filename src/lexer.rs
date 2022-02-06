@@ -42,6 +42,18 @@ pub enum Token {
     And,
     #[token("or")]
     Or,
+    #[token("==")]
+    Equality,
+    #[token("!=")]
+    NegEquality,
+    #[token("<")]
+    Less,
+    #[token(">")]
+    More,
+    #[token("<=")]
+    LessEqual,
+    #[token(">=")]
+    MoreEqual,
     #[token("{")]
     LeftBracket,
     #[token("}")]
@@ -71,12 +83,16 @@ pub enum Token {
     #[token("string")]
     String,
 
-    #[regex(r"[0-9]+")]
-    Number,
-    #[regex(r"[0-9][0-9]*(\.[0-9]*)")]
-    Real,
-    #[regex(r"[a-zA-Z_][a-zA-Z0-9_]*")]
-    Identifier,
+    #[regex(r"[0-9]+", |lex| lex.slice().parse())]
+    Number(i64),
+    #[regex(r"[0-9][0-9]*(\.[0-9]*)", |lex| lex.slice().parse())]
+    Real(f64),
+    #[regex(r"[a-zA-Z_][a-zA-Z0-9_]*", |lex| lex.slice().parse())]
+    Identifier(String),
+
+    // End of file
+    #[token("\0")]
+    EndOfFile,
 
     // Skip spaces characters and handle error
     #[error]
@@ -138,10 +154,10 @@ mod tests {
         let mut lexer = Token::lexer("let i = 5;");
 
         assert_eq!(lexer.next(), Some(Token::Let));
-        assert_eq!(lexer.next(), Some(Token::Identifier));
+        assert_eq!(lexer.next(), Some(Token::Identifier("i".to_string())));
         assert_eq!(lexer.slice(), "i");
         assert_eq!(lexer.next(), Some(Token::Equal));
-        assert_eq!(lexer.next(), Some(Token::Number));
+        assert_eq!(lexer.next(), Some(Token::Number(5)));
         assert_eq!(lexer.next(), Some(Token::Semicolon));
     }
 
@@ -166,8 +182,7 @@ mod tests {
         let mut lexer = Token::lexer("fn hello() {}");
 
         assert_eq!(lexer.next(), Some(Token::Function));
-        assert_eq!(lexer.next(), Some(Token::Identifier));
-        assert_eq!(lexer.slice(), "hello");
+        assert_eq!(lexer.next(), Some(Token::Identifier("hello".to_string())));
         assert_eq!(lexer.next(), Some(Token::LeftParenthesis));
         assert_eq!(lexer.next(), Some(Token::RightParenthesis));
         assert_eq!(lexer.next(), Some(Token::LeftBracket));
@@ -179,14 +194,12 @@ mod tests {
         let mut lexer = Token::lexer("fn hello() { return 5; }");
 
         assert_eq!(lexer.next(), Some(Token::Function));
-        assert_eq!(lexer.next(), Some(Token::Identifier));
-        assert_eq!(lexer.slice(), "hello");
+        assert_eq!(lexer.next(), Some(Token::Identifier("hello".to_string())));
         assert_eq!(lexer.next(), Some(Token::LeftParenthesis));
         assert_eq!(lexer.next(), Some(Token::RightParenthesis));
         assert_eq!(lexer.next(), Some(Token::LeftBracket));
         assert_eq!(lexer.next(), Some(Token::Return));
-        assert_eq!(lexer.next(), Some(Token::Number));
-        assert_eq!(lexer.slice(), "5");
+        assert_eq!(lexer.next(), Some(Token::Number(5)));
         assert_eq!(lexer.next(), Some(Token::Semicolon));
         assert_eq!(lexer.next(), Some(Token::RightBracket));
     }
@@ -196,8 +209,7 @@ mod tests {
         let mut lexer = Token::lexer("import my_module;");
 
         assert_eq!(lexer.next(), Some(Token::Import));
-        assert_eq!(lexer.next(), Some(Token::Identifier));
-        assert_eq!(lexer.slice(), "my_module");
+        assert_eq!(lexer.next(), Some(Token::Identifier("my_module".to_string())));
         assert_eq!(lexer.next(), Some(Token::Semicolon));
     }
 
@@ -206,8 +218,7 @@ mod tests {
         let mut lexer = Token::lexer("print hey;");
 
         assert_eq!(lexer.next(), Some(Token::Print));
-        assert_eq!(lexer.next(), Some(Token::Identifier));
-        assert_eq!(lexer.slice(), "hey");
+        assert_eq!(lexer.next(), Some(Token::Identifier("hey".to_string())));
         assert_eq!(lexer.next(), Some(Token::Semicolon));
     }
 
@@ -275,70 +286,55 @@ mod tests {
     fn plus_test() {
         let mut lexer = Token::lexer("1 + 3 + 42");
 
-        assert_eq!(lexer.next(), Some(Token::Number));
-        assert_eq!(lexer.slice(), "1");
+        assert_eq!(lexer.next(), Some(Token::Number(1)));
         assert_eq!(lexer.next(), Some(Token::Plus));
-        assert_eq!(lexer.next(), Some(Token::Number));
-        assert_eq!(lexer.slice(), "3");
+        assert_eq!(lexer.next(), Some(Token::Number(3)));
         assert_eq!(lexer.next(), Some(Token::Plus));
-        assert_eq!(lexer.next(), Some(Token::Number));
-        assert_eq!(lexer.slice(), "42");
+        assert_eq!(lexer.next(), Some(Token::Number(42)));
     }
 
     #[test]
     fn minus_test() {
         let mut lexer = Token::lexer("1 - 3-42");
 
-        assert_eq!(lexer.next(), Some(Token::Number));
-        assert_eq!(lexer.slice(), "1");
+        assert_eq!(lexer.next(), Some(Token::Number(1)));
         assert_eq!(lexer.next(), Some(Token::Minus));
-        assert_eq!(lexer.next(), Some(Token::Number));
-        assert_eq!(lexer.slice(), "3");
+        assert_eq!(lexer.next(), Some(Token::Number(3)));
         assert_eq!(lexer.next(), Some(Token::Minus));
-        assert_eq!(lexer.next(), Some(Token::Number));
-        assert_eq!(lexer.slice(), "42");
+        assert_eq!(lexer.next(), Some(Token::Number(42)));
     }
 
     #[test]
     fn multiply_test() {
         let mut lexer = Token::lexer("1 * 3*42");
 
-        assert_eq!(lexer.next(), Some(Token::Number));
-        assert_eq!(lexer.slice(), "1");
+        assert_eq!(lexer.next(), Some(Token::Number(1)));
         assert_eq!(lexer.next(), Some(Token::Multiply));
-        assert_eq!(lexer.next(), Some(Token::Number));
-        assert_eq!(lexer.slice(), "3");
+        assert_eq!(lexer.next(), Some(Token::Number(3)));
         assert_eq!(lexer.next(), Some(Token::Multiply));
-        assert_eq!(lexer.next(), Some(Token::Number));
-        assert_eq!(lexer.slice(), "42");
+        assert_eq!(lexer.next(), Some(Token::Number(42)));
     }
 
     #[test]
     fn divide_test() {
         let mut lexer = Token::lexer("1 / 3/42");
 
-        assert_eq!(lexer.next(), Some(Token::Number));
-        assert_eq!(lexer.slice(), "1");
+        assert_eq!(lexer.next(), Some(Token::Number(1)));
         assert_eq!(lexer.next(), Some(Token::Divide));
-        assert_eq!(lexer.next(), Some(Token::Number));
-        assert_eq!(lexer.slice(), "3");
+        assert_eq!(lexer.next(), Some(Token::Number(3)));
         assert_eq!(lexer.next(), Some(Token::Divide));
-        assert_eq!(lexer.next(), Some(Token::Number));
-        assert_eq!(lexer.slice(), "42");
+        assert_eq!(lexer.next(), Some(Token::Number(42)));
     }
 
     #[test]
     fn modulo_test() {
         let mut lexer = Token::lexer("1 % 3%42");
 
-        assert_eq!(lexer.next(), Some(Token::Number));
-        assert_eq!(lexer.slice(), "1");
+        assert_eq!(lexer.next(), Some(Token::Number(1)));
         assert_eq!(lexer.next(), Some(Token::Modulo));
-        assert_eq!(lexer.next(), Some(Token::Number));
-        assert_eq!(lexer.slice(), "3");
+        assert_eq!(lexer.next(), Some(Token::Number(3)));
         assert_eq!(lexer.next(), Some(Token::Modulo));
-        assert_eq!(lexer.next(), Some(Token::Number));
-        assert_eq!(lexer.slice(), "42");
+        assert_eq!(lexer.next(), Some(Token::Number(42)));
     }
 
     #[test]
@@ -377,37 +373,32 @@ mod tests {
         let mut lexer = Token::lexer("let my_super_variable");
 
         assert_eq!(lexer.next(), Some(Token::Let));
-        assert_eq!(lexer.next(), Some(Token::Identifier));
-        assert_eq!(lexer.slice(), "my_super_variable");
+        assert_eq!(lexer.next(), Some(Token::Identifier("my_super_variable".to_string())));
     }
 
     #[test]
     fn number_test() {
         let mut lexer = Token::lexer("1442");
 
-        assert_eq!(lexer.next(), Some(Token::Number));
-        assert_eq!(lexer.slice(), "1442");
+        assert_eq!(lexer.next(), Some(Token::Number(1442)));
     }
 
     #[test]
     fn real_test() {
         let mut lexer = Token::lexer("3.14");
 
-        assert_eq!(lexer.next(), Some(Token::Real));
-        assert_eq!(lexer.slice(), "3.14");
+        assert_eq!(lexer.next(), Some(Token::Real(3.14)));
     }
 
     #[test]
     fn colon_test() {
         let mut lexer = Token::lexer("let my_var: int = 4;");
         assert_eq!(lexer.next(), Some(Token::Let));
-        assert_eq!(lexer.next(), Some(Token::Identifier));
-        assert_eq!(lexer.slice(), "my_var");
+        assert_eq!(lexer.next(), Some(Token::Identifier("my_var".to_string())));
         assert_eq!(lexer.next(), Some(Token::Colon));
         assert_eq!(lexer.next(), Some(Token::Integer));
         assert_eq!(lexer.next(), Some(Token::Equal));
-        assert_eq!(lexer.next(), Some(Token::Number));
-        assert_eq!(lexer.slice(), "4");
+        assert_eq!(lexer.next(), Some(Token::Number(4)));
         assert_eq!(lexer.next(), Some(Token::Semicolon));
     }
 
@@ -415,13 +406,11 @@ mod tests {
     fn float_test() {
         let mut lexer = Token::lexer("let pi: float = 3.14;");
         assert_eq!(lexer.next(), Some(Token::Let));
-        assert_eq!(lexer.next(), Some(Token::Identifier));
-        assert_eq!(lexer.slice(), "pi");
+        assert_eq!(lexer.next(), Some(Token::Identifier("pi".to_string())));
         assert_eq!(lexer.next(), Some(Token::Colon));
         assert_eq!(lexer.next(), Some(Token::Float));
         assert_eq!(lexer.next(), Some(Token::Equal));
-        assert_eq!(lexer.next(), Some(Token::Real));
-        assert_eq!(lexer.slice(), "3.14");
+        assert_eq!(lexer.next(), Some(Token::Real(3.14)));
         assert_eq!(lexer.next(), Some(Token::Semicolon));
     }
 
@@ -429,8 +418,7 @@ mod tests {
     fn bool_test() {
         let mut lexer = Token::lexer("let truth: bool = true;");
         assert_eq!(lexer.next(), Some(Token::Let));
-        assert_eq!(lexer.next(), Some(Token::Identifier));
-        assert_eq!(lexer.slice(), "truth");
+        assert_eq!(lexer.next(), Some(Token::Identifier("truth".to_string())));
         assert_eq!(lexer.next(), Some(Token::Colon));
         assert_eq!(lexer.next(), Some(Token::Bool));
         assert_eq!(lexer.next(), Some(Token::Equal));
