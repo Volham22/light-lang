@@ -49,7 +49,12 @@ impl Parser {
         let mut left = self.term()?;
 
         loop {
-            match self.expect_tokens(&[Token::Less, Token::More, Token::LessEqual, Token::MoreEqual]) {
+            match self.expect_tokens(&[
+                Token::Less,
+                Token::More,
+                Token::LessEqual,
+                Token::MoreEqual,
+            ]) {
                 Some(Token::Less) => {
                     let right = self.term()?;
                     left = Expression::Less(Box::new(left), Box::new(right));
@@ -144,7 +149,7 @@ impl Parser {
                 }
 
                 Err(())
-            },
+            }
         }
     }
 }
