@@ -60,8 +60,7 @@ impl Parser {
     }
 
     pub fn is_at_the_end(&self) -> bool {
-        self.current_token >= self.lexer.len()
-            || self.lexer[self.current_token] == Token::EndOfFile
+        self.current_token >= self.lexer.len() || self.lexer[self.current_token] == Token::EndOfFile
     }
 
     pub fn advance(&mut self) -> Option<&Token> {

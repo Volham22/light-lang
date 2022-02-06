@@ -209,7 +209,10 @@ mod tests {
         let mut lexer = Token::lexer("import my_module;");
 
         assert_eq!(lexer.next(), Some(Token::Import));
-        assert_eq!(lexer.next(), Some(Token::Identifier("my_module".to_string())));
+        assert_eq!(
+            lexer.next(),
+            Some(Token::Identifier("my_module".to_string()))
+        );
         assert_eq!(lexer.next(), Some(Token::Semicolon));
     }
 
@@ -373,7 +376,10 @@ mod tests {
         let mut lexer = Token::lexer("let my_super_variable");
 
         assert_eq!(lexer.next(), Some(Token::Let));
-        assert_eq!(lexer.next(), Some(Token::Identifier("my_super_variable".to_string())));
+        assert_eq!(
+            lexer.next(),
+            Some(Token::Identifier("my_super_variable".to_string()))
+        );
     }
 
     #[test]
