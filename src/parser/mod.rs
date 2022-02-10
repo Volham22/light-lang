@@ -1,3 +1,5 @@
 mod expression_parser;
-pub mod parser;
 mod visitors;
+
+pub mod ast_printer;
+pub mod parser;
