@@ -1,6 +1,9 @@
 use crate::lexer::Token;
 
-use super::{parser::Parser, visitors::Expression};
+use super::{
+    parser::Parser,
+    visitors::{Binary, BinaryLogic, Expression, Group, Literal, Unary},
+};
 
 impl Parser {
     pub fn or(&mut self) -> Result<Expression, ()> {
@@ -8,7 +11,7 @@ impl Parser {
 
         while let Some(Token::Or) = self.expect(&Token::Or) {
             let right = self.and()?;
-            left = Expression::Or(Box::new(left), Box::new(right));
+            left = Expression::BinaryLogic(BinaryLogic::Or(Box::new(left), Box::new(right)));
         }
 
         Ok(left)
@@ -19,7 +22,7 @@ impl Parser {
 
         while let Some(Token::And) = self.expect(&Token::And) {
             let right = self.equality()?;
-            left = Expression::And(Box::new(left), Box::new(right));
+            left = Expression::BinaryLogic(BinaryLogic::And(Box::new(left), Box::new(right)));
         }
 
         Ok(left)
@@ -32,11 +35,17 @@ impl Parser {
             match self.expect_tokens(&[Token::Equality, Token::NegEquality]) {
                 Some(Token::Equal) => {
                     let right = self.equality()?;
-                    left = Expression::Equal(Box::new(left), Box::new(right));
+                    left = Expression::BinaryLogic(BinaryLogic::Equal(
+                        Box::new(left),
+                        Box::new(right),
+                    ));
                 }
                 Some(Token::NegEquality) => {
                     let right = self.equality()?;
-                    left = Expression::NotEqual(Box::new(left), Box::new(right));
+                    left = Expression::BinaryLogic(BinaryLogic::NotEqual(
+                        Box::new(left),
+                        Box::new(right),
+                    ));
                 }
                 _ => break,
             }
@@ -57,19 +66,27 @@ impl Parser {
             ]) {
                 Some(Token::Less) => {
                     let right = self.term()?;
-                    left = Expression::Less(Box::new(left), Box::new(right));
+                    left =
+                        Expression::BinaryLogic(BinaryLogic::Less(Box::new(left), Box::new(right)));
                 }
                 Some(Token::More) => {
                     let right = self.term()?;
-                    left = Expression::More(Box::new(left), Box::new(right));
+                    left =
+                        Expression::BinaryLogic(BinaryLogic::More(Box::new(left), Box::new(right)));
                 }
                 Some(Token::LessEqual) => {
                     let right = self.term()?;
-                    left = Expression::LessEqual(Box::new(left), Box::new(right));
+                    left = Expression::BinaryLogic(BinaryLogic::LessEqual(
+                        Box::new(left),
+                        Box::new(right),
+                    ));
                 }
                 Some(Token::MoreEqual) => {
                     let right = self.term()?;
-                    left = Expression::MoreEqual(Box::new(left), Box::new(right));
+                    left = Expression::BinaryLogic(BinaryLogic::MoreEqual(
+                        Box::new(left),
+                        Box::new(right),
+                    ));
                 }
                 _ => break,
             }
@@ -85,11 +102,11 @@ impl Parser {
             match self.expect_tokens(&[Token::Plus, Token::Minus]) {
                 Some(Token::Plus) => {
                     let right = self.factor()?;
-                    left = Expression::Plus(Box::new(left), Box::new(right));
+                    left = Expression::Binary(Binary::Plus(Box::new(left), Box::new(right)));
                 }
                 Some(Token::Minus) => {
                     let right = self.factor()?;
-                    left = Expression::Minus(Box::new(left), Box::new(right));
+                    left = Expression::Binary(Binary::Minus(Box::new(left), Box::new(right)));
                 }
                 _ => break,
             }
@@ -105,15 +122,15 @@ impl Parser {
             match self.expect_tokens(&[Token::Multiply, Token::Divide, Token::Modulo]) {
                 Some(Token::Multiply) => {
                     let right = self.unary()?;
-                    left = Expression::Multiply(Box::new(left), Box::new(right));
+                    left = Expression::Binary(Binary::Multiply(Box::new(left), Box::new(right)));
                 }
                 Some(Token::Divide) => {
                     let right = self.unary()?;
-                    left = Expression::Divide(Box::new(left), Box::new(right));
+                    left = Expression::Binary(Binary::Divide(Box::new(left), Box::new(right)));
                 }
                 Some(Token::Modulo) => {
                     let right = self.unary()?;
-                    left = Expression::Modulo(Box::new(left), Box::new(right));
+                    left = Expression::Binary(Binary::Modulo(Box::new(left), Box::new(right)));
                 }
                 _ => break,
             }
@@ -126,8 +143,8 @@ impl Parser {
         let expr = self.primary()?;
 
         match self.expect_tokens(&[Token::Minus, Token::Not]) {
-            Some(Token::Minus) => Ok(Expression::Negate(Box::new(expr))),
-            Some(Token::Not) => Ok(Expression::Not(Box::new(expr))),
+            Some(Token::Minus) => Ok(Expression::Unary(Unary::Negate(Box::new(expr)))),
+            Some(Token::Not) => Ok(Expression::Unary(Unary::Not(Box::new(expr)))),
             _ => Ok(expr),
         }
     }
@@ -136,11 +153,13 @@ impl Parser {
         let token = self.advance();
 
         match token {
-            Some(Token::True) => Ok(Expression::Bool(true)),
-            Some(Token::False) => Ok(Expression::Bool(false)),
-            Some(Token::Number(value)) => Ok(Expression::Number(*value)),
-            Some(Token::Real(value)) => Ok(Expression::Real(*value)),
-            Some(Token::Identifier(value)) => Ok(Expression::Identifier(value.to_string())),
+            Some(Token::True) => Ok(Expression::Literal(Literal::Bool(true))),
+            Some(Token::False) => Ok(Expression::Literal(Literal::Bool(false))),
+            Some(Token::Number(value)) => Ok(Expression::Literal(Literal::Number(*value))),
+            Some(Token::Real(value)) => Ok(Expression::Literal(Literal::Real(*value))),
+            Some(Token::Identifier(value)) => {
+                Ok(Expression::Literal(Literal::Identifier(value.to_string())))
+            }
             Some(Token::LeftParenthesis) => {
                 let inner_expr = self.or()?;
 
@@ -148,7 +167,9 @@ impl Parser {
                     return Err(());
                 }
 
-                Ok(Expression::Group(Box::new(inner_expr)))
+                Ok(Expression::Group(Group {
+                    inner_expression: Box::new(inner_expr),
+                }))
             }
             _ => {
                 if let Some(t) = token {
