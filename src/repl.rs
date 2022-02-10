@@ -3,6 +3,7 @@ use std::io::{self, BufRead, Write};
 use logos::Logos;
 
 use crate::lexer::Token;
+use crate::parser::ast_printer::print_expression;
 use crate::parser::parser::Parser;
 
 fn show_repl() {
@@ -20,8 +21,11 @@ pub fn repl_loop() {
             let tokens = lexer.collect();
             let mut parser = Parser::new(tokens);
 
-            if parser.parse() {
+            if let Some(expr) = parser.parse() {
+                print_expression(&expr);
                 println!("OK");
+            } else {
+                println!("Error!");
             }
         } else {
             panic!("{}", line.unwrap_err());

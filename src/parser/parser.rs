@@ -1,5 +1,7 @@
 use crate::lexer::Token;
 
+use super::visitors::Expression;
+
 pub struct Parser {
     pub lexer: Vec<Token>,
     current_token: usize,
@@ -13,15 +15,11 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> bool {
-        loop {
-            if self.or().is_err() {
-                return false;
-            }
-
-            if self.is_at_the_end() {
-                return true;
-            }
+    pub fn parse(&mut self) -> Option<Expression> {
+        if let Ok(ret) = self.or() {
+            Some(ret)
+        } else {
+            None
         }
     }
 
