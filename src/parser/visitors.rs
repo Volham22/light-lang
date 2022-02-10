@@ -12,6 +12,7 @@ pub enum Expression {
     Modulo(Box<Expression>, Box<Expression>),
 
     // Logic
+    Group(Box<Expression>),
     And(Box<Expression>, Box<Expression>),
     Or(Box<Expression>, Box<Expression>),
     Not(Box<Expression>),
