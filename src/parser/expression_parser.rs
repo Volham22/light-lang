@@ -141,6 +141,15 @@ impl Parser {
             Some(Token::Number(value)) => Ok(Expression::Number(*value)),
             Some(Token::Real(value)) => Ok(Expression::Real(*value)),
             Some(Token::Identifier(value)) => Ok(Expression::Identifier(value.to_string())),
+            Some(Token::LeftParenthesis) => {
+                let inner_expr = self.or()?;
+
+                if !self.consume(&Token::RightParenthesis, "Unclosed parenthesis.") {
+                    return Err(());
+                }
+
+                Ok(Expression::Group(Box::new(inner_expr)))
+            }
             _ => {
                 if let Some(t) = token {
                     println!("Error: Unexpected {:?}", t);

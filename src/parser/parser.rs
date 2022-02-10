@@ -74,4 +74,19 @@ impl Parser {
     pub fn previous(&self) -> Option<&Token> {
         Some(&self.lexer[self.current_token - 1])
     }
+
+    pub fn consume(&mut self, token: &Token, error_message: &str) -> bool {
+        if !self.check(token) {
+            println!("Error: {}", error_message);
+            return false;
+        }
+
+        self.advance();
+
+        true
+    }
+
+    fn check(&self, token: &Token) -> bool {
+        !self.is_at_the_end() && self.lexer[self.current_token] == *token
+    }
 }
