@@ -140,12 +140,10 @@ impl Parser {
     }
 
     fn unary(&mut self) -> Result<Expression, ()> {
-        let expr = self.primary()?;
-
         match self.expect_tokens(&[Token::Minus, Token::Not]) {
-            Some(Token::Minus) => Ok(Expression::Unary(Unary::Negate(Box::new(expr)))),
-            Some(Token::Not) => Ok(Expression::Unary(Unary::Not(Box::new(expr)))),
-            _ => Ok(expr),
+            Some(Token::Minus) => Ok(Expression::Unary(Unary::Negate(Box::new(self.primary()?)))),
+            Some(Token::Not) => Ok(Expression::Unary(Unary::Not(Box::new(self.primary()?)))),
+            _ => Ok(self.primary()?),
         }
     }
 
