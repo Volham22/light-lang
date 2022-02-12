@@ -6,6 +6,7 @@ use crate::generation::ir_generator::generate_ir_code_jit;
 use crate::lexer::Token;
 use crate::parser::ast_printer::print_expression;
 use crate::parser::parser::Parser;
+use crate::type_system::type_check::check_expression_type;
 
 fn show_repl() {
     print!("=> ");
@@ -24,8 +25,12 @@ pub fn repl_loop() {
 
             if let Some(expr) = parser.parse() {
                 print_expression(&expr);
-                generate_ir_code_jit(&expr);
-                println!("OK");
+                if let Err(msg) = check_expression_type(&expr) {
+                    println!("Error: {}", msg);
+                } else {
+                    generate_ir_code_jit(&expr);
+                    println!("OK");
+                }
             } else {
                 println!("Error!");
             }

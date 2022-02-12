@@ -1,6 +1,7 @@
 use crate::parser::visitors::{
     Binary, BinaryLogic, Expression, ExpressionVisitor, Group, Literal, Unary,
 };
+
 use inkwell::{
     builder::Builder,
     context::Context,
