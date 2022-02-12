@@ -2,6 +2,7 @@ use std::io::{self, BufRead, Write};
 
 use logos::Logos;
 
+use crate::generation::ir_generator::generate_ir_code_jit;
 use crate::lexer::Token;
 use crate::parser::ast_printer::print_expression;
 use crate::parser::parser::Parser;
@@ -23,6 +24,7 @@ pub fn repl_loop() {
 
             if let Some(expr) = parser.parse() {
                 print_expression(&expr);
+                generate_ir_code_jit(&expr);
                 println!("OK");
             } else {
                 println!("Error!");
