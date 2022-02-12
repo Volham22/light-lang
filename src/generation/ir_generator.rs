@@ -1,13 +1,17 @@
-use crate::parser::visitors::{
-    Binary, BinaryLogic, Expression, ExpressionVisitor, Group, Literal, Unary,
+use std::fmt::Display;
+
+use crate::{
+    parser::visitors::{Binary, BinaryLogic, Expression, ExpressionVisitor, Group, Literal, Unary},
+    type_system::type_check::ValueType,
 };
 
 use inkwell::{
     builder::Builder,
     context::Context,
+    execution_engine::ExecutionEngine,
     module::Module,
-    values::{AnyValue, AnyValueEnum, FunctionValue, IntValue},
-    IntPredicate, OptimizationLevel,
+    values::{AnyValue, AnyValueEnum, FloatValue, FunctionValue, IntValue},
+    FloatPredicate, IntPredicate, OptimizationLevel,
 };
 
 struct IRGenerator<'a> {
@@ -17,7 +21,7 @@ struct IRGenerator<'a> {
 }
 
 impl<'a> IRGenerator<'a> {
-    pub fn generate_expression_ir(&mut self, expression: &Expression) {
+    pub fn generate_expression_ir(&mut self, expression: &Expression) -> ValueType {
         let function = self.generate_anonymous_function();
         let block = self.context.append_basic_block(function, "entry");
         self.builder.position_at_end(block);
@@ -30,7 +34,17 @@ impl<'a> IRGenerator<'a> {
             Expression::Unary(unary) => self.visit_unary(&unary),
         };
 
-        self.builder.build_return(Some(&body.into_int_value()));
+        match body {
+            AnyValueEnum::IntValue(_) => {
+                self.builder.build_return(Some(&body.into_int_value()));
+                ValueType::Number
+            }
+            AnyValueEnum::FloatValue(_) => {
+                self.builder.build_return(Some(&body.into_float_value()));
+                ValueType::Real
+            }
+            _ => todo!("Expression must return Real or Number!"),
+        }
     }
 
     pub fn print_code(&self) {
@@ -51,6 +65,13 @@ impl<'a> IRGenerator<'a> {
         match value {
             AnyValueEnum::IntValue(value) => value,
             _ => panic!("Expected IntValue to unpack!"),
+        }
+    }
+
+    fn get_float_value(&self, value: AnyValueEnum<'a>) -> FloatValue<'a> {
+        match value {
+            AnyValueEnum::FloatValue(value) => value,
+            _ => panic!("Expected FloatValue to unpack!"),
         }
     }
 
@@ -90,61 +111,81 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
                 let left = self.visit_expr(l);
                 let right = self.visit_expr(r);
 
-                self.builder
-                    .build_int_add(
-                        self.get_int_value(left),
-                        self.get_int_value(right),
-                        "tmpadd",
-                    )
-                    .as_any_value_enum()
+                match left {
+                    AnyValueEnum::IntValue(left) => self
+                        .builder
+                        .build_int_add(left, self.get_int_value(right), "tmpiadd")
+                        .as_any_value_enum(),
+                    AnyValueEnum::FloatValue(left) => self
+                        .builder
+                        .build_float_add(left, self.get_float_value(right), "tmpfadd")
+                        .as_any_value_enum(),
+                    _ => panic!("Adding other thing than numeric values! Type checker failed?"),
+                }
             }
             Binary::Minus(l, r) => {
                 let left = self.visit_expr(l);
                 let right = self.visit_expr(r);
 
-                self.builder
-                    .build_int_sub(
-                        self.get_int_value(left),
-                        self.get_int_value(right),
-                        "tmpadd",
-                    )
-                    .as_any_value_enum()
+                match left {
+                    AnyValueEnum::IntValue(left) => self
+                        .builder
+                        .build_int_sub(left, self.get_int_value(right), "tmpisub")
+                        .as_any_value_enum(),
+                    AnyValueEnum::FloatValue(left) => self
+                        .builder
+                        .build_float_sub(left, self.get_float_value(right), "tmpfsub")
+                        .as_any_value_enum(),
+                    _ => panic!("Adding other thing than numeric values! Type checker failed?"),
+                }
             }
             Binary::Multiply(l, r) => {
                 let left = self.visit_expr(l);
                 let right = self.visit_expr(r);
 
-                self.builder
-                    .build_int_mul(
-                        self.get_int_value(left),
-                        self.get_int_value(right),
-                        "tmpadd",
-                    )
-                    .as_any_value_enum()
+                match left {
+                    AnyValueEnum::IntValue(left) => self
+                        .builder
+                        .build_int_mul(left, self.get_int_value(right), "tmpimul")
+                        .as_any_value_enum(),
+                    AnyValueEnum::FloatValue(left) => self
+                        .builder
+                        .build_float_mul(left, self.get_float_value(right), "tmpfmul")
+                        .as_any_value_enum(),
+                    _ => panic!("Sub other thing than numeric values! Type checker failed?"),
+                }
             }
             Binary::Divide(l, r) => {
                 let left = self.visit_expr(l);
                 let right = self.visit_expr(r);
 
-                self.builder
-                    .build_int_signed_div(
-                        self.get_int_value(left),
-                        self.get_int_value(right),
-                        "tmpadd",
-                    )
-                    .as_any_value_enum()
+                match left {
+                    AnyValueEnum::IntValue(left) => self
+                        .builder
+                        .build_int_signed_div(left, self.get_int_value(right), "tmpidiv")
+                        .as_any_value_enum(),
+                    AnyValueEnum::FloatValue(left) => self
+                        .builder
+                        .build_float_div(left, self.get_float_value(right), "tmpfdiv")
+                        .as_any_value_enum(),
+                    _ => panic!("Dividing other thing than numeric values! Type checker failed?"),
+                }
             }
             Binary::Modulo(l, r) => {
                 let left = self.visit_expr(l);
                 let right = self.visit_expr(r);
 
-                self.builder
-                    .build_int_signed_rem(
-                        self.get_int_value(left),
-                        self.get_int_value(right),
-                        "tmpadd",
-                    )
-                    .as_any_value_enum()
+                match left {
+                    AnyValueEnum::IntValue(left) => self
+                        .builder
+                        .build_int_signed_rem(left, self.get_int_value(right), "tmpimul")
+                        .as_any_value_enum(),
+                    AnyValueEnum::FloatValue(left) => self
+                        .builder
+                        .build_float_rem(left, self.get_float_value(right), "tmpfmul")
+                        .as_any_value_enum(),
+                    _ => panic!("Rem other thing than numeric values! Type checker failed?"),
+                }
             }
         }
     }
@@ -179,79 +220,157 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
                 let left = self.visit_expr(l);
                 let right = self.visit_expr(r);
 
-                self.builder
-                    .build_int_compare(
-                        IntPredicate::EQ,
-                        self.get_int_value(left),
-                        self.get_int_value(right),
-                        "tmpieq",
-                    )
-                    .as_any_value_enum()
+                match left {
+                    AnyValueEnum::IntValue(val) => self
+                        .builder
+                        .build_int_compare(
+                            IntPredicate::EQ,
+                            val,
+                            self.get_int_value(right),
+                            "tmpieq",
+                        )
+                        .as_any_value_enum(),
+                    AnyValueEnum::FloatValue(val) => self
+                        .builder
+                        .build_float_compare(
+                            FloatPredicate::OEQ,
+                            val,
+                            self.get_float_value(right),
+                            "tmpfeq",
+                        )
+                        .as_any_value_enum(),
+                    _ => panic!("Cannot apply equal on non Number values! Type checker failed?"),
+                }
             }
             BinaryLogic::NotEqual(l, r) => {
                 let left = self.visit_expr(l);
                 let right = self.visit_expr(r);
 
-                self.builder
-                    .build_int_compare(
-                        IntPredicate::NE,
-                        self.get_int_value(left),
-                        self.get_int_value(right),
-                        "tmpineq",
-                    )
-                    .as_any_value_enum()
+                match left {
+                    AnyValueEnum::IntValue(val) => self
+                        .builder
+                        .build_int_compare(
+                            IntPredicate::NE,
+                            val,
+                            self.get_int_value(right),
+                            "tmpineq",
+                        )
+                        .as_any_value_enum(),
+                    AnyValueEnum::FloatValue(val) => self
+                        .builder
+                        .build_float_compare(
+                            FloatPredicate::ONE,
+                            val,
+                            self.get_float_value(right),
+                            "tmpfneq",
+                        )
+                        .as_any_value_enum(),
+                    _ => panic!("Cannot apply equal on non Number values! Type checker failed?"),
+                }
             }
             BinaryLogic::More(l, r) => {
                 let left = self.visit_expr(l);
                 let right = self.visit_expr(r);
 
-                self.builder
-                    .build_int_compare(
-                        IntPredicate::SGT,
-                        self.get_int_value(left),
-                        self.get_int_value(right),
-                        "tmpimore",
-                    )
-                    .as_any_value_enum()
+                match left {
+                    AnyValueEnum::IntValue(val) => self
+                        .builder
+                        .build_int_compare(
+                            IntPredicate::SGT,
+                            val,
+                            self.get_int_value(right),
+                            "tmpimore",
+                        )
+                        .as_any_value_enum(),
+                    AnyValueEnum::FloatValue(val) => self
+                        .builder
+                        .build_float_compare(
+                            FloatPredicate::OGT,
+                            val,
+                            self.get_float_value(right),
+                            "tmpfmore",
+                        )
+                        .as_any_value_enum(),
+                    _ => panic!("Cannot apply equal on non Number values! Type checker failed?"),
+                }
             }
             BinaryLogic::Less(l, r) => {
                 let left = self.visit_expr(l);
                 let right = self.visit_expr(r);
 
-                self.builder
-                    .build_int_compare(
-                        IntPredicate::SLT,
-                        self.get_int_value(left),
-                        self.get_int_value(right),
-                        "tmpiless",
-                    )
-                    .as_any_value_enum()
+                match left {
+                    AnyValueEnum::IntValue(val) => self
+                        .builder
+                        .build_int_compare(
+                            IntPredicate::SLT,
+                            val,
+                            self.get_int_value(right),
+                            "tmpiless",
+                        )
+                        .as_any_value_enum(),
+                    AnyValueEnum::FloatValue(val) => self
+                        .builder
+                        .build_float_compare(
+                            FloatPredicate::OLT,
+                            val,
+                            self.get_float_value(right),
+                            "tmpfless",
+                        )
+                        .as_any_value_enum(),
+                    _ => panic!("Cannot apply equal on non Number values! Type checker failed?"),
+                }
             }
             BinaryLogic::MoreEqual(l, r) => {
                 let left = self.visit_expr(l);
                 let right = self.visit_expr(r);
 
-                self.builder
-                    .build_int_compare(
-                        IntPredicate::SGE,
-                        self.get_int_value(left),
-                        self.get_int_value(right),
-                        "tmpimoreequal",
-                    )
-                    .as_any_value_enum()
+                match left {
+                    AnyValueEnum::IntValue(val) => self
+                        .builder
+                        .build_int_compare(
+                            IntPredicate::SGE,
+                            val,
+                            self.get_int_value(right),
+                            "tmpimoreequal",
+                        )
+                        .as_any_value_enum(),
+                    AnyValueEnum::FloatValue(val) => self
+                        .builder
+                        .build_float_compare(
+                            FloatPredicate::OGE,
+                            val,
+                            self.get_float_value(right),
+                            "tmpfmoreequal",
+                        )
+                        .as_any_value_enum(),
+                    _ => panic!("Cannot apply equal on non Number values! Type checker failed?"),
+                }
             }
             BinaryLogic::LessEqual(l, r) => {
                 let left = self.visit_expr(l);
                 let right = self.visit_expr(r);
 
-                self.builder
-                    .build_int_compare(
-                        IntPredicate::SLE,
-                        self.get_int_value(left),
-                        self.get_int_value(right),
-                        "tmplessequal",
-                    )
-                    .as_any_value_enum()
+                match left {
+                    AnyValueEnum::IntValue(val) => self
+                        .builder
+                        .build_int_compare(
+                            IntPredicate::SLE,
+                            val,
+                            self.get_int_value(right),
+                            "tmpilessequal",
+                        )
+                        .as_any_value_enum(),
+                    AnyValueEnum::FloatValue(val) => self
+                        .builder
+                        .build_float_compare(
+                            FloatPredicate::OLE,
+                            val,
+                            self.get_float_value(right),
+                            "tmpflessequal",
+                        )
+                        .as_any_value_enum(),
+                    _ => panic!("Cannot apply equal on non Number values! Type checker failed?"),
+                }
             }
         }
     }
@@ -261,17 +380,42 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
             Unary::Not(expr) => {
                 let expr = self.visit_expr(expr);
 
-                self.builder
-                    .build_not(self.get_int_value(expr), "tmpnot")
-                    .as_any_value_enum()
+                match expr {
+                    AnyValueEnum::IntValue(val) => {
+                        self.builder.build_not(val, "tmpinot").as_any_value_enum()
+                    }
+                    _ => panic!("Cannot apply not on non Number values! Type checker failed?"),
+                }
             }
             Unary::Negate(expr) => {
                 let expr = self.visit_expr(expr);
 
-                self.builder
-                    .build_int_neg(self.get_int_value(expr), "tmpneg")
-                    .as_any_value_enum()
+                match expr {
+                    AnyValueEnum::IntValue(val) => self
+                        .builder
+                        .build_int_neg(val, "tmpineg")
+                        .as_any_value_enum(),
+                    AnyValueEnum::FloatValue(val) => self
+                        .builder
+                        .build_float_neg(val, "tmpfneg")
+                        .as_any_value_enum(),
+                    _ => panic!("Cannot apply negate on non numeric values! Type checker failed?"),
+                }
             }
+        }
+    }
+}
+
+unsafe fn execute_jit_function<'a, T: Display>(engine: &ExecutionEngine<'a>) {
+    let fct = engine.get_function::<unsafe extern "C" fn() -> T>("__anonymous_function");
+
+    match fct {
+        Ok(f) => {
+            let ret = f.call();
+            println!("-> {}", ret);
+        }
+        Err(msg) => {
+            println!("Execution failed: {}", msg);
         }
     }
 }
@@ -285,7 +429,7 @@ pub fn generate_ir_code_jit(expression: &Expression) {
         module: context.create_module("main"),
     };
 
-    generator.generate_expression_ir(expression);
+    let global_type = generator.generate_expression_ir(expression);
 
     println!("========== Generated IR ==========");
     generator.print_code();
@@ -295,20 +439,11 @@ pub fn generate_ir_code_jit(expression: &Expression) {
         .module
         .create_jit_execution_engine(OptimizationLevel::None)
         .unwrap();
-    let fct =
-        unsafe { engine.get_function::<unsafe extern "C" fn() -> i64>("__anonymous_function") };
 
     // IR to native host code
-    let compiled_fct = match fct {
-        Ok(f) => f,
-        Err(msg) => {
-            println!("Execution failed: {}", msg);
-            return;
-        }
-    };
-
-    unsafe {
-        let ret = compiled_fct.call();
-        println!("-> {}", ret);
+    match global_type {
+        ValueType::Number => unsafe { execute_jit_function::<i64>(&engine) },
+        ValueType::Real => unsafe { execute_jit_function::<f64>(&engine) },
+        ValueType::Bool => unsafe { execute_jit_function::<bool>(&engine) },
     };
 }

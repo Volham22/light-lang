@@ -132,7 +132,7 @@ impl ExpressionVisitor<TypeCheckerReturn> for TypeChecker {
 }
 
 pub fn check_expression_type(expression: &Expression) -> TypeCheckerReturn {
-    let mut checker = TypeChecker{};
+    let mut checker = TypeChecker {};
 
     Ok(checker.check_expr(expression)?)
 }
