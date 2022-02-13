@@ -29,7 +29,7 @@ impl Parser {
                 Some(Token::Type(t)) => *t,
                 _ => {
                     return Err(());
-                },
+                }
             };
 
             if let None = self.consume(&Token::Equal, "Expected '=' after typename.") {
