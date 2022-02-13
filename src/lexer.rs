@@ -1,6 +1,8 @@
 use logos::Logos;
 
-#[derive(Logos, Debug, PartialEq)]
+use crate::type_system::type_check::ValueType;
+
+#[derive(Logos, Debug)]
 pub enum Token {
     #[token("if")]
     If,
@@ -74,14 +76,8 @@ pub enum Token {
     False,
 
     // Light types
-    #[token("int")]
-    Integer,
-    #[token("float")]
-    Float,
-    #[token("bool")]
-    Bool,
-    #[token("string")]
-    String,
+    #[regex("(number)|(real)|(bool)|(string)", |lex| lex.slice().parse())]
+    Type(ValueType),
 
     #[regex(r"[0-9]+", |lex| lex.slice().parse())]
     Number(i64),
@@ -100,8 +96,63 @@ pub enum Token {
     Error,
 }
 
+impl PartialEq for Token {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Token::If, Token::If) => true,
+            (Token::While, Token::While) => true,
+            (Token::For, Token::For) => true,
+            (Token::Loop, Token::Loop) => true,
+            (Token::Let, Token::Let) => true,
+            (Token::Break, Token::Break) => true,
+            (Token::Continue, Token::Continue) => true,
+            (Token::Function, Token::Function) => true,
+            (Token::Return, Token::Return) => true,
+            (Token::Import, Token::Import) => true,
+            (Token::Print, Token::Print) => true,
+            (Token::Equal, Token::Equal) => true,
+            (Token::Plus, Token::Plus) => true,
+            (Token::Minus, Token::Minus) => true,
+            (Token::Multiply, Token::Multiply) => true,
+            (Token::Divide, Token::Divide) => true,
+            (Token::Modulo, Token::Modulo) => true,
+            (Token::Not, Token::Not) => true,
+            (Token::And, Token::And) => true,
+            (Token::Or, Token::Or) => true,
+            (Token::Equality, Token::Equality) => true,
+            (Token::NegEquality, Token::NegEquality) => true,
+            (Token::Less, Token::Less) => true,
+            (Token::More, Token::More) => true,
+            (Token::LessEqual, Token::LessEqual) => true,
+            (Token::MoreEqual, Token::MoreEqual) => true,
+            (Token::LeftBracket, Token::LeftBracket) => true,
+            (Token::RightBracket, Token::RightBracket) => true,
+            (Token::LeftParenthesis, Token::LeftParenthesis) => true,
+            (Token::RightParenthesis, Token::RightParenthesis) => true,
+            (Token::Comma, Token::Comma) => true,
+            (Token::Semicolon, Token::Semicolon) => true,
+            (Token::Colon, Token::Colon) => true,
+            (Token::True, Token::True) => true,
+            (Token::False, Token::False) => true,
+            (Token::Type(_), Token::Type(_)) => true,
+            (Token::Number(_), Token::Number(_)) => true,
+            (Token::Real(_), Token::Real(_)) => true,
+            (Token::Identifier(_), Token::Identifier(_)) => true,
+            (Token::EndOfFile, Token::EndOfFile) => true,
+            (Token::Error, Token::Error) => true,
+            _ => false,
+        }
+    }
+
+    fn ne(&self, other: &Self) -> bool {
+        !self.eq(other)
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use crate::type_system::type_check::ValueType;
+
     use super::Token;
     use logos::Logos;
 
@@ -398,11 +449,11 @@ mod tests {
 
     #[test]
     fn colon_test() {
-        let mut lexer = Token::lexer("let my_var: int = 4;");
+        let mut lexer = Token::lexer("let my_var: number = 4;");
         assert_eq!(lexer.next(), Some(Token::Let));
         assert_eq!(lexer.next(), Some(Token::Identifier("my_var".to_string())));
         assert_eq!(lexer.next(), Some(Token::Colon));
-        assert_eq!(lexer.next(), Some(Token::Integer));
+        assert_eq!(lexer.next(), Some(Token::Type(ValueType::Number)));
         assert_eq!(lexer.next(), Some(Token::Equal));
         assert_eq!(lexer.next(), Some(Token::Number(4)));
         assert_eq!(lexer.next(), Some(Token::Semicolon));
@@ -410,11 +461,11 @@ mod tests {
 
     #[test]
     fn float_test() {
-        let mut lexer = Token::lexer("let pi: float = 3.14;");
+        let mut lexer = Token::lexer("let pi: real = 3.14;");
         assert_eq!(lexer.next(), Some(Token::Let));
         assert_eq!(lexer.next(), Some(Token::Identifier("pi".to_string())));
         assert_eq!(lexer.next(), Some(Token::Colon));
-        assert_eq!(lexer.next(), Some(Token::Float));
+        assert_eq!(lexer.next(), Some(Token::Type(ValueType::Real)));
         assert_eq!(lexer.next(), Some(Token::Equal));
         assert_eq!(lexer.next(), Some(Token::Real(3.14)));
         assert_eq!(lexer.next(), Some(Token::Semicolon));
@@ -426,7 +477,7 @@ mod tests {
         assert_eq!(lexer.next(), Some(Token::Let));
         assert_eq!(lexer.next(), Some(Token::Identifier("truth".to_string())));
         assert_eq!(lexer.next(), Some(Token::Colon));
-        assert_eq!(lexer.next(), Some(Token::Bool));
+        assert_eq!(lexer.next(), Some(Token::Type(ValueType::Bool)));
         assert_eq!(lexer.next(), Some(Token::Equal));
         assert_eq!(lexer.next(), Some(Token::True));
         assert_eq!(lexer.next(), Some(Token::Semicolon));

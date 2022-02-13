@@ -445,5 +445,6 @@ pub fn generate_ir_code_jit(expression: &Expression) {
         ValueType::Number => unsafe { execute_jit_function::<i64>(&engine) },
         ValueType::Real => unsafe { execute_jit_function::<f64>(&engine) },
         ValueType::Bool => unsafe { execute_jit_function::<bool>(&engine) },
+        ValueType::String => todo!("String handling"),
     };
 }

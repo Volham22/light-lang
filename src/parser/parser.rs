@@ -1,6 +1,6 @@
 use crate::lexer::Token;
 
-use super::visitors::Expression;
+use super::visitors::Statement;
 
 pub struct Parser {
     pub lexer: Vec<Token>,
@@ -15,8 +15,8 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> Option<Expression> {
-        if let Ok(ret) = self.or() {
+    pub fn parse(&mut self) -> Option<Statement> {
+        if let Ok(ret) = self.parse_declaration_statement() {
             Some(ret)
         } else {
             None
@@ -73,18 +73,27 @@ impl Parser {
         Some(&self.lexer[self.current_token - 1])
     }
 
-    pub fn consume(&mut self, token: &Token, error_message: &str) -> bool {
+    pub fn consume(&mut self, token: &Token, error_message: &str) -> Option<&Token> {
         if !self.check(token) {
             println!("Error: {}", error_message);
-            return false;
+            return None;
         }
 
-        self.advance();
-
-        true
+        self.advance()
     }
 
-    fn check(&self, token: &Token) -> bool {
+    pub fn match_expr(&mut self, token_types: &[Token]) -> bool {
+        for t in token_types {
+            if self.check(t) {
+                self.advance();
+                return true;
+            }
+        }
+
+        false
+    }
+
+    pub fn check(&self, token: &Token) -> bool {
         !self.is_at_the_end() && self.lexer[self.current_token] == *token
     }
 }

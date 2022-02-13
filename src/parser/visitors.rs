@@ -1,3 +1,5 @@
+use crate::type_system::type_check::ValueType;
+
 pub enum Literal {
     Number(i64),
     Real(f64),
@@ -41,9 +43,28 @@ pub enum Expression {
     Unary(Unary),
 }
 
-// pub trait StatementVisitor<T> {
-//     fn visit_expression(&mut self, expr: Expression) -> T;
-// }
+pub struct VariableDeclaration {
+    pub identifier: String,
+    pub variable_type: ValueType,
+    pub init_expr: Expression,
+}
+
+pub struct VariableAssignment {
+    pub identifier: String,
+    pub new_value: Expression,
+}
+
+pub enum Statement {
+    Expression(Expression),
+    VariableDeclaration(VariableDeclaration),
+    VariableAssignment(VariableAssignment),
+}
+
+pub trait StatementVisitor<T> {
+    fn visit_expression_statement(&mut self, expr: &Expression) -> T;
+    fn visit_declaration_statement(&mut self, expr: &VariableDeclaration) -> T;
+    fn visit_assignment_statement(&mut self, expr: &VariableAssignment) -> T;
+}
 
 pub trait ExpressionVisitor<T> {
     fn visit_literal(&mut self, literal: &Literal) -> T;

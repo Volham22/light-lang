@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use crate::parser::visitors::{
     Binary, BinaryLogic, Expression, ExpressionVisitor, Group, Literal, Unary,
 };
@@ -7,11 +9,26 @@ pub enum ValueType {
     Number,
     Real,
     Bool,
+    String,
 }
 
 impl ValueType {
     fn is_compatible(ltype: ValueType, rtype: ValueType) -> bool {
         rtype == ltype
+    }
+}
+
+impl FromStr for ValueType {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "number" => Ok(ValueType::Number),
+            "real" => Ok(ValueType::Real),
+            "bool" => Ok(ValueType::Bool),
+            "string" => Ok(ValueType::String),
+            _ => Err("Unkown type"),
+        }
     }
 }
 

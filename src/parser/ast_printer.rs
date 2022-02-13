@@ -1,8 +1,19 @@
-use super::visitors::{Binary, BinaryLogic, Expression, ExpressionVisitor, Group, Literal, Unary};
+use super::visitors::{
+    Binary, BinaryLogic, Expression, ExpressionVisitor, Group, Literal, Statement,
+    StatementVisitor, Unary, VariableAssignment, VariableDeclaration,
+};
 
 struct AstPrinter;
 
 impl AstPrinter {
+    fn visit_stmt(&mut self, stmt: &Statement) {
+        match stmt {
+            Statement::Expression(expr) => self.visit_expression_statement(expr),
+            Statement::VariableDeclaration(decl) => self.visit_declaration_statement(decl),
+            Statement::VariableAssignment(assi) => self.visit_assignment_statement(assi),
+        }
+    }
+
     fn visit_expr(&mut self, expr: &Expression) {
         match expr {
             Expression::Literal(val) => self.visit_literal(val),
@@ -102,9 +113,30 @@ impl ExpressionVisitor<()> for AstPrinter {
     }
 }
 
-pub fn print_expression(expression: &Expression) {
-    print!("Expression: [");
+impl StatementVisitor<()> for AstPrinter {
+    fn visit_expression_statement(&mut self, expr: &Expression) -> () {
+        print!("Statement: [");
+        self.visit_expr(expr);
+        println!(" ]");
+    }
+
+    fn visit_declaration_statement(&mut self, expr: &VariableDeclaration) -> () {
+        print!(
+            "Declaration: [identifier: {}, typename: {:?}, init_expr: ",
+            expr.identifier, expr.variable_type
+        );
+        self.visit_expr(&expr.init_expr);
+        println!("] ");
+    }
+
+    fn visit_assignment_statement(&mut self, expr: &VariableAssignment) -> () {
+        print!("Assigment: [identifier: {}, new_expr: ", expr.identifier);
+        self.visit_expr(&expr.new_value);
+        println!("] ");
+    }
+}
+
+pub fn print_ast(stmt: &Statement) {
     let mut printer = AstPrinter {};
-    printer.visit_expr(expression);
-    print!("]\n");
+    printer.visit_stmt(stmt);
 }
