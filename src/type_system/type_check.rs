@@ -1,8 +1,8 @@
 use std::{collections::HashMap, str::FromStr};
 
 use crate::parser::visitors::{
-    Binary, BinaryLogic, Expression, ExpressionVisitor, Group, Literal, StatementVisitor, Unary,
-    VariableAssignment, VariableDeclaration, Statement,
+    Binary, BinaryLogic, Expression, ExpressionVisitor, Group, Literal, Statement,
+    StatementVisitor, Unary, VariableAssignment, VariableDeclaration,
 };
 
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -162,7 +162,16 @@ impl ExpressionVisitor<TypeCheckerReturn> for TypeChecker {
             Literal::Number(_) => Ok(ValueType::Number),
             Literal::Real(_) => Ok(ValueType::Real),
             Literal::Bool(_) => Ok(ValueType::Bool),
-            Literal::Identifier(_) => todo!("implement variables"),
+            Literal::Identifier(identifier) => {
+                if self.variables_table.contains_key(identifier) {
+                    Ok(*self.variables_table.get(identifier).unwrap())
+                } else {
+                    Err(format!(
+                        "'{}' is not declared. Declare it 'let {}: <typename> = <init_expr>;'",
+                        identifier, identifier
+                    ))
+                }
+            }
         }
     }
 
