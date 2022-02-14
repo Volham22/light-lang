@@ -22,7 +22,10 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
                 .bool_type()
                 .const_int(*val as u64, false)
                 .as_any_value_enum(),
-            Literal::Identifier(_) => todo!(),
+            Literal::Identifier(name) => {
+                let val_ptr = self.variables.get(name).unwrap();
+                self.builder.build_load(*val_ptr, name.as_str()).as_any_value_enum()
+            },
         }
     }
 

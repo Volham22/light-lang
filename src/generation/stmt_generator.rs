@@ -25,6 +25,12 @@ impl<'a> StatementVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
         self.variables
             .insert(var_dec.identifier.to_string(), val_ptr);
 
+        match init_expr {
+            AnyValueEnum::IntValue(v) => self.builder.build_store(val_ptr, v),
+            AnyValueEnum::FloatValue(v) => self.builder.build_store(val_ptr, v),
+            _ => panic!()
+        };
+
         init_expr
     }
 

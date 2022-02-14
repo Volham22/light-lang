@@ -46,12 +46,16 @@ impl TypeChecker {
         }
     }
 
-    pub fn check_ast_type(&mut self, stmt: &Statement) -> TypeCheckerReturn {
-        match stmt {
-            Statement::Expression(expr) => self.visit_expression_statement(expr),
-            Statement::VariableDeclaration(var_dec) => self.visit_declaration_statement(var_dec),
-            Statement::VariableAssignment(var_ass) => self.visit_assignment_statement(var_ass),
+    pub fn check_ast_type(&mut self, stmts: &Vec<Statement>) -> TypeCheckerReturn {
+        for stmt in stmts {
+            match stmt {
+                Statement::Expression(expr) => self.visit_expression_statement(expr)?,
+                Statement::VariableDeclaration(var_dec) => self.visit_declaration_statement(var_dec)?,
+                Statement::VariableAssignment(var_ass) => self.visit_assignment_statement(var_ass)?,
+            };
         }
+
+        Ok(ValueType::Number)
     }
 
     fn check_expr(&mut self, expr: &Expression) -> TypeCheckerReturn {

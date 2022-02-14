@@ -136,7 +136,10 @@ impl StatementVisitor<()> for AstPrinter {
     }
 }
 
-pub fn print_ast(stmt: &Statement) {
+pub fn print_ast(stmts: &Vec<Statement>) {
     let mut printer = AstPrinter {};
-    printer.visit_stmt(stmt);
+
+    for stmt in stmts {
+        printer.visit_stmt(stmt);
+    }
 }

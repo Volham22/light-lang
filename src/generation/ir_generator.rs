@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display};
+use std::{collections::HashMap, fmt::Debug};
 
 use crate::{
     parser::visitors::{Expression, ExpressionVisitor, Statement},
@@ -25,26 +25,30 @@ pub struct IRGenerator<'a> {
 }
 
 impl<'a> IRGenerator<'a> {
-    pub fn generate_expression_ir(&mut self, stmt: &Statement) -> ValueType {
+    pub fn generate_expression_ir(&mut self, stmts: &Vec<Statement>) -> ValueType {
         self.generate_anonymous_function();
         let block = self
             .context
             .append_basic_block(self.current_fn.unwrap(), "entry");
         self.builder.position_at_end(block);
 
-        let body = match stmt {
-            Statement::Expression(expr) => self.visit_borrowed_expr(expr),
-            Statement::VariableDeclaration(dec) => self.visit_declaration_statement(dec),
-            Statement::VariableAssignment(ass_stmt) => self.visit_assignment_statement(ass_stmt),
-        };
+        let mut body: Option<AnyValueEnum> = None;
+        for stmt in stmts {
+            match stmt {
+                Statement::Expression(expr) => body = Some(self.visit_borrowed_expr(expr)),
+                Statement::VariableDeclaration(dec) => body = Some(self.visit_declaration_statement(dec)),
+                Statement::VariableAssignment(ass_stmt) => body = Some(self.visit_assignment_statement(ass_stmt)),
+            };
+        }
 
-        match body {
-            AnyValueEnum::IntValue(_) => {
-                self.builder.build_return(Some(&body.into_int_value()));
+
+        match body.unwrap() {
+            AnyValueEnum::IntValue(v) => {
+                self.builder.build_return(Some(&v));
                 ValueType::Number
             }
-            AnyValueEnum::FloatValue(_) => {
-                self.builder.build_return(Some(&body.into_float_value()));
+            AnyValueEnum::FloatValue(v) => {
+                self.builder.build_return(Some(&v));
                 ValueType::Real
             }
             _ => todo!("Expression must return Real or Number!"),
@@ -110,7 +114,7 @@ impl<'a> IRGenerator<'a> {
             ValueType::Number => self.builder.build_alloca(self.context.i64_type(), name),
             ValueType::Real => self.builder.build_alloca(self.context.f64_type(), name),
             ValueType::Bool => self.builder.build_alloca(self.context.bool_type(), name),
-            ValueType::String => todo!("string support"),
+            _ => todo!("type support"),
         }
     }
 
@@ -124,21 +128,21 @@ impl<'a> IRGenerator<'a> {
     }
 }
 
-unsafe fn execute_jit_function<'a, T: Display>(engine: &ExecutionEngine<'a>) {
+unsafe fn execute_jit_function<'a, T: Debug>(engine: &ExecutionEngine<'a>) {
     let fct = engine.get_function::<unsafe extern "C" fn() -> T>("__anonymous_function");
 
     match fct {
         Ok(f) => {
             let ret = f.call();
-            println!("-> {}", ret);
+            println!("-> {:?}", ret);
         }
         Err(msg) => {
-            println!("Execution failed: {}", msg);
+            println!("Execution failed: {:?}", msg);
         }
     }
 }
 
-pub fn generate_ir_code_jit(expression: &Statement) {
+pub fn generate_ir_code_jit(stmts: &Vec<Statement>) {
     let context = Context::create();
 
     let mut generator = IRGenerator {
@@ -149,7 +153,7 @@ pub fn generate_ir_code_jit(expression: &Statement) {
         variables: HashMap::new(),
     };
 
-    let global_type = generator.generate_expression_ir(expression);
+    let global_type = generator.generate_expression_ir(stmts);
 
     println!("========== Generated IR ==========");
     generator.print_code();

@@ -24,12 +24,13 @@ pub fn repl_loop() {
             let tokens = lexer.collect();
             let mut parser = Parser::new(tokens);
 
-            if let Some(stmt) = parser.parse() {
-                print_ast(&stmt);
-                if let Err(msg) = type_check.check_ast_type(&stmt) {
+            if let Some(stmts) = parser.parse() {
+                print_ast(&stmts);
+
+                if let Err(msg) = type_check.check_ast_type(&stmts) {
                     println!("Error: {}", msg);
                 } else {
-                    generate_ir_code_jit(&stmt);
+                    generate_ir_code_jit(&stmts);
                     println!("OK");
                 }
             } else {
