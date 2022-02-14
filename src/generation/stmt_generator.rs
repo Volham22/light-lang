@@ -28,7 +28,7 @@ impl<'a> StatementVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
         match init_expr {
             AnyValueEnum::IntValue(v) => self.builder.build_store(val_ptr, v),
             AnyValueEnum::FloatValue(v) => self.builder.build_store(val_ptr, v),
-            _ => panic!()
+            _ => panic!(),
         };
 
         init_expr

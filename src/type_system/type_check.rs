@@ -50,8 +50,12 @@ impl TypeChecker {
         for stmt in stmts {
             match stmt {
                 Statement::Expression(expr) => self.visit_expression_statement(expr)?,
-                Statement::VariableDeclaration(var_dec) => self.visit_declaration_statement(var_dec)?,
-                Statement::VariableAssignment(var_ass) => self.visit_assignment_statement(var_ass)?,
+                Statement::VariableDeclaration(var_dec) => {
+                    self.visit_declaration_statement(var_dec)?
+                }
+                Statement::VariableAssignment(var_ass) => {
+                    self.visit_assignment_statement(var_ass)?
+                }
             };
         }
 

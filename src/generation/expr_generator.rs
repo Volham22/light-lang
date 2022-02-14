@@ -24,8 +24,10 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
                 .as_any_value_enum(),
             Literal::Identifier(name) => {
                 let val_ptr = self.variables.get(name).unwrap();
-                self.builder.build_load(*val_ptr, name.as_str()).as_any_value_enum()
-            },
+                self.builder
+                    .build_load(*val_ptr, name.as_str())
+                    .as_any_value_enum()
+            }
         }
     }
 

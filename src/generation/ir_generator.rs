@@ -36,11 +36,14 @@ impl<'a> IRGenerator<'a> {
         for stmt in stmts {
             match stmt {
                 Statement::Expression(expr) => body = Some(self.visit_borrowed_expr(expr)),
-                Statement::VariableDeclaration(dec) => body = Some(self.visit_declaration_statement(dec)),
-                Statement::VariableAssignment(ass_stmt) => body = Some(self.visit_assignment_statement(ass_stmt)),
+                Statement::VariableDeclaration(dec) => {
+                    body = Some(self.visit_declaration_statement(dec))
+                }
+                Statement::VariableAssignment(ass_stmt) => {
+                    body = Some(self.visit_assignment_statement(ass_stmt))
+                }
             };
         }
-
 
         match body.unwrap() {
             AnyValueEnum::IntValue(v) => {
