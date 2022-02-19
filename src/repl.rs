@@ -30,7 +30,7 @@ pub fn repl_loop() {
                 if let Err(msg) = type_check.check_ast_type(&stmts) {
                     println!("Error: {}", msg);
                 } else {
-                    generate_ir_code_jit(&stmts);
+                    //generate_ir_code_jit(&stmts);
                     println!("OK");
                 }
             } else {

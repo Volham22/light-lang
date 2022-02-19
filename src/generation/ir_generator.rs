@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt::Debug};
 
 use crate::{
     parser::visitors::{Expression, ExpressionVisitor, Statement},
-    type_system::type_check::ValueType,
+    type_system::value_type::ValueType,
 };
 
 use crate::parser::visitors::StatementVisitor;
@@ -42,6 +42,9 @@ impl<'a> IRGenerator<'a> {
                 Statement::VariableAssignment(ass_stmt) => {
                     body = Some(self.visit_assignment_statement(ass_stmt))
                 }
+                Statement::Function(_) => todo!(),
+                Statement::Block(_) => todo!(),
+                Statement::Return(_) => todo!(),
             };
         }
 
@@ -69,6 +72,7 @@ impl<'a> IRGenerator<'a> {
             Expression::Group(group) => self.visit_group(&group),
             Expression::BinaryLogic(binary) => self.visit_binary_logic(&binary),
             Expression::Unary(unary) => self.visit_unary(&unary),
+            Expression::Call(_) => todo!(),
         }
     }
 
@@ -79,6 +83,7 @@ impl<'a> IRGenerator<'a> {
             Expression::Group(group) => self.visit_group(&group),
             Expression::BinaryLogic(binary) => self.visit_binary_logic(&binary),
             Expression::Unary(unary) => self.visit_unary(&unary),
+            Expression::Call(_) => todo!(),
         }
     }
 
@@ -172,6 +177,8 @@ pub fn generate_ir_code_jit(stmts: &Vec<Statement>) {
         ValueType::Number => unsafe { execute_jit_function::<i64>(&engine) },
         ValueType::Real => unsafe { execute_jit_function::<f64>(&engine) },
         ValueType::Bool => unsafe { execute_jit_function::<bool>(&engine) },
+        ValueType::Void => unsafe { execute_jit_function::<()>(&engine) },
         ValueType::String => todo!("String handling"),
+        ValueType::Function => todo!("fn handling"),
     };
 }

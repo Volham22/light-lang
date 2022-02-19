@@ -1,6 +1,7 @@
 use super::visitors::{
-    Binary, BinaryLogic, Expression, ExpressionVisitor, Group, Literal, Statement,
-    StatementVisitor, Unary, VariableAssignment, VariableDeclaration,
+    Binary, BinaryLogic, BlockStatement, Call, Expression, ExpressionVisitor, FunctionStatement,
+    Group, Literal, ReturnStatement, Statement, StatementVisitor, Unary, VariableAssignment,
+    VariableDeclaration,
 };
 
 struct AstPrinter;
@@ -11,6 +12,9 @@ impl AstPrinter {
             Statement::Expression(expr) => self.visit_expression_statement(expr),
             Statement::VariableDeclaration(decl) => self.visit_declaration_statement(decl),
             Statement::VariableAssignment(assi) => self.visit_assignment_statement(assi),
+            Statement::Function(func) => self.visit_function_statement(func),
+            Statement::Block(block) => self.visit_block_statement(block),
+            Statement::Return(ret) => self.visit_return_statement(ret),
         }
     }
 
@@ -21,6 +25,7 @@ impl AstPrinter {
             Expression::Group(val) => self.visit_group(val),
             Expression::BinaryLogic(val) => self.visit_binary_logic(val),
             Expression::Unary(val) => self.visit_unary(val),
+            Expression::Call(call) => self.visit_call(call),
         }
     }
 
@@ -111,6 +116,18 @@ impl ExpressionVisitor<()> for AstPrinter {
             }
         }
     }
+
+    fn visit_call(&mut self, call_expr: &Call) -> () {
+        print!("call {}(", &call_expr.name);
+
+        if let Some(args) = &call_expr.args {
+            for arg in args {
+                self.visit_expr(arg);
+            }
+        }
+
+        print!(") ")
+    }
 }
 
 impl StatementVisitor<()> for AstPrinter {
@@ -133,6 +150,34 @@ impl StatementVisitor<()> for AstPrinter {
         print!("Assigment: [identifier: {}, new_expr: ", expr.identifier);
         self.visit_expr(&expr.new_value);
         println!("] ");
+    }
+
+    fn visit_function_statement(&mut self, expr: &FunctionStatement) -> () {
+        print!("Function {}(", expr.callee);
+
+        if let Some(args) = &expr.args {
+            for arg in args {
+                print!("{:?}, ", arg);
+            }
+        }
+
+        print!(")\n");
+    }
+
+    fn visit_block_statement(&mut self, expr: &BlockStatement) -> () {
+        print!("Block: [");
+
+        for stmt in &expr.statements {
+            self.visit_stmt(&stmt);
+        }
+
+        print!("]")
+    }
+
+    fn visit_return_statement(&mut self, return_stmt: &ReturnStatement) -> () {
+        print!("Return: [");
+        self.visit_expr(&return_stmt.expr);
+        print!("]\n");
     }
 }
 

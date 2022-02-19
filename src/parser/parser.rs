@@ -19,7 +19,7 @@ impl Parser {
         let mut stmts: Vec<Statement> = Vec::new();
 
         while !self.is_at_the_end() {
-            if let Ok(ret) = self.parse_declaration_statement() {
+            if let Ok(ret) = self.parse_function_statement() {
                 stmts.push(ret);
             } else {
                 return None;

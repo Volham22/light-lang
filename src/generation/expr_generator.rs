@@ -330,4 +330,8 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
             }
         }
     }
+
+    fn visit_call(&mut self, call_expr: &crate::parser::visitors::Call) -> AnyValueEnum<'a> {
+        todo!()
+    }
 }

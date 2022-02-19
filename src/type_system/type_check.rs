@@ -1,49 +1,37 @@
-use std::{collections::HashMap, str::FromStr};
-
-use crate::parser::visitors::{
-    Binary, BinaryLogic, Expression, ExpressionVisitor, Group, Literal, Statement,
-    StatementVisitor, Unary, VariableAssignment, VariableDeclaration,
+use crate::{
+    parser::visitors::{
+        Binary, BinaryLogic, BlockStatement, Call, Expression, ExpressionVisitor,
+        FunctionStatement, Group, Literal, ReturnStatement, Statement, StatementVisitor, Unary,
+        VariableAssignment, VariableDeclaration,
+    },
+    type_system::value_type::ValueType,
 };
+use std::collections::HashMap;
 
-#[derive(PartialEq, Debug, Clone, Copy)]
-pub enum ValueType {
-    Number,
-    Real,
-    Bool,
-    String,
-}
-
-impl ValueType {
-    fn is_compatible(ltype: ValueType, rtype: ValueType) -> bool {
-        rtype == ltype
-    }
-}
-
-impl FromStr for ValueType {
-    type Err = &'static str;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "number" => Ok(ValueType::Number),
-            "real" => Ok(ValueType::Real),
-            "bool" => Ok(ValueType::Bool),
-            "string" => Ok(ValueType::String),
-            _ => Err("Unkown type"),
-        }
-    }
+pub struct FunctionSignature {
+    name: String,
+    return_type: ValueType,
+    args_type: Vec<ValueType>,
 }
 
 pub struct TypeChecker {
-    variables_table: HashMap<String, ValueType>,
+    variables_table: Vec<HashMap<String, ValueType>>,
+    function_table: HashMap<String, FunctionSignature>,
+    in_function: Option<ValueType>,
 }
 
 pub type TypeCheckerReturn = Result<ValueType, String>;
 
 impl TypeChecker {
     pub fn new() -> Self {
-        Self {
-            variables_table: HashMap::new(),
-        }
+        let mut s = Self {
+            variables_table: Vec::new(),
+            function_table: HashMap::new(),
+            in_function: None,
+        };
+
+        s.variables_table.push(HashMap::new()); // default global scope
+        s
     }
 
     pub fn check_ast_type(&mut self, stmts: &Vec<Statement>) -> TypeCheckerReturn {
@@ -56,6 +44,9 @@ impl TypeChecker {
                 Statement::VariableAssignment(var_ass) => {
                     self.visit_assignment_statement(var_ass)?
                 }
+                Statement::Function(f) => self.visit_function_statement(f)?,
+                Statement::Block(b) => self.visit_block_statement(b)?,
+                Statement::Return(ret) => self.visit_return_statement(ret)?,
             };
         }
 
@@ -69,6 +60,7 @@ impl TypeChecker {
             Expression::Group(e) => self.visit_group(&e),
             Expression::BinaryLogic(e) => self.visit_binary_logic(&e),
             Expression::Unary(e) => self.visit_unary(&e),
+            Expression::Call(e) => self.visit_call(&e),
         }
     }
 
@@ -79,6 +71,7 @@ impl TypeChecker {
             Expression::Group(e) => self.visit_group(&e),
             Expression::BinaryLogic(e) => self.visit_binary_logic(&e),
             Expression::Unary(e) => self.visit_unary(&e),
+            Expression::Call(e) => self.visit_call(&e),
         }
     }
 
@@ -103,15 +96,34 @@ impl TypeChecker {
                     Ok(lhs_type)
                 } else {
                     Err(format!(
-                        "Type {:?} is not compatible with type {:?}. Consider casting.",
+                        "Type {} is not compatible with type {}. Consider casting.",
                         lhs_type, rhs_type
                     ))
                 }
             } else {
-                Err(rhs_result.unwrap_err())
+                Err(format!("{}", rhs_result.unwrap_err()))
             }
         } else {
-            Err(lhs_result.unwrap_err())
+            Err(format!("{}", lhs_result.unwrap_err()))
+        }
+    }
+
+    fn find_variable_type(&self, name: &String) -> Option<&ValueType> {
+        for scope in self.variables_table.iter().rev() {
+            if scope.contains_key(name) {
+                return Some(scope.get(name).unwrap());
+            }
+        }
+
+        None
+    }
+
+    fn add_variables_in_scope(&mut self, args: &Vec<(String, ValueType)>) {
+        self.variables_table.push(HashMap::new());
+        let last = self.variables_table.last_mut().unwrap();
+
+        for (name, arg_type) in args {
+            last.insert(name.to_string(), *arg_type);
         }
     }
 }
@@ -126,24 +138,26 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
 
         if !ValueType::is_compatible(init_type, expr.variable_type) {
             let message = format!(
-                "variable '{}' is declared as '{:?}' but init expression has type '{:?}'",
+                "variable '{}' is declared as '{}' but init expression has type '{}'",
                 expr.identifier, expr.variable_type, init_type
             );
 
             return Err(message);
         }
 
-        if self.variables_table.contains_key(&expr.identifier) {
+        if let Some(_) = self.find_variable_type(&expr.identifier) {
             return Err(format!("Redifinition of variable '{}'.", expr.identifier));
         }
 
         self.variables_table
+            .last_mut()
+            .unwrap()
             .insert(expr.identifier.clone(), expr.variable_type);
         Ok(init_type)
     }
 
     fn visit_assignment_statement(&mut self, expr: &VariableAssignment) -> TypeCheckerReturn {
-        if !self.variables_table.contains_key(&expr.identifier) {
+        if let None = self.find_variable_type(&expr.identifier) {
             return Err(format!(
                 "'{}' is not declared. Declare it 'let {}: <typename> = <init_expr>;'",
                 expr.identifier, expr.identifier
@@ -151,16 +165,97 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
         }
 
         let expr_type = self.check_expr(&expr.new_value)?;
-        let variable_type = self.variables_table.get(&expr.identifier).unwrap();
+        let variable_type = self.find_variable_type(&expr.identifier).unwrap();
 
         if !ValueType::is_compatible(expr_type, *variable_type) {
             return Err(format!(
-                "Cannot assign expression of type '{:?}' to variable '{}' of type '{:?}'.",
+                "Cannot assign expression of type '{}' to variable '{}' of type '{}'.",
                 expr_type, expr.identifier, variable_type
             ));
         }
 
         Ok(expr_type)
+    }
+
+    fn visit_function_statement(&mut self, expr: &FunctionStatement) -> TypeCheckerReturn {
+        if let Some(_) = self.in_function {
+            return Err(format!("Nested function is not allowed."));
+        }
+
+        self.variables_table
+            .first_mut()
+            .unwrap()
+            .insert(expr.callee.to_string(), expr.return_type);
+
+        self.function_table.insert(
+            expr.callee.to_string(),
+            FunctionSignature {
+                args_type: if expr.args.is_some() {
+                    expr.args.as_ref().unwrap().iter().map(|e| e.1).collect()
+                } else {
+                    Vec::new()
+                },
+                name: expr.callee.to_string(),
+                return_type: expr.return_type,
+            },
+        );
+
+        if expr.args.is_some() {
+            self.add_variables_in_scope(&expr.args.as_ref().unwrap());
+        }
+
+        self.in_function = Some(expr.return_type);
+        self.visit_block_statement(&expr.block)?;
+        self.in_function = None;
+        self.variables_table.pop().unwrap();
+
+        // TODO:
+        // for now we only check if the function body has a return statement if
+        // the return type is not 'void'. In the future it may be better to have
+        // a smarter way to check that every path in the function leads to a
+        // valid return statement
+
+        if expr.return_type != ValueType::Void {
+            for stmt in &expr.block.statements {
+                match stmt {
+                    Statement::Return(_) => {
+                        return Ok(expr.return_type);
+                    }
+                    _ => continue,
+                }
+            }
+
+            return Err(format!("Function '{}' returns no values", expr.callee));
+        }
+
+        Ok(expr.return_type)
+    }
+
+    fn visit_block_statement(&mut self, expr: &BlockStatement) -> TypeCheckerReturn {
+        self.variables_table.push(HashMap::new());
+        self.check_ast_type(&expr.statements)?;
+        self.variables_table.pop().unwrap();
+
+        // A block has no return type
+        Ok(ValueType::Void)
+    }
+
+    fn visit_return_statement(&mut self, return_stmt: &ReturnStatement) -> TypeCheckerReturn {
+        if self.in_function.is_none() {
+            return Err(format!("Return statement is valid only in a function."));
+        }
+
+        let expr_type = self.check_expr(&return_stmt.expr)?;
+        let return_type = self.in_function.unwrap();
+
+        if !ValueType::is_compatible(expr_type, return_type) {
+            return Err(format!(
+                "Returned '{}' is not compatible with function return type '{}'",
+                expr_type, return_type
+            ));
+        }
+
+        return Ok(expr_type);
     }
 }
 
@@ -171,8 +266,8 @@ impl ExpressionVisitor<TypeCheckerReturn> for TypeChecker {
             Literal::Real(_) => Ok(ValueType::Real),
             Literal::Bool(_) => Ok(ValueType::Bool),
             Literal::Identifier(identifier) => {
-                if self.variables_table.contains_key(identifier) {
-                    Ok(*self.variables_table.get(identifier).unwrap())
+                if let Some(var_type) = self.find_variable_type(identifier) {
+                    Ok(*var_type)
                 } else {
                     Err(format!(
                         "'{}' is not declared. Declare it 'let {}: <typename> = <init_expr>;'",
@@ -218,7 +313,7 @@ impl ExpressionVisitor<TypeCheckerReturn> for TypeChecker {
         if let Ok(t) = is_compatible {
             Ok(t)
         } else {
-            Err(is_compatible.unwrap_err())
+            Err(is_compatible.unwrap_err().to_string())
         }
     }
 
@@ -227,5 +322,57 @@ impl ExpressionVisitor<TypeCheckerReturn> for TypeChecker {
             Unary::Not(e) => self.visit_boxed_expr(e),
             Unary::Negate(e) => self.visit_boxed_expr(e),
         }
+    }
+
+    fn visit_call(&mut self, call_expr: &Call) -> TypeCheckerReturn {
+        if self.function_table.contains_key(&call_expr.name) {
+            return Err(format!(
+                "Function '{}' is not declared in this module.",
+                &call_expr.name
+            ));
+        }
+
+        if call_expr.args.is_some() {
+            let expected_arg_count = self
+                .function_table
+                .get(&call_expr.name)
+                .unwrap()
+                .args_type
+                .len();
+
+            let fn_name = self
+                .function_table
+                .get(&call_expr.name)
+                .unwrap()
+                .name
+                .to_string();
+
+            let call_arg_count = call_expr.args.as_ref().unwrap().len();
+
+            if call_arg_count != expected_arg_count {
+                return Err(format!(
+                    "Expected {} arguments for function '{}' call but got {} arguments.",
+                    expected_arg_count, fn_name, call_arg_count
+                ));
+            }
+
+            for (i, arg_expr) in call_expr.args.as_ref().unwrap().iter().enumerate() {
+                let expr_type = self.check_expr(arg_expr)?;
+                let fn_args = &self.function_table.get(&call_expr.name).unwrap().args_type;
+
+                if !ValueType::is_compatible(expr_type, fn_args[i]) {
+                    return Err(format!(
+                        "Expression of type {} cannot be applied to function argument of type {} in the call to '{}'",
+                        expr_type, fn_args[i], fn_name
+                    ));
+                }
+            }
+        }
+
+        Ok(self
+            .function_table
+            .get(&call_expr.name)
+            .unwrap()
+            .return_type)
     }
 }

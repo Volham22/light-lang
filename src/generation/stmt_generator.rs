@@ -1,7 +1,8 @@
 use inkwell::values::AnyValueEnum;
 
 use crate::parser::visitors::{
-    Expression, Literal, StatementVisitor, VariableAssignment, VariableDeclaration,
+    BlockStatement, Expression, FunctionStatement, Literal, ReturnStatement, StatementVisitor,
+    VariableAssignment, VariableDeclaration,
 };
 
 use super::ir_generator::IRGenerator;
@@ -45,5 +46,17 @@ impl<'a> StatementVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
         };
 
         new_expr
+    }
+
+    fn visit_function_statement(&mut self, expr: &FunctionStatement) -> AnyValueEnum<'a> {
+        todo!()
+    }
+
+    fn visit_block_statement(&mut self, expr: &BlockStatement) -> AnyValueEnum<'a> {
+        todo!()
+    }
+
+    fn visit_return_statement(&mut self, return_stmt: &ReturnStatement) -> AnyValueEnum<'a> {
+        todo!()
     }
 }
