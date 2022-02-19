@@ -325,7 +325,7 @@ impl ExpressionVisitor<TypeCheckerReturn> for TypeChecker {
     }
 
     fn visit_call(&mut self, call_expr: &Call) -> TypeCheckerReturn {
-        if self.function_table.contains_key(&call_expr.name) {
+        if !self.function_table.contains_key(&call_expr.name) {
             return Err(format!(
                 "Function '{}' is not declared in this module.",
                 &call_expr.name
@@ -362,7 +362,7 @@ impl ExpressionVisitor<TypeCheckerReturn> for TypeChecker {
 
                 if !ValueType::is_compatible(expr_type, fn_args[i]) {
                     return Err(format!(
-                        "Expression of type {} cannot be applied to function argument of type {} in the call to '{}'",
+                        "Expression of type '{}' cannot be applied to function argument of type '{}' in the call to '{}'",
                         expr_type, fn_args[i], fn_name
                     ));
                 }

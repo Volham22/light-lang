@@ -154,11 +154,11 @@ impl Parser {
             let mut args: Vec<Expression> = Vec::new();
 
             loop {
-                let arg_name = self.expect_tokens(&[Token::Identifier(String::new())]);
+                // let arg_name = self.expect_tokens(&[Token::Identifier(String::new())]);
 
-                if let None = arg_name {
-                    break;
-                }
+                // if let None = arg_name {
+                //     break;
+                // }
 
                 args.push(self.or()?);
 

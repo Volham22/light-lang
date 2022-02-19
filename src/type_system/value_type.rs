@@ -28,17 +28,15 @@ impl PartialEq for ValueType {
 }
 
 impl Display for ValueType {
-    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ValueType::Number => print!("Number"),
-            ValueType::Real => print!("Real"),
-            ValueType::Bool => print!("Bool"),
-            ValueType::String => print!("String"),
-            ValueType::Function => print!("Function"),
-            ValueType::Void => print!("Void"),
-        };
-
-        Ok(())
+            ValueType::Number => f.write_str("Number"),
+            ValueType::Real => f.write_str("Real"),
+            ValueType::Bool => f.write_str("Bool"),
+            ValueType::String => f.write_str("String"),
+            ValueType::Function => f.write_str("Function"),
+            ValueType::Void => f.write_str("Void"),
+        }
     }
 }
 
