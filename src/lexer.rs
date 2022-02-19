@@ -151,7 +151,7 @@ impl PartialEq for Token {
 
 #[cfg(test)]
 mod tests {
-    use crate::type_system::type_check::ValueType;
+    use crate::type_system::value_type::ValueType;
 
     use super::Token;
     use logos::Logos;

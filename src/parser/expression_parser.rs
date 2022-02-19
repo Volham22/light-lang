@@ -33,7 +33,7 @@ impl Parser {
 
         loop {
             match self.expect_tokens(&[Token::Equality, Token::NegEquality]) {
-                Some(Token::Equal) => {
+                Some(Token::Equality) => {
                     let right = self.equality()?;
                     left = Expression::BinaryLogic(BinaryLogic::Equal(
                         Box::new(left),

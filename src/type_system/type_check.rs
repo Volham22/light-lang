@@ -311,7 +311,7 @@ impl ExpressionVisitor<TypeCheckerReturn> for TypeChecker {
         };
 
         if let Ok(t) = is_compatible {
-            Ok(t)
+            Ok(ValueType::Bool)
         } else {
             Err(is_compatible.unwrap_err().to_string())
         }
