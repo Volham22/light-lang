@@ -2,7 +2,7 @@ use crate::lexer::Token;
 
 use super::{
     parser::Parser,
-    visitors::{Binary, BinaryLogic, Expression, Group, Literal, Unary},
+    visitors::{Binary, BinaryLogic, Call, Expression, Group, Literal, Unary},
 };
 
 impl Parser {
@@ -33,7 +33,7 @@ impl Parser {
 
         loop {
             match self.expect_tokens(&[Token::Equality, Token::NegEquality]) {
-                Some(Token::Equal) => {
+                Some(Token::Equality) => {
                     let right = self.equality()?;
                     left = Expression::BinaryLogic(BinaryLogic::Equal(
                         Box::new(left),
@@ -141,10 +141,51 @@ impl Parser {
 
     fn unary(&mut self) -> Result<Expression, ()> {
         match self.expect_tokens(&[Token::Minus, Token::Not]) {
-            Some(Token::Minus) => Ok(Expression::Unary(Unary::Negate(Box::new(self.primary()?)))),
-            Some(Token::Not) => Ok(Expression::Unary(Unary::Not(Box::new(self.primary()?)))),
-            _ => Ok(self.primary()?),
+            Some(Token::Minus) => Ok(Expression::Unary(Unary::Negate(Box::new(self.call()?)))),
+            Some(Token::Not) => Ok(Expression::Unary(Unary::Not(Box::new(self.call()?)))),
+            _ => Ok(self.call()?),
         }
+    }
+
+    fn call(&mut self) -> Result<Expression, ()> {
+        let primary_expr = self.primary()?;
+
+        if self.match_expr(&[Token::LeftParenthesis]) {
+            let mut args: Vec<Expression> = Vec::new();
+
+            loop {
+                // let arg_name = self.expect_tokens(&[Token::Identifier(String::new())]);
+
+                // if let None = arg_name {
+                //     break;
+                // }
+
+                args.push(self.or()?);
+
+                if !self.match_expr(&[Token::Comma]) {
+                    break;
+                }
+            }
+
+            if let None = self.consume(&Token::RightParenthesis, "Unclosed '(' in function call.") {
+                return Err(());
+            }
+
+            let name = match primary_expr {
+                Expression::Literal(Literal::Identifier(n)) => n,
+                _ => {
+                    println!("Error: Expected identifier before function call.");
+                    return Err(());
+                }
+            };
+
+            return Ok(Expression::Call(Call {
+                name,
+                args: if !args.is_empty() { Some(args) } else { None },
+            }));
+        }
+
+        Ok(primary_expr)
     }
 
     fn primary(&mut self) -> Result<Expression, ()> {

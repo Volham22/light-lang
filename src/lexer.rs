@@ -1,6 +1,6 @@
 use logos::Logos;
 
-use crate::type_system::type_check::ValueType;
+use crate::type_system::value_type::ValueType;
 
 #[derive(Logos, Debug)]
 pub enum Token {
@@ -76,7 +76,7 @@ pub enum Token {
     False,
 
     // Light types
-    #[regex("(number)|(real)|(bool)|(string)", |lex| lex.slice().parse())]
+    #[regex("(number)|(real)|(bool)|(string)|(void)", |lex| lex.slice().parse())]
     Type(ValueType),
 
     #[regex(r"[0-9]+", |lex| lex.slice().parse())]
@@ -151,7 +151,7 @@ impl PartialEq for Token {
 
 #[cfg(test)]
 mod tests {
-    use crate::type_system::type_check::ValueType;
+    use crate::type_system::value_type::ValueType;
 
     use super::Token;
     use logos::Logos;
@@ -481,5 +481,21 @@ mod tests {
         assert_eq!(lexer.next(), Some(Token::Equal));
         assert_eq!(lexer.next(), Some(Token::True));
         assert_eq!(lexer.next(), Some(Token::Semicolon));
+    }
+
+    #[test]
+    fn fn_test() {
+        let mut lexer = Token::lexer("fn hey(mom: string): void {}");
+        assert_eq!(lexer.next(), Some(Token::Function));
+        assert_eq!(lexer.next(), Some(Token::Identifier("hey".to_string())));
+        assert_eq!(lexer.next(), Some(Token::LeftParenthesis));
+        assert_eq!(lexer.next(), Some(Token::Identifier("mom".to_string())));
+        assert_eq!(lexer.next(), Some(Token::Colon));
+        assert_eq!(lexer.next(), Some(Token::Type(ValueType::String)));
+        assert_eq!(lexer.next(), Some(Token::RightParenthesis));
+        assert_eq!(lexer.next(), Some(Token::Colon));
+        assert_eq!(lexer.next(), Some(Token::Type(ValueType::Void)));
+        assert_eq!(lexer.next(), Some(Token::LeftBracket));
+        assert_eq!(lexer.next(), Some(Token::RightBracket));
     }
 }

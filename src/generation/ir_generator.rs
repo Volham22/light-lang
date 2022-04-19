@@ -1,8 +1,8 @@
-use std::{collections::HashMap, fmt::Debug};
+use std::{collections::HashMap, ffi::CStr, fmt::Debug};
 
 use crate::{
     parser::visitors::{Expression, ExpressionVisitor, Statement},
-    type_system::type_check::ValueType,
+    type_system::value_type::ValueType,
 };
 
 use crate::parser::visitors::StatementVisitor;
@@ -13,7 +13,6 @@ use inkwell::{
     execution_engine::ExecutionEngine,
     module::Module,
     values::{AnyValueEnum, FloatValue, FunctionValue, IntValue, PointerValue},
-    OptimizationLevel,
 };
 
 pub struct IRGenerator<'a> {
@@ -25,7 +24,7 @@ pub struct IRGenerator<'a> {
 }
 
 impl<'a> IRGenerator<'a> {
-    pub fn generate_expression_ir(&mut self, stmts: &Vec<Statement>) -> ValueType {
+    pub fn generate_ir_anonymous(&mut self, stmt: &Statement) -> ValueType {
         self.generate_anonymous_function();
         let block = self
             .context
@@ -33,29 +32,54 @@ impl<'a> IRGenerator<'a> {
         self.builder.position_at_end(block);
 
         let mut body: Option<AnyValueEnum> = None;
-        for stmt in stmts {
-            match stmt {
-                Statement::Expression(expr) => body = Some(self.visit_borrowed_expr(expr)),
-                Statement::VariableDeclaration(dec) => {
-                    body = Some(self.visit_declaration_statement(dec))
-                }
-                Statement::VariableAssignment(ass_stmt) => {
-                    body = Some(self.visit_assignment_statement(ass_stmt))
-                }
-            };
-        }
+        match stmt {
+            Statement::Expression(expr) => body = Some(self.visit_borrowed_expr(expr)),
+            Statement::VariableDeclaration(dec) => {
+                self.visit_declaration_statement(dec);
+            }
+            Statement::VariableAssignment(ass_stmt) => {
+                self.visit_assignment_statement(ass_stmt);
+            }
+            Statement::Function(f) => {
+                self.visit_function_statement(f);
+            }
+            Statement::Block(b) => {
+                self.visit_block_statement(b);
+            }
+            Statement::Return(r) => {
+                self.visit_return_statement(r);
+            }
+        };
 
-        match body.unwrap() {
-            AnyValueEnum::IntValue(v) => {
+        match body {
+            Some(AnyValueEnum::IntValue(v)) => {
                 self.builder.build_return(Some(&v));
                 ValueType::Number
             }
-            AnyValueEnum::FloatValue(v) => {
+            Some(AnyValueEnum::FloatValue(v)) => {
                 self.builder.build_return(Some(&v));
                 ValueType::Real
             }
-            _ => todo!("Expression must return Real or Number!"),
+            _ => {
+                self.builder.build_return(None);
+                ValueType::Void
+            }
         }
+    }
+
+    pub fn generate_ir(&mut self, stmts: &Vec<Statement>) -> Option<ValueType> {
+        for stmt in stmts {
+            match stmt {
+                Statement::Function(f) => {
+                    self.visit_function_statement(f);
+                }
+                _ => {
+                    return Some(self.generate_ir_anonymous(stmt));
+                }
+            }
+        }
+
+        None
     }
 
     pub fn print_code(&self) {
@@ -69,6 +93,7 @@ impl<'a> IRGenerator<'a> {
             Expression::Group(group) => self.visit_group(&group),
             Expression::BinaryLogic(binary) => self.visit_binary_logic(&binary),
             Expression::Unary(unary) => self.visit_unary(&unary),
+            Expression::Call(_) => todo!(),
         }
     }
 
@@ -79,6 +104,7 @@ impl<'a> IRGenerator<'a> {
             Expression::Group(group) => self.visit_group(&group),
             Expression::BinaryLogic(binary) => self.visit_binary_logic(&binary),
             Expression::Unary(unary) => self.visit_unary(&unary),
+            Expression::Call(call) => self.visit_call(call),
         }
     }
 
@@ -121,6 +147,29 @@ impl<'a> IRGenerator<'a> {
         }
     }
 
+    pub fn visit_statement(&mut self, stmt: &Statement) -> Option<AnyValueEnum> {
+        match stmt {
+            Statement::Expression(expr) => Some(self.visit_borrowed_expr(expr)),
+            Statement::Function(expr) => Some(self.visit_function_statement(expr)).unwrap(),
+            Statement::Block(expr) => {
+                self.visit_block_statement(expr);
+                None
+            }
+            Statement::Return(expr) => {
+                self.visit_return_statement(expr);
+                None
+            }
+            Statement::VariableDeclaration(expr) => {
+                self.visit_declaration_statement(expr);
+                None
+            }
+            Statement::VariableAssignment(expr) => {
+                self.visit_assignment_statement(expr);
+                None
+            }
+        }
+    }
+
     fn generate_anonymous_function(&mut self) {
         // void (void) function type
         let fntype = self.context.void_type().fn_type(&[], false);
@@ -145,33 +194,39 @@ unsafe fn execute_jit_function<'a, T: Debug>(engine: &ExecutionEngine<'a>) {
     }
 }
 
-pub fn generate_ir_code_jit(stmts: &Vec<Statement>) {
-    let context = Context::create();
-
-    let mut generator = IRGenerator {
+pub fn create_generator<'gen>(context: &'gen Context) -> IRGenerator<'gen> {
+    IRGenerator {
         context: &context,
         builder: context.create_builder(),
         module: context.create_module("main"),
         current_fn: None,
         variables: HashMap::new(),
-    };
+    }
+}
 
-    let global_type = generator.generate_expression_ir(stmts);
+pub fn generate_ir_code_jit(
+    generator: &mut IRGenerator,
+    engine: &ExecutionEngine,
+    stmts: &Vec<Statement>,
+) {
+    let global_type = generator.generate_ir(stmts);
 
     println!("========== Generated IR ==========");
     generator.print_code();
     println!("==================================");
 
-    let engine = generator
-        .module
-        .create_jit_execution_engine(OptimizationLevel::None)
-        .unwrap();
-
     // IR to native host code
     match global_type {
-        ValueType::Number => unsafe { execute_jit_function::<i64>(&engine) },
-        ValueType::Real => unsafe { execute_jit_function::<f64>(&engine) },
-        ValueType::Bool => unsafe { execute_jit_function::<bool>(&engine) },
-        ValueType::String => todo!("String handling"),
+        Some(ValueType::Number) => unsafe { execute_jit_function::<i64>(&engine) },
+        Some(ValueType::Real) => unsafe { execute_jit_function::<f64>(&engine) },
+        Some(ValueType::Bool) => unsafe { execute_jit_function::<bool>(&engine) },
+        Some(ValueType::Void) => unsafe { execute_jit_function::<()>(&engine) },
+        Some(ValueType::String) => todo!("String handling"),
+        Some(ValueType::Function) => {
+            return;
+        }
+        _ => {
+            return;
+        }
     };
 }

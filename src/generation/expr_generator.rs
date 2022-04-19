@@ -2,7 +2,9 @@ use inkwell::values::{AnyValue, AnyValueEnum};
 use inkwell::{FloatPredicate, IntPredicate};
 
 use crate::generation::ir_generator::IRGenerator;
-use crate::parser::visitors::{Binary, BinaryLogic, ExpressionVisitor, Group, Literal, Unary};
+use crate::parser::visitors::{
+    Binary, BinaryLogic, Call, ExpressionVisitor, Group, Literal, Unary,
+};
 
 impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
     fn visit_literal(&mut self, literal: &Literal) -> AnyValueEnum<'a> {
@@ -328,6 +330,39 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
                     _ => panic!("Cannot apply negate on non numeric values! Type checker failed?"),
                 }
             }
+        }
+    }
+
+    fn visit_call(&mut self, call_expr: &Call) -> AnyValueEnum<'a> {
+        if let None = self.module.get_function(&call_expr.name) {
+            panic!("Call to a function that is not declared.");
+        }
+
+        let fn_call = self.module.get_function(&call_expr.name).unwrap();
+        let mut args_values = Vec::with_capacity(if call_expr.args.is_some() {
+            call_expr.args.as_ref().unwrap().len()
+        } else {
+            0
+        });
+
+        if call_expr.args.is_some() {
+            for arg in call_expr.args.as_ref().unwrap() {
+                args_values.push(match self.visit_borrowed_expr(arg) {
+                    AnyValueEnum::IntValue(v) => v.into(),
+                    AnyValueEnum::FloatValue(v) => v.into(),
+                    _ => panic!(),
+                });
+            }
+        }
+
+        let value = self
+            .builder
+            .build_call(fn_call, args_values.as_slice(), "tmp_call")
+            .try_as_basic_value();
+
+        match value.left() {
+            Some(v) => v.into(),
+            None => panic!("wrong call"),
         }
     }
 }

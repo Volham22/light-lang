@@ -1,4 +1,6 @@
-use crate::type_system::type_check::ValueType;
+use crate::type_system::value_type::ValueType;
+
+pub type Argument = (String, ValueType);
 
 pub enum Literal {
     Number(i64),
@@ -35,12 +37,18 @@ pub enum Unary {
     Negate(Box<Expression>),
 }
 
+pub struct Call {
+    pub name: String,
+    pub args: Option<Vec<Expression>>,
+}
+
 pub enum Expression {
     Literal(Literal),
     Binary(Binary),
     Group(Group),
     BinaryLogic(BinaryLogic),
     Unary(Unary),
+    Call(Call),
 }
 
 pub struct VariableDeclaration {
@@ -54,16 +62,37 @@ pub struct VariableAssignment {
     pub new_value: Expression,
 }
 
+pub struct BlockStatement {
+    pub statements: Vec<Statement>,
+}
+
+pub struct FunctionStatement {
+    pub callee: String,
+    pub args: Option<Vec<Argument>>,
+    pub block: BlockStatement,
+    pub return_type: ValueType,
+}
+
+pub struct ReturnStatement {
+    pub expr: Expression,
+}
+
 pub enum Statement {
     Expression(Expression),
     VariableDeclaration(VariableDeclaration),
     VariableAssignment(VariableAssignment),
+    Function(FunctionStatement),
+    Block(BlockStatement),
+    Return(ReturnStatement),
 }
 
 pub trait StatementVisitor<T> {
     fn visit_expression_statement(&mut self, expr: &Expression) -> T;
     fn visit_declaration_statement(&mut self, expr: &VariableDeclaration) -> T;
     fn visit_assignment_statement(&mut self, expr: &VariableAssignment) -> T;
+    fn visit_function_statement(&mut self, expr: &FunctionStatement) -> T;
+    fn visit_block_statement(&mut self, expr: &BlockStatement) -> T;
+    fn visit_return_statement(&mut self, return_stmt: &ReturnStatement) -> T;
 }
 
 pub trait ExpressionVisitor<T> {
@@ -72,4 +101,5 @@ pub trait ExpressionVisitor<T> {
     fn visit_group(&mut self, group: &Group) -> T;
     fn visit_binary_logic(&mut self, literal: &BinaryLogic) -> T;
     fn visit_unary(&mut self, unary: &Unary) -> T;
+    fn visit_call(&mut self, call_expr: &Call) -> T;
 }

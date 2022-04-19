@@ -1,8 +1,10 @@
 use std::io::{self, BufRead, Write};
 
+use inkwell::context::Context;
+use inkwell::OptimizationLevel;
 use logos::Logos;
 
-use crate::generation::ir_generator::generate_ir_code_jit;
+use crate::generation::ir_generator::{create_generator, generate_ir_code_jit};
 use crate::lexer::Token;
 use crate::parser::ast_printer::print_ast;
 use crate::parser::parser::Parser;
@@ -16,6 +18,12 @@ fn show_repl() {
 pub fn repl_loop() {
     show_repl();
     let mut type_check = TypeChecker::new();
+    let context = Context::create();
+    let mut generator = create_generator(&context);
+    let engine = generator
+        .module
+        .create_jit_execution_engine(OptimizationLevel::None)
+        .unwrap();
 
     let stdin = io::stdin();
     for line in stdin.lock().lines() {
@@ -30,7 +38,7 @@ pub fn repl_loop() {
                 if let Err(msg) = type_check.check_ast_type(&stmts) {
                     println!("Error: {}", msg);
                 } else {
-                    generate_ir_code_jit(&stmts);
+                    generate_ir_code_jit(&mut generator, &engine, &stmts);
                     println!("OK");
                 }
             } else {
