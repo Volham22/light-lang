@@ -77,6 +77,12 @@ pub struct ReturnStatement {
     pub expr: Expression,
 }
 
+pub struct IfStatement {
+    pub condition: Expression,
+    pub then_branch: BlockStatement,
+    pub else_branch: Option<BlockStatement>,
+}
+
 pub enum Statement {
     Expression(Expression),
     VariableDeclaration(VariableDeclaration),
@@ -84,6 +90,7 @@ pub enum Statement {
     Function(FunctionStatement),
     Block(BlockStatement),
     Return(ReturnStatement),
+    IfStatement(IfStatement),
 }
 
 pub trait StatementVisitor<T> {
@@ -93,6 +100,7 @@ pub trait StatementVisitor<T> {
     fn visit_function_statement(&mut self, expr: &FunctionStatement) -> T;
     fn visit_block_statement(&mut self, expr: &BlockStatement) -> T;
     fn visit_return_statement(&mut self, return_stmt: &ReturnStatement) -> T;
+    fn visit_if_statement(&mut self, if_stmt: &IfStatement) -> T;
 }
 
 pub trait ExpressionVisitor<T> {

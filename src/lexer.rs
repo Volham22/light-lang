@@ -6,6 +6,8 @@ use crate::type_system::value_type::ValueType;
 pub enum Token {
     #[token("if")]
     If,
+    #[token("else")]
+    Else,
     #[token("while")]
     While,
     #[token("for")]

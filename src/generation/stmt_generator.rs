@@ -5,8 +5,8 @@ use inkwell::{
 
 use crate::{
     parser::visitors::{
-        BlockStatement, Expression, FunctionStatement, Literal, ReturnStatement, StatementVisitor,
-        VariableAssignment, VariableDeclaration,
+        BlockStatement, Expression, FunctionStatement, IfStatement, Literal, ReturnStatement,
+        StatementVisitor, VariableAssignment, VariableDeclaration,
     },
     type_system::value_type::ValueType,
 };
@@ -125,7 +125,7 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                 true,
             ),
             ValueType::Function => todo!(),
-            ValueType::String => todo!()
+            ValueType::String => todo!(),
         };
 
         let fn_val = self
@@ -159,23 +159,27 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
         self.generate_block_instructions(&expr.block);
         self.current_fn = None;
 
+        if expr.return_type == ValueType::Void {
+            self.builder.build_return(None);
+        }
+
         fn_val.verify(true);
 
         Some(AnyValueEnum::FunctionValue(fn_val))
     }
 
     fn visit_block_statement(&mut self, expr: &BlockStatement) -> Option<AnyValueEnum<'a>> {
-        let current_fn = self.current_fn.unwrap();
-        let current_fn_bb = current_fn.get_last_basic_block().unwrap();
+        // let current_fn = self.current_fn.unwrap();
+        // let current_fn_bb = current_fn.get_last_basic_block().unwrap();
 
-        let anonymous_block = self.context.append_basic_block(current_fn, "anon_block");
-        self.builder.position_at_end(anonymous_block);
+        // let anonymous_block = self.context.append_basic_block(current_fn, "anon_block");
+        // self.builder.position_at_end(anonymous_block);
 
         for stmt in &expr.statements {
             self.visit_statement(&stmt);
         }
 
-        self.builder.build_unconditional_branch(current_fn_bb);
+        // self.builder.build_unconditional_branch(current_fn_bb);
 
         None
     }
@@ -193,5 +197,48 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
         };
 
         Some(value)
+    }
+
+    fn visit_if_statement(&mut self, if_stmt: &IfStatement) -> Option<AnyValueEnum<'a>> {
+        let parent = if let Some(current) = self.current_fn {
+            current
+        } else {
+            panic!("If must be in a function !")
+        };
+
+        let false_const = self.context.bool_type().const_zero();
+        let condition = match self.visit_borrowed_expr(&if_stmt.condition) {
+            AnyValueEnum::IntValue(v) => v,
+            _ => panic!(),
+        };
+
+        let cond_instr = self.builder.build_int_compare(
+            inkwell::IntPredicate::NE,
+            condition,
+            false_const,
+            "if_condition",
+        );
+
+        let then_bb = self.context.append_basic_block(parent, "then");
+        let else_bb = self.context.append_basic_block(parent, "else");
+        let merge_bb = self.context.append_basic_block(parent, "merge");
+
+        self.builder
+            .build_conditional_branch(cond_instr, then_bb, else_bb);
+
+        self.builder.position_at_end(then_bb);
+        self.visit_block_statement(&if_stmt.then_branch);
+        self.builder.build_unconditional_branch(merge_bb);
+
+        self.builder.position_at_end(else_bb);
+
+        if if_stmt.else_branch.is_some() {
+            self.visit_block_statement(&if_stmt.else_branch.as_ref().unwrap());
+        }
+
+        self.builder.build_unconditional_branch(merge_bb);
+        self.builder.position_at_end(merge_bb);
+
+        None
     }
 }

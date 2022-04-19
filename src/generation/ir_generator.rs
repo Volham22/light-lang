@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ffi::CStr, fmt::Debug};
+use std::{collections::HashMap, fmt::Debug};
 
 use crate::{
     parser::visitors::{Expression, ExpressionVisitor, Statement},
@@ -48,6 +48,9 @@ impl<'a> IRGenerator<'a> {
             }
             Statement::Return(r) => {
                 self.visit_return_statement(r);
+            }
+            Statement::IfStatement(if_stmt) => {
+                self.visit_if_statement(if_stmt);
             }
         };
 
@@ -165,6 +168,10 @@ impl<'a> IRGenerator<'a> {
             }
             Statement::VariableAssignment(expr) => {
                 self.visit_assignment_statement(expr);
+                None
+            }
+            Statement::IfStatement(expr) => {
+                self.visit_if_statement(expr);
                 None
             }
         }
