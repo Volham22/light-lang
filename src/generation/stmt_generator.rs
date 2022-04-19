@@ -69,28 +69,63 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
     }
 
     fn visit_function_statement(&mut self, expr: &FunctionStatement) -> Option<AnyValueEnum<'a>> {
-        let args_type = expr
-            .args
-            .as_ref()
-            .unwrap()
-            .iter()
-            .map(|t| -> BasicMetadataTypeEnum {
-                match t.1 {
-                    ValueType::Number => self.context.i64_type().into(),
-                    ValueType::Real => self.context.f64_type().into(),
-                    ValueType::Bool => self.context.bool_type().into(),
-                    ValueType::String => todo!(),
-                    ValueType::Function => todo!(),
-                    ValueType::Void => todo!(),
-                }
-            })
-            .collect::<Vec<BasicMetadataTypeEnum>>();
+        let args_type = if expr.args.is_some() {
+            Some(
+                expr.args
+                    .as_ref()
+                    .unwrap()
+                    .iter()
+                    .map(|t| -> BasicMetadataTypeEnum {
+                        match t.1 {
+                            ValueType::Number => self.context.i64_type().into(),
+                            ValueType::Real => self.context.f64_type().into(),
+                            ValueType::Bool => self.context.bool_type().into(),
+                            ValueType::String => todo!(),
+                            ValueType::Function => todo!(),
+                            ValueType::Void => todo!(),
+                        }
+                    })
+                    .collect::<Vec<BasicMetadataTypeEnum>>(),
+            )
+        } else {
+            None
+        };
 
         let fn_type = match expr.return_type {
-            ValueType::Number => self.context.i64_type().fn_type(args_type.as_slice(), true),
-            ValueType::Real => self.context.f64_type().fn_type(args_type.as_slice(), true),
-            ValueType::Bool => self.context.bool_type().fn_type(args_type.as_slice(), true),
-            _ => todo!(),
+            ValueType::Number => self.context.i64_type().fn_type(
+                if args_type.is_some() {
+                    args_type.as_ref().unwrap().as_slice()
+                } else {
+                    &[]
+                },
+                true,
+            ),
+            ValueType::Real => self.context.f64_type().fn_type(
+                if args_type.is_some() {
+                    args_type.as_ref().unwrap().as_slice()
+                } else {
+                    &[]
+                },
+                true,
+            ),
+            ValueType::Bool => self.context.bool_type().fn_type(
+                if args_type.is_some() {
+                    args_type.as_ref().unwrap().as_slice()
+                } else {
+                    &[]
+                },
+                true,
+            ),
+            ValueType::Void => self.context.void_type().fn_type(
+                if args_type.is_some() {
+                    args_type.as_ref().unwrap().as_slice()
+                } else {
+                    &[]
+                },
+                true,
+            ),
+            ValueType::Function => todo!(),
+            ValueType::String => todo!()
         };
 
         let fn_val = self
