@@ -4,11 +4,11 @@ use inkwell::context::Context;
 use inkwell::OptimizationLevel;
 use logos::Logos;
 
-use crate::generation::ir_generator::{create_generator, generate_ir_code_jit};
-use crate::lexer::Token;
-use crate::parser::ast_printer::print_ast;
-use crate::parser::parser::Parser;
-use crate::type_system::type_check::TypeChecker;
+use compiler::generation::ir_generator::{create_generator, generate_ir_code_jit};
+use compiler::lexer::Token;
+use compiler::parser::ast_printer::print_ast;
+use compiler::parser::parser::Parser;
+use compiler::type_system::type_check::TypeChecker;
 
 fn show_repl() {
     print!("=> ");
