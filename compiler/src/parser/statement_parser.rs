@@ -4,7 +4,7 @@ use super::{
     parser::Parser,
     visitors::{
         Argument, BlockStatement, Expression, FunctionStatement, IfStatement, Literal,
-        ReturnStatement, Statement, VariableAssignment, VariableDeclaration,
+        ReturnStatement, Statement, VariableAssignment, VariableDeclaration, WhileStatement,
     },
 };
 
@@ -132,6 +132,25 @@ impl Parser {
                 condition,
                 then_branch,
                 else_branch: None,
+            }));
+        }
+
+        Ok(self.parse_while_statement()?)
+    }
+
+    fn parse_while_statement(&mut self) -> Result<Statement, ()> {
+        if self.match_expr(&[Token::While]) {
+            let condition = self.or()?;
+            let loop_block = if let Statement::Block(b) = self.parse_block_statement()? {
+                b
+            } else {
+                println!("Expected block after 'while' condition.");
+                return Err(());
+            };
+
+            return Ok(Statement::WhileStatement(WhileStatement {
+                condition,
+                loop_block,
             }));
         }
 

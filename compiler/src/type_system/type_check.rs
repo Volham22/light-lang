@@ -2,7 +2,7 @@ use crate::{
     parser::visitors::{
         Binary, BinaryLogic, BlockStatement, Call, Expression, ExpressionVisitor,
         FunctionStatement, Group, IfStatement, Literal, ReturnStatement, Statement,
-        StatementVisitor, Unary, VariableAssignment, VariableDeclaration,
+        StatementVisitor, Unary, VariableAssignment, VariableDeclaration, WhileStatement,
     },
     type_system::value_type::ValueType,
 };
@@ -48,6 +48,7 @@ impl TypeChecker {
                 Statement::Block(b) => self.visit_block_statement(b)?,
                 Statement::Return(ret) => self.visit_return_statement(ret)?,
                 Statement::IfStatement(if_stmt) => self.visit_if_statement(if_stmt)?,
+                Statement::WhileStatement(while_stmt) => self.visit_while_statement(while_stmt)?,
             };
         }
 
@@ -276,6 +277,22 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
         }
 
         // An if statement itself has void type
+        Ok(ValueType::Void)
+    }
+
+    fn visit_while_statement(&mut self, while_stmt: &WhileStatement) -> TypeCheckerReturn {
+        let condition_type = self.visit_expression_statement(&while_stmt.condition)?;
+
+        if condition_type != ValueType::Bool {
+            return Err(format!(
+                "While condition has type '{}' but the type bool is needed.",
+                condition_type
+            ));
+        }
+
+        self.visit_block_statement(&while_stmt.loop_block)?;
+
+        // An while statement has void type
         Ok(ValueType::Void)
     }
 }

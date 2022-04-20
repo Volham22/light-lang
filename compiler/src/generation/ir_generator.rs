@@ -52,6 +52,9 @@ impl<'a> IRGenerator<'a> {
             Statement::IfStatement(if_stmt) => {
                 self.visit_if_statement(if_stmt);
             }
+            Statement::WhileStatement(while_stmt) => {
+                self.visit_while_statement(while_stmt);
+            }
         };
 
         match body {
@@ -172,6 +175,10 @@ impl<'a> IRGenerator<'a> {
             }
             Statement::IfStatement(expr) => {
                 self.visit_if_statement(expr);
+                None
+            }
+            Statement::WhileStatement(expr) => {
+                self.visit_while_statement(expr);
                 None
             }
         }

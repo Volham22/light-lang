@@ -1,7 +1,7 @@
 use super::visitors::{
     Binary, BinaryLogic, BlockStatement, Call, Expression, ExpressionVisitor, FunctionStatement,
     Group, IfStatement, Literal, ReturnStatement, Statement, StatementVisitor, Unary,
-    VariableAssignment, VariableDeclaration,
+    VariableAssignment, VariableDeclaration, WhileStatement,
 };
 
 struct AstPrinter;
@@ -16,6 +16,7 @@ impl AstPrinter {
             Statement::Block(block) => self.visit_block_statement(block),
             Statement::Return(ret) => self.visit_return_statement(ret),
             Statement::IfStatement(if_stmt) => self.visit_if_statement(if_stmt),
+            Statement::WhileStatement(while_stmt) => self.visit_while_statement(while_stmt),
         }
     }
 
@@ -194,6 +195,14 @@ impl StatementVisitor<()> for AstPrinter {
         } else {
             println!(" endif");
         }
+    }
+
+    fn visit_while_statement(&mut self, while_stmt: &WhileStatement) -> () {
+        print!(" while ");
+        self.visit_expr(&while_stmt.condition);
+        print!(" block: ");
+        self.visit_block_statement(&while_stmt.loop_block);
+        print!(" endwhile\n");
     }
 }
 

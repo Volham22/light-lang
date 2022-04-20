@@ -6,7 +6,7 @@ use inkwell::{
 use crate::{
     parser::visitors::{
         BlockStatement, Expression, FunctionStatement, IfStatement, Literal, ReturnStatement,
-        StatementVisitor, VariableAssignment, VariableDeclaration,
+        StatementVisitor, VariableAssignment, VariableDeclaration, WhileStatement,
     },
     type_system::value_type::ValueType,
 };
@@ -238,6 +238,46 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
 
         self.builder.build_unconditional_branch(merge_bb);
         self.builder.position_at_end(merge_bb);
+
+        None
+    }
+
+    fn visit_while_statement(&mut self, while_stmt: &WhileStatement) -> Option<AnyValueEnum<'a>> {
+        let parent = if let Some(current) = self.current_fn {
+            current
+        } else {
+            panic!("If must be in a function !")
+        };
+
+        let false_const = self.context.bool_type().const_zero();
+        let condition = match self.visit_borrowed_expr(&while_stmt.condition) {
+            AnyValueEnum::IntValue(v) => v,
+            _ => panic!(),
+        };
+
+        let test_bb = self.context.append_basic_block(parent, "while_test");
+        let body_bb = self.context.append_basic_block(parent, "while_body");
+        let end_loop_bb = self.context.append_basic_block(parent, "while_body");
+
+        self.builder.build_unconditional_branch(test_bb);
+        self.builder.position_at_end(test_bb);
+        self.visit_borrowed_expr(&while_stmt.condition);
+
+        let cond_instr = self.builder.build_int_compare(
+            inkwell::IntPredicate::NE,
+            condition,
+            false_const,
+            "if_condition",
+        );
+
+        self.builder
+            .build_conditional_branch(cond_instr, body_bb, end_loop_bb);
+
+        self.builder.position_at_end(body_bb);
+        self.visit_block_statement(&while_stmt.loop_block);
+        self.builder.build_unconditional_branch(test_bb);
+
+        self.builder.position_at_end(end_loop_bb);
 
         None
     }
