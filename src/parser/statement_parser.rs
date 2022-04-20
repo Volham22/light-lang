@@ -113,7 +113,7 @@ impl Parser {
                 return Err(());
             };
 
-            if self.match_expr(&[Token::Else]) {
+            if let Some(_) = self.expect(&Token::Else) {
                 let else_branch = if let Statement::Block(b) = self.parse_block_statement()? {
                     b
                 } else {
