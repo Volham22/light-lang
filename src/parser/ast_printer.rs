@@ -1,7 +1,7 @@
 use super::visitors::{
     Binary, BinaryLogic, BlockStatement, Call, Expression, ExpressionVisitor, FunctionStatement,
-    Group, Literal, ReturnStatement, Statement, StatementVisitor, Unary, VariableAssignment,
-    VariableDeclaration,
+    Group, IfStatement, Literal, ReturnStatement, Statement, StatementVisitor, Unary,
+    VariableAssignment, VariableDeclaration,
 };
 
 struct AstPrinter;
@@ -15,6 +15,7 @@ impl AstPrinter {
             Statement::Function(func) => self.visit_function_statement(func),
             Statement::Block(block) => self.visit_block_statement(block),
             Statement::Return(ret) => self.visit_return_statement(ret),
+            Statement::IfStatement(if_stmt) => self.visit_if_statement(if_stmt),
         }
     }
 
@@ -178,6 +179,21 @@ impl StatementVisitor<()> for AstPrinter {
         print!("Return: [");
         self.visit_expr(&return_stmt.expr);
         print!("]\n");
+    }
+
+    fn visit_if_statement(&mut self, if_stmt: &IfStatement) -> () {
+        print!("If: ");
+        self.visit_expr(&if_stmt.condition);
+        print!("then: ");
+        self.visit_block_statement(&if_stmt.then_branch);
+
+        if let Some(else_b) = &if_stmt.else_branch {
+            print!("else: ");
+            self.visit_block_statement(else_b);
+            println!(" endif");
+        } else {
+            println!(" endif");
+        }
     }
 }
 

@@ -3,8 +3,8 @@ use crate::{lexer::Token, type_system::value_type::ValueType};
 use super::{
     parser::Parser,
     visitors::{
-        Argument, BlockStatement, Expression, FunctionStatement, Literal, ReturnStatement,
-        Statement, VariableAssignment, VariableDeclaration,
+        Argument, BlockStatement, Expression, FunctionStatement, IfStatement, Literal,
+        ReturnStatement, Statement, VariableAssignment, VariableDeclaration,
     },
 };
 
@@ -90,17 +90,52 @@ impl Parser {
             }));
         }
 
-        self.parse_block_statement()
+        self.parse_if_statement()
     }
 
     fn parse_block(&mut self) -> Result<BlockStatement, ()> {
         let mut statements: Vec<Statement> = Vec::new();
 
         while !self.match_expr(&[Token::RightBracket]) {
-            statements.push(self.parse_block_statement()?);
+            statements.push(self.parse_if_statement()?);
         }
 
         Ok(BlockStatement { statements })
+    }
+
+    fn parse_if_statement(&mut self) -> Result<Statement, ()> {
+        if self.match_expr(&[Token::If]) {
+            let condition = self.or()?;
+            let then_branch = if let Statement::Block(b) = self.parse_block_statement()? {
+                b
+            } else {
+                println!("Expected block after if condition.");
+                return Err(());
+            };
+
+            if let Some(_) = self.expect(&Token::Else) {
+                let else_branch = if let Statement::Block(b) = self.parse_block_statement()? {
+                    b
+                } else {
+                    println!("Expected block after if condition.");
+                    return Err(());
+                };
+
+                return Ok(Statement::IfStatement(IfStatement {
+                    condition,
+                    then_branch,
+                    else_branch: Some(else_branch),
+                }));
+            }
+
+            return Ok(Statement::IfStatement(IfStatement {
+                condition,
+                then_branch,
+                else_branch: None,
+            }));
+        }
+
+        Ok(self.parse_block_statement()?)
     }
 
     fn parse_block_statement(&mut self) -> Result<Statement, ()> {

@@ -1,8 +1,8 @@
 use crate::{
     parser::visitors::{
         Binary, BinaryLogic, BlockStatement, Call, Expression, ExpressionVisitor,
-        FunctionStatement, Group, Literal, ReturnStatement, Statement, StatementVisitor, Unary,
-        VariableAssignment, VariableDeclaration,
+        FunctionStatement, Group, IfStatement, Literal, ReturnStatement, Statement,
+        StatementVisitor, Unary, VariableAssignment, VariableDeclaration,
     },
     type_system::value_type::ValueType,
 };
@@ -47,6 +47,7 @@ impl TypeChecker {
                 Statement::Function(f) => self.visit_function_statement(f)?,
                 Statement::Block(b) => self.visit_block_statement(b)?,
                 Statement::Return(ret) => self.visit_return_statement(ret)?,
+                Statement::IfStatement(if_stmt) => self.visit_if_statement(if_stmt)?,
             };
         }
 
@@ -257,6 +258,26 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
 
         return Ok(expr_type);
     }
+
+    fn visit_if_statement(&mut self, if_stmt: &IfStatement) -> TypeCheckerReturn {
+        let condition_type = self.check_expr(&if_stmt.condition)?;
+
+        if condition_type != ValueType::Bool {
+            return Err(format!(
+                "If condition has type '{}' but the type bool is needed.",
+                condition_type
+            ));
+        }
+
+        self.visit_block_statement(&if_stmt.then_branch)?;
+
+        if if_stmt.else_branch.is_some() {
+            self.visit_block_statement(&if_stmt.else_branch.as_ref().unwrap())?;
+        }
+
+        // An if statement itself has void type
+        Ok(ValueType::Void)
+    }
 }
 
 impl ExpressionVisitor<TypeCheckerReturn> for TypeChecker {
@@ -310,7 +331,7 @@ impl ExpressionVisitor<TypeCheckerReturn> for TypeChecker {
             BinaryLogic::NotEqual(l, r) => self.are_expressions_compatible(l, r),
         };
 
-        if let Ok(t) = is_compatible {
+        if let Ok(_) = is_compatible {
             Ok(ValueType::Bool)
         } else {
             Err(is_compatible.unwrap_err().to_string())

@@ -6,6 +6,8 @@ use crate::type_system::value_type::ValueType;
 pub enum Token {
     #[token("if")]
     If,
+    #[token("else")]
+    Else,
     #[token("while")]
     While,
     #[token("for")]
@@ -100,6 +102,7 @@ impl PartialEq for Token {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Token::If, Token::If) => true,
+            (Token::Else, Token::Else) => true,
             (Token::While, Token::While) => true,
             (Token::For, Token::For) => true,
             (Token::Loop, Token::Loop) => true,
