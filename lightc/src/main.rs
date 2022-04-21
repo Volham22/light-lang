@@ -20,7 +20,7 @@ struct Args {
     pub output: String,
 }
 
-fn build_objects(filenames: &Vec<String>, builder: &mut FileBuilder) {
+fn build_objects(filenames: &Vec<String>, builder: &mut FileBuilder) -> bool {
     let mut failure = false;
     for file in filenames {
         if !builder.generate_module_ir(file.as_str()) {
@@ -29,10 +29,10 @@ fn build_objects(filenames: &Vec<String>, builder: &mut FileBuilder) {
     }
 
     if failure {
-        return;
+        return false;
     }
 
-    builder.build_objects_files();
+    builder.build_objects_files()
 }
 
 fn main() {
@@ -40,7 +40,17 @@ fn main() {
     let ctx = Context::create();
     let mut builder = FileBuilder::new(&ctx);
 
-    println!("Building files: {:?}", &args.files);
-    build_objects(&args.files, &mut builder);
-    println!("Output: {}", &args.output);
+    if args.files.len() == 0 {
+        std::process::exit(0);
+    }
+
+    if !build_objects(&args.files, &mut builder) {
+        std::process::exit(1);
+    }
+
+    if !args.only_objects {
+        if !builder.link_executable(&args.output) {
+            std::process::exit(2);
+        }
+    }
 }

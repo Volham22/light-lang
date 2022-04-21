@@ -1,4 +1,4 @@
-use std::{fs, path::Path, str::FromStr};
+use std::{fs, path::Path, process::Command, str::FromStr};
 
 use compiler::{
     generation::ir_generator::{create_generator, IRGenerator},
@@ -9,10 +9,7 @@ use compiler::{
 
 use inkwell::{
     context::Context,
-    module::Module,
-    targets::{
-        CodeModel, FileType, InitializationConfig, RelocMode, Target, TargetMachine, TargetTriple,
-    },
+    targets::{CodeModel, FileType, InitializationConfig, RelocMode, Target, TargetMachine},
     OptimizationLevel,
 };
 use logos::Logos;
@@ -62,7 +59,7 @@ impl<'m> FileBuilder<'m> {
         true
     }
 
-    pub fn build_objects_files(&self) {
+    pub fn build_objects_files(&self) -> bool {
         for (name, generator) in &self.modules {
             Target::initialize_x86(&InitializationConfig::default());
             let opt = OptimizationLevel::Default;
@@ -74,7 +71,7 @@ impl<'m> FileBuilder<'m> {
                 .create_target_machine(
                     &TargetMachine::get_default_triple(),
                     "x86-64",
-                    "+generic",
+                    "",
                     opt,
                     reloc,
                     model,
@@ -87,7 +84,30 @@ impl<'m> FileBuilder<'m> {
                 &Path::new(&(name.to_string() + ".o")),
             ) {
                 eprintln!("{}", msg);
+                return false;
             }
+        }
+
+        true
+    }
+
+    // TODO: Support for non x64-32 systems
+    pub fn link_executable(&self, name: &str) -> bool {
+        if let Ok(s) = Command::new("ld")
+            .arg("-m")
+            .arg("elf_x86_64")
+            .args(self.build_objects_list())
+            .arg("/lib64/crt1.o") // C runtime
+            .arg("-lc") // Link Lib C
+            .arg("-dynamic-linker") // Use ld-linux-*
+            .arg("/lib/ld-linux-x86-64.so.2")
+            .arg("-o")
+            .arg(name)
+            .status()
+        {
+            s.success()
+        } else {
+            false
         }
     }
 
@@ -100,5 +120,12 @@ impl<'m> FileBuilder<'m> {
             eprintln!("{}", read_result.err().unwrap());
             Err(())
         }
+    }
+
+    fn build_objects_list(&self) -> Vec<String> {
+        self.modules
+            .iter()
+            .map(|t| t.0.to_string() + ".o")
+            .collect()
     }
 }
