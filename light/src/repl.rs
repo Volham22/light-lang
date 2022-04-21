@@ -19,7 +19,7 @@ pub fn repl_loop() {
     show_repl();
     let mut type_check = TypeChecker::new();
     let context = Context::create();
-    let mut generator = create_generator(&context);
+    let mut generator = create_generator(&context, "main");
     let engine = generator
         .module
         .create_jit_execution_engine(OptimizationLevel::None)

@@ -208,11 +208,11 @@ unsafe fn execute_jit_function<'a, T: Debug>(engine: &ExecutionEngine<'a>) {
     }
 }
 
-pub fn create_generator<'gen>(context: &'gen Context) -> IRGenerator<'gen> {
+pub fn create_generator<'gen>(context: &'gen Context, name: &str) -> IRGenerator<'gen> {
     IRGenerator {
         context: &context,
         builder: context.create_builder(),
-        module: context.create_module("main"),
+        module: context.create_module(name),
         current_fn: None,
         variables: HashMap::new(),
     }
