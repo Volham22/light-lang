@@ -250,10 +250,6 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
         };
 
         let false_const = self.context.bool_type().const_zero();
-        let condition = match self.visit_borrowed_expr(&while_stmt.condition) {
-            AnyValueEnum::IntValue(v) => v,
-            _ => panic!(),
-        };
 
         let test_bb = self.context.append_basic_block(parent, "while_test");
         let body_bb = self.context.append_basic_block(parent, "while_body");
@@ -261,13 +257,16 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
 
         self.builder.build_unconditional_branch(test_bb);
         self.builder.position_at_end(test_bb);
-        self.visit_borrowed_expr(&while_stmt.condition);
+        let condition = match self.visit_borrowed_expr(&while_stmt.condition) {
+            AnyValueEnum::IntValue(v) => v,
+            _ => panic!(),
+        };
 
         let cond_instr = self.builder.build_int_compare(
             inkwell::IntPredicate::NE,
             condition,
             false_const,
-            "if_condition",
+            "while_condition",
         );
 
         self.builder
