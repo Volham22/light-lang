@@ -209,7 +209,6 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
         self.in_function = Some(expr.return_type);
         self.visit_block_statement(&expr.block)?;
         self.in_function = None;
-        self.variables_table.pop().unwrap();
 
         // TODO:
         // for now we only check if the function body has a return statement if
