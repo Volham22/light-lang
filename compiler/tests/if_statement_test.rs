@@ -11,7 +11,7 @@ use logos::Logos;
 fn assert_ir_generation(ast: &Vec<Statement>) {
     // LLVM setup
     let context = Context::create();
-    let mut generator = create_generator(&context);
+    let mut generator = create_generator(&context, "tmp.lht");
     let engine = generator
         .module
         .create_jit_execution_engine(OptimizationLevel::None)
