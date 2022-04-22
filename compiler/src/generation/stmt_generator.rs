@@ -281,7 +281,7 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
         None
     }
 
-    fn visit_for_statement(&mut self, for_stmt: &ForStatement) -> Option<AnyValueEnum<'a>> {
-        todo!()
+    fn visit_for_statement(&mut self, _for_stmt: &ForStatement) -> Option<AnyValueEnum<'a>> {
+        unreachable!()
     }
 }
