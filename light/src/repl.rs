@@ -1,5 +1,6 @@
 use std::io::{self, BufRead, Write};
 
+use compiler::desugar::desugar_ast;
 use inkwell::context::Context;
 use inkwell::OptimizationLevel;
 use logos::Logos;
@@ -32,12 +33,14 @@ pub fn repl_loop() {
             let tokens = lexer.collect();
             let mut parser = Parser::new(tokens);
 
-            if let Some(stmts) = parser.parse() {
+            if let Some(mut stmts) = parser.parse() {
                 print_ast(&stmts);
 
                 if let Err(msg) = type_check.check_ast_type(&stmts) {
                     println!("Error: {}", msg);
                 } else {
+                    desugar_ast(&mut stmts);
+                    print_ast(&stmts);
                     generate_ir_code_jit(&mut generator, &engine, &stmts);
                     println!("OK");
                 }

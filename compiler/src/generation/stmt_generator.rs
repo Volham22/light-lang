@@ -5,8 +5,8 @@ use inkwell::{
 
 use crate::{
     parser::visitors::{
-        BlockStatement, Expression, FunctionStatement, IfStatement, Literal, ReturnStatement,
-        StatementVisitor, VariableAssignment, VariableDeclaration, WhileStatement,
+        BlockStatement, Expression, ForStatement, FunctionStatement, IfStatement, Literal,
+        ReturnStatement, StatementVisitor, VariableAssignment, VariableDeclaration, WhileStatement,
     },
     type_system::value_type::ValueType,
 };
@@ -279,5 +279,9 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
         self.builder.position_at_end(end_loop_bb);
 
         None
+    }
+
+    fn visit_for_statement(&mut self, _for_stmt: &ForStatement) -> Option<AnyValueEnum<'a>> {
+        unreachable!()
     }
 }

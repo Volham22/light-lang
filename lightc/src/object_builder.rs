@@ -1,6 +1,7 @@
 use std::{fs, path::Path, process::Command, str::FromStr};
 
 use compiler::{
+    desugar::desugar_ast,
     generation::ir_generator::{create_generator, IRGenerator},
     lexer::Token,
     parser::parser::Parser,
@@ -38,7 +39,7 @@ impl<'m> FileBuilder<'m> {
         let mut parser = Parser::new(tokens);
         let mut generator = create_generator(self.context, path);
 
-        if let Some(stmts) = parser.parse() {
+        if let Some(mut stmts) = parser.parse() {
             let mut type_checker = TypeChecker::new();
 
             if let Ok(_) = type_checker.check_ast_type(&stmts) {
@@ -46,6 +47,7 @@ impl<'m> FileBuilder<'m> {
                     .context
                     .create_module(Path::new(path).file_name().unwrap().to_str().unwrap());
 
+                desugar_ast(&mut stmts);
                 generator.generate_ir(&stmts);
                 self.modules
                     .push((String::from_str(path).unwrap(), generator));

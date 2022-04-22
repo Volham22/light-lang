@@ -55,6 +55,7 @@ impl<'a> IRGenerator<'a> {
             Statement::WhileStatement(while_stmt) => {
                 self.visit_while_statement(while_stmt);
             }
+            Statement::ForStatement(_) => todo!(),
         };
 
         match body {
@@ -181,6 +182,7 @@ impl<'a> IRGenerator<'a> {
                 self.visit_while_statement(expr);
                 None
             }
+            Statement::ForStatement(_) => todo!(),
         }
     }
 

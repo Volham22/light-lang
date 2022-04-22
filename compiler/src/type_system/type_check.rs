@@ -1,6 +1,6 @@
 use crate::{
     parser::visitors::{
-        Binary, BinaryLogic, BlockStatement, Call, Expression, ExpressionVisitor,
+        Binary, BinaryLogic, BlockStatement, Call, Expression, ExpressionVisitor, ForStatement,
         FunctionStatement, Group, IfStatement, Literal, ReturnStatement, Statement,
         StatementVisitor, Unary, VariableAssignment, VariableDeclaration, WhileStatement,
     },
@@ -36,23 +36,24 @@ impl TypeChecker {
 
     pub fn check_ast_type(&mut self, stmts: &Vec<Statement>) -> TypeCheckerReturn {
         for stmt in stmts {
-            match stmt {
-                Statement::Expression(expr) => self.visit_expression_statement(expr)?,
-                Statement::VariableDeclaration(var_dec) => {
-                    self.visit_declaration_statement(var_dec)?
-                }
-                Statement::VariableAssignment(var_ass) => {
-                    self.visit_assignment_statement(var_ass)?
-                }
-                Statement::Function(f) => self.visit_function_statement(f)?,
-                Statement::Block(b) => self.visit_block_statement(b)?,
-                Statement::Return(ret) => self.visit_return_statement(ret)?,
-                Statement::IfStatement(if_stmt) => self.visit_if_statement(if_stmt)?,
-                Statement::WhileStatement(while_stmt) => self.visit_while_statement(while_stmt)?,
-            };
+            self.visit_statement(stmt)?;
         }
 
         Ok(ValueType::Number)
+    }
+
+    fn visit_statement(&mut self, stmt: &Statement) -> TypeCheckerReturn {
+        match stmt {
+            Statement::Expression(expr) => self.visit_expression_statement(expr),
+            Statement::VariableDeclaration(var_dec) => self.visit_declaration_statement(var_dec),
+            Statement::VariableAssignment(var_ass) => self.visit_assignment_statement(var_ass),
+            Statement::Function(f) => self.visit_function_statement(f),
+            Statement::Block(b) => self.visit_block_statement(b),
+            Statement::Return(ret) => self.visit_return_statement(ret),
+            Statement::IfStatement(if_stmt) => self.visit_if_statement(if_stmt),
+            Statement::WhileStatement(while_stmt) => self.visit_while_statement(while_stmt),
+            Statement::ForStatement(for_stmt) => self.visit_for_statement(for_stmt),
+        }
     }
 
     fn check_expr(&mut self, expr: &Expression) -> TypeCheckerReturn {
@@ -292,6 +293,29 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
         self.visit_block_statement(&while_stmt.loop_block)?;
 
         // An while statement has void type
+        Ok(ValueType::Void)
+    }
+
+    fn visit_for_statement(&mut self, for_stmt: &ForStatement) -> TypeCheckerReturn {
+        let init_type = self.visit_declaration_statement(&for_stmt.init_expr)?;
+        let loop_type = self.visit_expression_statement(&for_stmt.loop_condition)?;
+        self.visit_statement(&for_stmt.next_expr)?;
+        self.visit_block_statement(&for_stmt.block_stmt)?;
+
+        if init_type != ValueType::Number && init_type != ValueType::Real {
+            return Err(format!(
+                "For init declaration has type '{}' but type 'number' or 'real' is required.",
+                init_type
+            ));
+        }
+
+        if loop_type != ValueType::Bool {
+            return Err(format!(
+                "For loop expression has type '{}' but type 'bool' is required.",
+                loop_type
+            ));
+        }
+
         Ok(ValueType::Void)
     }
 }

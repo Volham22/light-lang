@@ -3,8 +3,9 @@ use crate::{lexer::Token, type_system::value_type::ValueType};
 use super::{
     parser::Parser,
     visitors::{
-        Argument, BlockStatement, Expression, FunctionStatement, IfStatement, Literal,
-        ReturnStatement, Statement, VariableAssignment, VariableDeclaration, WhileStatement,
+        Argument, BlockStatement, Expression, ForStatement, FunctionStatement, IfStatement,
+        Literal, ReturnStatement, Statement, VariableAssignment, VariableDeclaration,
+        WhileStatement,
     },
 };
 
@@ -132,6 +133,43 @@ impl Parser {
                 condition,
                 then_branch,
                 else_branch: None,
+            }));
+        }
+
+        Ok(self.parse_for_statement()?)
+    }
+
+    fn parse_for_statement(&mut self) -> Result<Statement, ()> {
+        if self.match_expr(&[Token::For]) {
+            let init_expr =
+                if let Statement::VariableDeclaration(dec) = self.parse_declaration_statement()? {
+                    dec
+                } else {
+                    println!("Expected variable declaration atfer for.");
+                    return Err(());
+                };
+
+            let loop_condition = self.or()?;
+
+            if let None = self.expect(&Token::Semicolon) {
+                println!("Expected ';' after loop condition.");
+                return Err(());
+            }
+
+            let next_expr = self.parse_expression_statement()?;
+
+            let block_stmt = if let Statement::Block(b) = self.parse_block_statement()? {
+                b
+            } else {
+                println!("Expected block statement in for statement.");
+                return Err(());
+            };
+
+            return Ok(Statement::ForStatement(ForStatement {
+                init_expr,
+                loop_condition,
+                next_expr: Box::new(next_expr),
+                block_stmt,
             }));
         }
 
