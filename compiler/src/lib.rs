@@ -1,3 +1,4 @@
+pub mod desugar;
 pub mod generation;
 pub mod lexer;
 pub mod parser;

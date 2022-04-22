@@ -2,6 +2,7 @@ use crate::type_system::value_type::ValueType;
 
 pub type Argument = (String, ValueType);
 
+#[derive(Clone)]
 pub enum Literal {
     Number(i64),
     Real(f64),
@@ -9,6 +10,7 @@ pub enum Literal {
     Identifier(String),
 }
 
+#[derive(Clone)]
 pub enum Binary {
     Plus(Box<Expression>, Box<Expression>),
     Minus(Box<Expression>, Box<Expression>),
@@ -17,10 +19,12 @@ pub enum Binary {
     Modulo(Box<Expression>, Box<Expression>),
 }
 
+#[derive(Clone)]
 pub struct Group {
     pub inner_expression: Box<Expression>,
 }
 
+#[derive(Clone)]
 pub enum BinaryLogic {
     And(Box<Expression>, Box<Expression>),
     Or(Box<Expression>, Box<Expression>),
@@ -32,16 +36,19 @@ pub enum BinaryLogic {
     LessEqual(Box<Expression>, Box<Expression>),
 }
 
+#[derive(Clone)]
 pub enum Unary {
     Not(Box<Expression>),
     Negate(Box<Expression>),
 }
 
+#[derive(Clone)]
 pub struct Call {
     pub name: String,
     pub args: Option<Vec<Expression>>,
 }
 
+#[derive(Clone)]
 pub enum Expression {
     Literal(Literal),
     Binary(Binary),
@@ -51,21 +58,25 @@ pub enum Expression {
     Call(Call),
 }
 
+#[derive(Clone)]
 pub struct VariableDeclaration {
     pub identifier: String,
     pub variable_type: ValueType,
     pub init_expr: Expression,
 }
 
+#[derive(Clone)]
 pub struct VariableAssignment {
     pub identifier: String,
     pub new_value: Expression,
 }
 
+#[derive(Clone)]
 pub struct BlockStatement {
     pub statements: Vec<Statement>,
 }
 
+#[derive(Clone)]
 pub struct FunctionStatement {
     pub callee: String,
     pub args: Option<Vec<Argument>>,
@@ -73,21 +84,25 @@ pub struct FunctionStatement {
     pub return_type: ValueType,
 }
 
+#[derive(Clone)]
 pub struct ReturnStatement {
     pub expr: Expression,
 }
 
+#[derive(Clone)]
 pub struct IfStatement {
     pub condition: Expression,
     pub then_branch: BlockStatement,
     pub else_branch: Option<BlockStatement>,
 }
 
+#[derive(Clone)]
 pub struct WhileStatement {
     pub condition: Expression,
     pub loop_block: BlockStatement,
 }
 
+#[derive(Clone)]
 pub struct ForStatement {
     pub init_expr: VariableDeclaration,
     pub loop_condition: Expression,
@@ -95,6 +110,7 @@ pub struct ForStatement {
     pub block_stmt: BlockStatement,
 }
 
+#[derive(Clone)]
 pub enum Statement {
     Expression(Expression),
     VariableDeclaration(VariableDeclaration),
@@ -117,6 +133,18 @@ pub trait StatementVisitor<T> {
     fn visit_if_statement(&mut self, if_stmt: &IfStatement) -> T;
     fn visit_while_statement(&mut self, while_stmt: &WhileStatement) -> T;
     fn visit_for_statement(&mut self, for_stmt: &ForStatement) -> T;
+}
+
+pub trait MutableStatementVisitor<T> {
+    fn visit_expression_statement(&mut self, expr: &mut Expression) -> T;
+    fn visit_declaration_statement(&mut self, expr: &mut VariableDeclaration) -> T;
+    fn visit_assignment_statement(&mut self, expr: &mut VariableAssignment) -> T;
+    fn visit_function_statement(&mut self, expr: &mut FunctionStatement) -> T;
+    fn visit_block_statement(&mut self, expr: &mut BlockStatement) -> T;
+    fn visit_return_statement(&mut self, return_stmt: &mut ReturnStatement) -> T;
+    fn visit_if_statement(&mut self, if_stmt: &mut IfStatement) -> T;
+    fn visit_while_statement(&mut self, while_stmt: &mut WhileStatement) -> T;
+    fn visit_for_statement(&mut self, for_stmt: &mut ForStatement) -> T;
 }
 
 pub trait ExpressionVisitor<T> {
