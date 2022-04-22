@@ -88,6 +88,13 @@ pub struct WhileStatement {
     pub loop_block: BlockStatement,
 }
 
+pub struct ForStatement {
+    pub init_expr: VariableDeclaration,
+    pub loop_condition: Expression,
+    pub next_expr: Box<Statement>,
+    pub block_stmt: BlockStatement,
+}
+
 pub enum Statement {
     Expression(Expression),
     VariableDeclaration(VariableDeclaration),
@@ -97,6 +104,7 @@ pub enum Statement {
     Return(ReturnStatement),
     IfStatement(IfStatement),
     WhileStatement(WhileStatement),
+    ForStatement(ForStatement),
 }
 
 pub trait StatementVisitor<T> {
@@ -108,6 +116,7 @@ pub trait StatementVisitor<T> {
     fn visit_return_statement(&mut self, return_stmt: &ReturnStatement) -> T;
     fn visit_if_statement(&mut self, if_stmt: &IfStatement) -> T;
     fn visit_while_statement(&mut self, while_stmt: &WhileStatement) -> T;
+    fn visit_for_statement(&mut self, for_stmt: &ForStatement) -> T;
 }
 
 pub trait ExpressionVisitor<T> {

@@ -114,3 +114,35 @@ fn nested_while_10_iteration() {
         assert!(false, "Parser failed!");
     }
 }
+
+#[test]
+fn simple_for_loop() {
+    let source = "for let i: number = 0; i < 10; i = i + 1; {}";
+
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+
+    if let Some(ast) = parser.parse() {
+        let mut type_check = TypeChecker::new();
+        assert!(type_check.check_ast_type(&ast).is_ok());
+    } else {
+        assert!(false, "Parser failed!");
+    }
+}
+
+#[test]
+fn simple_for_loop_with_body() {
+    let source = "for let i: number = 0; i < 10; i = i + 1; { i == 1; }";
+
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+
+    if let Some(ast) = parser.parse() {
+        let mut type_check = TypeChecker::new();
+        assert!(type_check.check_ast_type(&ast).is_ok());
+    } else {
+        assert!(false, "Parser failed!");
+    }
+}
