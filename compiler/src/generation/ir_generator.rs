@@ -55,7 +55,7 @@ impl<'a> IRGenerator<'a> {
             Statement::WhileStatement(while_stmt) => {
                 self.visit_while_statement(while_stmt);
             }
-            Statement::ForStatement(_) => todo!(),
+            Statement::ForStatement(_) => unreachable!(),
         };
 
         match body {
@@ -75,6 +75,8 @@ impl<'a> IRGenerator<'a> {
     }
 
     pub fn generate_ir(&mut self, stmts: &Vec<Statement>) -> Option<ValueType> {
+        println!("{}", stmts.len());
+
         for stmt in stmts {
             match stmt {
                 Statement::Function(f) => {

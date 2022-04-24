@@ -446,7 +446,7 @@ impl ExpressionVisitor<TypeCheckerReturn> for TypeChecker {
     }
 
     fn visit_array_access(&mut self, call_expr: &ArrayAccess) -> TypeCheckerReturn {
-        let table = self.variables_table.first().unwrap();
+        let table = self.variables_table.last().unwrap();
 
         if let Some(dec) = table.get(&call_expr.identifier) {
             Ok(dec.clone())

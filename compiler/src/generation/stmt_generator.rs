@@ -1,8 +1,8 @@
 use std::ops::Deref;
 
 use inkwell::{
-    types::{AnyTypeEnum, BasicMetadataTypeEnum, IntType},
-    values::{AnyValueEnum, BasicValue, BasicValueEnum, IntValue, PointerValue},
+    types::BasicMetadataTypeEnum,
+    values::{AnyValueEnum, BasicValue, BasicValueEnum, PointerValue},
 };
 
 use crate::{
