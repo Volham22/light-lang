@@ -179,3 +179,168 @@ fn undeclared_variable() {
         assert!(false, "Parser failed!");
     }
 }
+
+#[test]
+fn parse_valid_int_array_declaration() {
+    let source = "let arr: [number; 10] = 0;";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+
+    assert!(parser.parse().is_some());
+}
+
+#[test]
+fn parse_invalid_type_position_array_declaration() {
+    let source = "let arr: [10; number] = 0;";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+
+    assert!(parser.parse().is_none());
+}
+
+#[test]
+fn parse_unclosed_array_declaration() {
+    let source = "let arr: [number; 10 = 0;";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+
+    assert!(parser.parse().is_none());
+}
+
+#[test]
+fn parse_missing_semicolon_array_declaration() {
+    let source = "let arr: [number 10] = 0;";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+
+    assert!(parser.parse().is_none());
+}
+
+#[test]
+fn parse_valid_array_access() {
+    let source = "let arr: [number; 10] = 0; arr[0];";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+
+    assert!(parser.parse().is_some());
+}
+
+#[test]
+fn parse_unclosed_bracket_array_access() {
+    let source = "let arr: [number; 10] = 0; arr[0;";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+
+    assert!(parser.parse().is_none());
+}
+
+#[test]
+fn array_init_valid_type_check() {
+    let source = "let arr: [number; 10] = 10;";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+
+    if let Some(ast) = parser.parse() {
+        let mut type_check = TypeChecker::new();
+        assert!(type_check.check_ast_type(&ast).is_ok());
+    } else {
+        assert!(false, "Parser failed!");
+    }
+}
+
+#[test]
+fn array_init_valid_type_check_real() {
+    let source = "let arr: [real; 10] = 10.2;";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+
+    if let Some(ast) = parser.parse() {
+        let mut type_check = TypeChecker::new();
+        assert!(type_check.check_ast_type(&ast).is_ok());
+    } else {
+        assert!(false, "Parser failed!");
+    }
+}
+
+#[test]
+fn array_init_invalid_type_check() {
+    let source = "let arr: [real; 10] = false;";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+
+    if let Some(ast) = parser.parse() {
+        let mut type_check = TypeChecker::new();
+        assert!(type_check.check_ast_type(&ast).is_err());
+    } else {
+        assert!(false, "Parser failed!");
+    }
+}
+
+#[test]
+fn array_valid_type_check_access() {
+    let source = "let arr: [real; 10] = 10.2; let b: real = arr[0];";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+
+    if let Some(ast) = parser.parse() {
+        let mut type_check = TypeChecker::new();
+        assert!(type_check.check_ast_type(&ast).is_ok());
+    } else {
+        assert!(false, "Parser failed!");
+    }
+}
+
+#[test]
+fn array_valid_type_check_assign() {
+    let source = "let arr: [real; 10] = 10.2; arr[0] = 3.14;";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+
+    if let Some(ast) = parser.parse() {
+        let mut type_check = TypeChecker::new();
+        assert!(type_check.check_ast_type(&ast).is_ok());
+    } else {
+        assert!(false, "Parser failed!");
+    }
+}
+
+#[test]
+fn array_invalid_type_check_access() {
+    let source = "let arr: [real; 10] = 10.2; let b: bool = arr[0];";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+
+    if let Some(ast) = parser.parse() {
+        let mut type_check = TypeChecker::new();
+        assert!(type_check.check_ast_type(&ast).is_err());
+    } else {
+        assert!(false, "Parser failed!");
+    }
+}
+
+#[test]
+fn array_invalid_type_check_assign() {
+    let source = "let arr: [real; 10] = 10.2; arr[0] = false;";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+
+    if let Some(ast) = parser.parse() {
+        let mut type_check = TypeChecker::new();
+        assert!(type_check.check_ast_type(&ast).is_err());
+    } else {
+        assert!(false, "Parser failed!");
+    }
+}

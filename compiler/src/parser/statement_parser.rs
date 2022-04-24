@@ -53,7 +53,7 @@ impl Parser {
                     }
                 };
 
-                args.push((id.clone(), *arg_type));
+                args.push((id.clone(), arg_type.clone()));
 
                 if !self.match_expr(&[Token::Comma]) {
                     break;
@@ -77,7 +77,7 @@ impl Parser {
                     _ => return Err(()),
                 };
 
-            if let None = self.consume(&Token::LeftBracket, "Expected block after function.") {
+            if let None = self.consume(&Token::LeftBrace, "Expected block after function.") {
                 return Err(());
             }
 
@@ -97,7 +97,7 @@ impl Parser {
     fn parse_block(&mut self) -> Result<BlockStatement, ()> {
         let mut statements: Vec<Statement> = Vec::new();
 
-        while !self.match_expr(&[Token::RightBracket]) {
+        while !self.match_expr(&[Token::RightBrace]) {
             statements.push(self.parse_if_statement()?);
         }
 
@@ -196,7 +196,7 @@ impl Parser {
     }
 
     fn parse_block_statement(&mut self) -> Result<Statement, ()> {
-        if self.match_expr(&[Token::LeftBracket]) {
+        if self.match_expr(&[Token::LeftBrace]) {
             return Ok(Statement::Block(self.parse_block()?));
         }
 
@@ -233,15 +233,7 @@ impl Parser {
                 return Err(());
             }
 
-            let variable_type = match self.consume(
-                &Token::Type(ValueType::Number),
-                "Expected valid typename after ':'.",
-            ) {
-                Some(Token::Type(t)) => *t,
-                _ => {
-                    return Err(());
-                }
-            };
+            let variable_type = self.parse_type()?;
 
             if let None = self.consume(&Token::Equal, "Expected '=' after typename.") {
                 return Err(());
@@ -273,15 +265,24 @@ impl Parser {
                 return Err(());
             }
 
-            if let Expression::Literal(Literal::Identifier(identifier)) = expr {
-                return Ok(Statement::VariableAssignment(VariableAssignment {
-                    identifier,
-                    new_value: rhs,
-                }));
-            } else {
-                println!("Error: left side of assignment must be an lvalue.");
-                return Err(());
-            }
+            match expr {
+                Expression::Literal(Literal::Identifier(id)) => {
+                    return Ok(Statement::VariableAssignment(VariableAssignment {
+                        identifier: id,
+                        new_value: rhs,
+                    }));
+                }
+                Expression::ArrayAccess(a) => {
+                    return Ok(Statement::VariableAssignment(VariableAssignment {
+                        identifier: a.identifier,
+                        new_value: rhs,
+                    }))
+                }
+                _ => {
+                    println!("Error: left side of assignment must be an lvalue.");
+                    return Err(());
+                }
+            };
         }
 
         if let None = self.consume(&Token::Semicolon, "Expected ';' after <expression>") {

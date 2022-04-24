@@ -3,8 +3,15 @@ use std::{
     str::FromStr,
 };
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
+pub struct StaticArray {
+    pub size: usize,
+    pub array_type: Box<ValueType>,
+}
+
+#[derive(Clone)]
 pub enum ValueType {
+    Array(StaticArray),
     Number,
     Real,
     Bool,
@@ -22,6 +29,8 @@ impl PartialEq for ValueType {
             (ValueType::String, ValueType::String) => true,
             (ValueType::Function, ValueType::Function) => true,
             (ValueType::Void, ValueType::Void) => true,
+            (ValueType::Array(a), _) => a.array_type.as_ref() == other,
+            (_, ValueType::Array(a)) => a.array_type.as_ref() == self,
             _ => false,
         }
     }
@@ -36,6 +45,12 @@ impl Display for ValueType {
             ValueType::String => f.write_str("String"),
             ValueType::Function => f.write_str("Function"),
             ValueType::Void => f.write_str("Void"),
+            ValueType::Array(a) => {
+                f.write_str("Array of ").unwrap();
+                f.write_fmt(format_args!("{}", a.array_type.as_ref()))
+                    .unwrap();
+                f.write_fmt(format_args!(" size: {}", a.size))
+            }
         }
     }
 }
@@ -48,7 +63,7 @@ impl Debug for ValueType {
 }
 
 impl ValueType {
-    pub fn is_compatible(ltype: ValueType, rtype: ValueType) -> bool {
+    pub fn is_compatible(ltype: &ValueType, rtype: &ValueType) -> bool {
         rtype == ltype
     }
 }

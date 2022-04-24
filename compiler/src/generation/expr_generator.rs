@@ -3,7 +3,7 @@ use inkwell::{FloatPredicate, IntPredicate};
 
 use crate::generation::ir_generator::IRGenerator;
 use crate::parser::visitors::{
-    Binary, BinaryLogic, Call, ExpressionVisitor, Group, Literal, Unary,
+    ArrayAccess, Binary, BinaryLogic, Call, ExpressionVisitor, Group, Literal, Unary,
 };
 
 impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
@@ -364,5 +364,18 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
             Some(v) => v.into(),
             None => panic!("wrong call"),
         }
+    }
+
+    fn visit_array_access(&mut self, call_expr: &ArrayAccess) -> AnyValueEnum<'a> {
+        let expr = self.visit_expr(&call_expr.index);
+        let ptr = self.variables.get(&call_expr.identifier).unwrap();
+        let value = self.get_int_value(expr);
+
+        let offset_ptr = unsafe {
+            self.builder
+                .build_gep(*ptr, &[value], call_expr.identifier.as_str())
+        };
+
+        self.builder.build_load(offset_ptr, "load_array").into()
     }
 }

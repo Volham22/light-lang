@@ -1,7 +1,7 @@
 use crate::{
     parser::visitors::{
-        Binary, BinaryLogic, BlockStatement, Call, Expression, ExpressionVisitor, ForStatement,
-        FunctionStatement, Group, IfStatement, Literal, ReturnStatement, Statement,
+        ArrayAccess, Binary, BinaryLogic, BlockStatement, Call, Expression, ExpressionVisitor,
+        ForStatement, FunctionStatement, Group, IfStatement, Literal, ReturnStatement, Statement,
         StatementVisitor, Unary, VariableAssignment, VariableDeclaration, WhileStatement,
     },
     type_system::value_type::ValueType,
@@ -64,6 +64,7 @@ impl TypeChecker {
             Expression::BinaryLogic(e) => self.visit_binary_logic(&e),
             Expression::Unary(e) => self.visit_unary(&e),
             Expression::Call(e) => self.visit_call(&e),
+            Expression::ArrayAccess(a) => self.visit_array_access(&a),
         }
     }
 
@@ -75,6 +76,7 @@ impl TypeChecker {
             Expression::BinaryLogic(e) => self.visit_binary_logic(&e),
             Expression::Unary(e) => self.visit_unary(&e),
             Expression::Call(e) => self.visit_call(&e),
+            Expression::ArrayAccess(a) => self.visit_array_access(&a),
         }
     }
 
@@ -93,10 +95,10 @@ impl TypeChecker {
     ) -> TypeCheckerReturn {
         let (lhs_result, rhs_result) = self.unpack_binary_type(l, r);
 
-        if let Ok(lhs_type) = lhs_result {
-            if let Ok(rhs_type) = rhs_result {
+        if let Ok(lhs_type) = &lhs_result {
+            if let Ok(rhs_type) = &rhs_result {
                 if ValueType::is_compatible(lhs_type, rhs_type) {
-                    Ok(lhs_type)
+                    Ok(lhs_type.clone())
                 } else {
                     Err(format!(
                         "Type {} is not compatible with type {}. Consider casting.",
@@ -126,7 +128,7 @@ impl TypeChecker {
         let last = self.variables_table.last_mut().unwrap();
 
         for (name, arg_type) in args {
-            last.insert(name.to_string(), *arg_type);
+            last.insert(name.to_string(), arg_type.clone());
         }
     }
 }
@@ -139,7 +141,7 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
     fn visit_declaration_statement(&mut self, expr: &VariableDeclaration) -> TypeCheckerReturn {
         let init_type = self.check_expr(&expr.init_expr)?;
 
-        if !ValueType::is_compatible(init_type, expr.variable_type) {
+        if !ValueType::is_compatible(&expr.variable_type, &init_type) {
             let message = format!(
                 "variable '{}' is declared as '{}' but init expression has type '{}'",
                 expr.identifier, expr.variable_type, init_type
@@ -155,7 +157,7 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
         self.variables_table
             .last_mut()
             .unwrap()
-            .insert(expr.identifier.clone(), expr.variable_type);
+            .insert(expr.identifier.clone(), expr.variable_type.clone());
         Ok(init_type)
     }
 
@@ -170,7 +172,7 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
         let expr_type = self.check_expr(&expr.new_value)?;
         let variable_type = self.find_variable_type(&expr.identifier).unwrap();
 
-        if !ValueType::is_compatible(expr_type, *variable_type) {
+        if !ValueType::is_compatible(&expr_type, variable_type) {
             return Err(format!(
                 "Cannot assign expression of type '{}' to variable '{}' of type '{}'.",
                 expr_type, expr.identifier, variable_type
@@ -188,18 +190,23 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
         self.variables_table
             .first_mut()
             .unwrap()
-            .insert(expr.callee.to_string(), expr.return_type);
+            .insert(expr.callee.to_string(), expr.return_type.clone());
 
         self.function_table.insert(
             expr.callee.to_string(),
             FunctionSignature {
                 args_type: if expr.args.is_some() {
-                    expr.args.as_ref().unwrap().iter().map(|e| e.1).collect()
+                    expr.args
+                        .as_ref()
+                        .unwrap()
+                        .iter()
+                        .map(|e| e.1.clone())
+                        .collect()
                 } else {
                     Vec::new()
                 },
                 name: expr.callee.to_string(),
-                return_type: expr.return_type,
+                return_type: expr.return_type.clone(),
             },
         );
 
@@ -207,7 +214,7 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
             self.add_variables_in_scope(&expr.args.as_ref().unwrap());
         }
 
-        self.in_function = Some(expr.return_type);
+        self.in_function = Some(expr.return_type.clone());
         self.visit_block_statement(&expr.block)?;
         self.in_function = None;
 
@@ -221,7 +228,7 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
             for stmt in &expr.block.statements {
                 match stmt {
                     Statement::Return(_) => {
-                        return Ok(expr.return_type);
+                        return Ok(expr.return_type.clone());
                     }
                     _ => continue,
                 }
@@ -230,7 +237,7 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
             return Err(format!("Function '{}' returns no values", expr.callee));
         }
 
-        Ok(expr.return_type)
+        Ok(expr.return_type.clone())
     }
 
     fn visit_block_statement(&mut self, expr: &BlockStatement) -> TypeCheckerReturn {
@@ -248,9 +255,9 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
         }
 
         let expr_type = self.check_expr(&return_stmt.expr)?;
-        let return_type = self.in_function.unwrap();
+        let return_type = self.in_function.as_ref().unwrap();
 
-        if !ValueType::is_compatible(expr_type, return_type) {
+        if !ValueType::is_compatible(&expr_type, &return_type) {
             return Err(format!(
                 "Returned '{}' is not compatible with function return type '{}'",
                 expr_type, return_type
@@ -328,7 +335,7 @@ impl ExpressionVisitor<TypeCheckerReturn> for TypeChecker {
             Literal::Bool(_) => Ok(ValueType::Bool),
             Literal::Identifier(identifier) => {
                 if let Some(var_type) = self.find_variable_type(identifier) {
-                    Ok(*var_type)
+                    Ok(var_type.clone())
                 } else {
                     Err(format!(
                         "'{}' is not declared. Declare it 'let {}: <typename> = <init_expr>;'",
@@ -421,7 +428,7 @@ impl ExpressionVisitor<TypeCheckerReturn> for TypeChecker {
                 let expr_type = self.check_expr(arg_expr)?;
                 let fn_args = &self.function_table.get(&call_expr.name).unwrap().args_type;
 
-                if !ValueType::is_compatible(expr_type, fn_args[i]) {
+                if !ValueType::is_compatible(&expr_type, &fn_args[i]) {
                     return Err(format!(
                         "Expression of type '{}' cannot be applied to function argument of type '{}' in the call to '{}'",
                         expr_type, fn_args[i], fn_name
@@ -434,6 +441,17 @@ impl ExpressionVisitor<TypeCheckerReturn> for TypeChecker {
             .function_table
             .get(&call_expr.name)
             .unwrap()
-            .return_type)
+            .return_type
+            .clone())
+    }
+
+    fn visit_array_access(&mut self, call_expr: &ArrayAccess) -> TypeCheckerReturn {
+        let table = self.variables_table.first().unwrap();
+
+        if let Some(dec) = table.get(&call_expr.identifier) {
+            Ok(dec.clone())
+        } else {
+            Err(format!("Undeclared array '{}'", call_expr.identifier))
+        }
     }
 }

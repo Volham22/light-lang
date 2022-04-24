@@ -100,7 +100,8 @@ impl<'a> IRGenerator<'a> {
             Expression::Group(group) => self.visit_group(&group),
             Expression::BinaryLogic(binary) => self.visit_binary_logic(&binary),
             Expression::Unary(unary) => self.visit_unary(&unary),
-            Expression::Call(_) => todo!(),
+            Expression::Call(call) => self.visit_call(call),
+            Expression::ArrayAccess(array) => self.visit_array_access(array),
         }
     }
 
@@ -112,6 +113,7 @@ impl<'a> IRGenerator<'a> {
             Expression::BinaryLogic(binary) => self.visit_binary_logic(&binary),
             Expression::Unary(unary) => self.visit_unary(&unary),
             Expression::Call(call) => self.visit_call(call),
+            Expression::ArrayAccess(array) => self.visit_array_access(array),
         }
     }
 

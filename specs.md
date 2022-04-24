@@ -65,13 +65,25 @@ exported with the `export` keyword.
 
 ```
 
+## Arrays
+
+We can declare static arrays and use it as C-styled arrays. Arrays are 0 indexed.
+
+```
+let my_array: [number; 10] = 0;
+
+for let i: number = 0; i < 10; i = i + 1; {
+    my_array[i];
+}
+```
+
 ## Code samples
 
 ### Add
 
 ```
 fn add(a: number, b: number): number {
-return a + b;
+    return a + b;
 }
 ```
 

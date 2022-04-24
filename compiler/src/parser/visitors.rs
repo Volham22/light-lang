@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::type_system::value_type::ValueType;
 
 pub type Argument = (String, ValueType);
@@ -8,6 +10,17 @@ pub enum Literal {
     Real(f64),
     Bool(bool),
     Identifier(String),
+}
+
+impl Display for Literal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &*self {
+            Literal::Number(n) => f.write_fmt(format_args!("{}", n)),
+            Literal::Real(r) => f.write_fmt(format_args!("{}", r)),
+            Literal::Bool(b) => f.write_fmt(format_args!("{}", b)),
+            Literal::Identifier(s) => f.write_fmt(format_args!("{}", s)),
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -49,6 +62,12 @@ pub struct Call {
 }
 
 #[derive(Clone)]
+pub struct ArrayAccess {
+    pub identifier: String,
+    pub index: Box<Expression>,
+}
+
+#[derive(Clone)]
 pub enum Expression {
     Literal(Literal),
     Binary(Binary),
@@ -56,6 +75,7 @@ pub enum Expression {
     BinaryLogic(BinaryLogic),
     Unary(Unary),
     Call(Call),
+    ArrayAccess(ArrayAccess),
 }
 
 #[derive(Clone)]
@@ -154,4 +174,5 @@ pub trait ExpressionVisitor<T> {
     fn visit_binary_logic(&mut self, literal: &BinaryLogic) -> T;
     fn visit_unary(&mut self, unary: &Unary) -> T;
     fn visit_call(&mut self, call_expr: &Call) -> T;
+    fn visit_array_access(&mut self, call_expr: &ArrayAccess) -> T;
 }
