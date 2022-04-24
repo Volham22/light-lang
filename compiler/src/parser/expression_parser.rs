@@ -2,7 +2,7 @@ use crate::lexer::Token;
 
 use super::{
     parser::Parser,
-    visitors::{Binary, BinaryLogic, Call, Expression, Group, Literal, Unary},
+    visitors::{ArrayAccess, Binary, BinaryLogic, Call, Expression, Group, Literal, Unary},
 };
 
 impl Parser {
@@ -195,7 +195,24 @@ impl Parser {
             Some(Token::Number(value)) => Ok(Expression::Literal(Literal::Number(*value))),
             Some(Token::Real(value)) => Ok(Expression::Literal(Literal::Real(*value))),
             Some(Token::Identifier(value)) => {
-                Ok(Expression::Literal(Literal::Identifier(value.to_string())))
+                let name = value.clone(); // Copy the literal's name to avoid borrow checker errors
+
+                if self.match_expr(&[Token::LeftBracket]) {
+                    let index = self.or()?;
+
+                    if let None =
+                        self.consume(&Token::RightBracket, "Unclosed ']' in array access.")
+                    {
+                        return Err(());
+                    }
+
+                    Ok(Expression::ArrayAccess(ArrayAccess {
+                        identifier: name,
+                        index: Box::new(index),
+                    }))
+                } else {
+                    Ok(Expression::Literal(Literal::Identifier(name)))
+                }
             }
             Some(Token::LeftParenthesis) => {
                 let inner_expr = self.or()?;

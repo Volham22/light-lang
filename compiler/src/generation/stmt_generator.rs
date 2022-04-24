@@ -1,6 +1,8 @@
+use std::ops::Deref;
+
 use inkwell::{
     types::BasicMetadataTypeEnum,
-    values::{AnyValueEnum, BasicValue, BasicValueEnum},
+    values::{AnyValueEnum, BasicValue, BasicValueEnum, PointerValue},
 };
 
 use crate::{
@@ -8,7 +10,7 @@ use crate::{
         BlockStatement, Expression, ForStatement, FunctionStatement, IfStatement, Literal,
         ReturnStatement, StatementVisitor, VariableAssignment, VariableDeclaration, WhileStatement,
     },
-    type_system::value_type::ValueType,
+    type_system::value_type::{StaticArray, ValueType},
 };
 
 use super::ir_generator::IRGenerator;
@@ -17,6 +19,74 @@ impl<'a> IRGenerator<'a> {
     fn generate_block_instructions(&mut self, block: &BlockStatement) {
         for stmt in &block.statements {
             self.visit_statement(&stmt);
+        }
+    }
+
+    fn allocate_array(&self, array_type: &StaticArray, array_name: &str) -> PointerValue<'a> {
+        let size_value = self
+            .context
+            .i64_type()
+            .const_int(array_type.size as u64, false);
+
+        match array_type.array_type.deref() {
+            ValueType::Number => {
+                self.builder
+                    .build_array_alloca(self.context.i64_type(), size_value, array_name)
+            }
+            ValueType::Real => {
+                self.builder
+                    .build_array_alloca(self.context.f64_type(), size_value, array_name)
+            }
+            ValueType::Bool => {
+                self.builder
+                    .build_array_alloca(self.context.bool_type(), size_value, array_name)
+            }
+            _ => todo!(),
+        }
+    }
+
+    fn init_array<T: BasicValue<'a> + Copy>(
+        &self,
+        array_ptr: PointerValue<'a>,
+        array_type: &StaticArray,
+        init_value: T,
+    ) {
+        for i in 0..array_type.size {
+            let offset_ptr = unsafe {
+                self.builder.build_gep(
+                    array_ptr,
+                    &[self.context.i64_type().const_int(i as u64, false)],
+                    "array_init",
+                )
+            };
+
+            self.builder.build_store(offset_ptr, init_value);
+        }
+    }
+
+    fn declare_and_init_array(
+        &mut self,
+        array_type: &StaticArray,
+        init_value: &AnyValueEnum<'a>,
+        array_name: &String,
+    ) {
+        let array_ptr = self.allocate_array(array_type, array_name.as_str());
+        self.variables.insert(array_name.to_string(), array_ptr);
+
+        match array_type.array_type.deref() {
+            ValueType::Number => {
+                let init_value = self.get_int_value(*init_value);
+                self.init_array(array_ptr, array_type, init_value)
+            }
+            ValueType::Real => {
+                let init_value = self.get_float_value(*init_value);
+                self.init_array(array_ptr, array_type, init_value)
+            }
+            ValueType::Bool => {
+                let init_value = self.get_int_value(*init_value);
+                self.init_array(array_ptr, array_type, init_value)
+            }
+            _ => todo!(),
         }
     }
 }
@@ -37,6 +107,12 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
         &mut self,
         var_dec: &VariableDeclaration,
     ) -> Option<AnyValueEnum<'a>> {
+        if let ValueType::Array(a) = &var_dec.variable_type {
+            let init_value = self.visit_borrowed_expr(&var_dec.init_expr);
+            self.declare_and_init_array(&a, &init_value, &var_dec.identifier);
+            return None;
+        }
+
         let init_expr = self.visit_borrowed_expr(&var_dec.init_expr);
         let val_ptr =
             self.create_entry_block_alloca(var_dec.identifier.as_str(), &var_dec.variable_type);
@@ -83,6 +159,7 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                             ValueType::String => todo!(),
                             ValueType::Function => todo!(),
                             ValueType::Void => todo!(),
+                            ValueType::Array(_) => todo!(),
                         }
                     })
                     .collect::<Vec<BasicMetadataTypeEnum>>(),
@@ -126,6 +203,7 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
             ),
             ValueType::Function => todo!(),
             ValueType::String => todo!(),
+            ValueType::Array(_) => todo!(),
         };
 
         let fn_val = self

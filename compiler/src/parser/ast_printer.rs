@@ -1,7 +1,7 @@
 use super::visitors::{
-    Binary, BinaryLogic, BlockStatement, Call, Expression, ExpressionVisitor, ForStatement,
-    FunctionStatement, Group, IfStatement, Literal, ReturnStatement, Statement, StatementVisitor,
-    Unary, VariableAssignment, VariableDeclaration, WhileStatement,
+    ArrayAccess, Binary, BinaryLogic, BlockStatement, Call, Expression, ExpressionVisitor,
+    ForStatement, FunctionStatement, Group, IfStatement, Literal, ReturnStatement, Statement,
+    StatementVisitor, Unary, VariableAssignment, VariableDeclaration, WhileStatement,
 };
 
 struct AstPrinter;
@@ -29,6 +29,7 @@ impl AstPrinter {
             Expression::BinaryLogic(val) => self.visit_binary_logic(val),
             Expression::Unary(val) => self.visit_unary(val),
             Expression::Call(call) => self.visit_call(call),
+            Expression::ArrayAccess(access) => self.visit_array_access(access),
         }
     }
 
@@ -130,6 +131,12 @@ impl ExpressionVisitor<()> for AstPrinter {
         }
 
         print!(") ")
+    }
+
+    fn visit_array_access(&mut self, call_expr: &ArrayAccess) -> () {
+        print!("{}[", call_expr.identifier);
+        self.visit_expr(call_expr.index.as_ref());
+        print!("] ");
     }
 }
 

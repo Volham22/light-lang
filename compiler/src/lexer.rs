@@ -59,8 +59,12 @@ pub enum Token {
     #[token(">=")]
     MoreEqual,
     #[token("{")]
-    LeftBracket,
+    LeftBrace,
     #[token("}")]
+    RightBrace,
+    #[token("[")]
+    LeftBracket,
+    #[token("]")]
     RightBracket,
     #[token("(")]
     LeftParenthesis,
@@ -130,6 +134,8 @@ impl PartialEq for Token {
             (Token::MoreEqual, Token::MoreEqual) => true,
             (Token::LeftBracket, Token::LeftBracket) => true,
             (Token::RightBracket, Token::RightBracket) => true,
+            (Token::LeftBrace, Token::LeftBrace) => true,
+            (Token::RightBrace, Token::RightBrace) => true,
             (Token::LeftParenthesis, Token::LeftParenthesis) => true,
             (Token::RightParenthesis, Token::RightParenthesis) => true,
             (Token::Comma, Token::Comma) => true,
@@ -166,8 +172,8 @@ mod tests {
         assert_eq!(lexer.next(), Some(Token::If));
         assert_eq!(lexer.next(), Some(Token::LeftParenthesis));
         assert_eq!(lexer.next(), Some(Token::RightParenthesis));
-        assert_eq!(lexer.next(), Some(Token::LeftBracket));
-        assert_eq!(lexer.next(), Some(Token::RightBracket));
+        assert_eq!(lexer.next(), Some(Token::LeftBrace));
+        assert_eq!(lexer.next(), Some(Token::RightBrace));
     }
 
     #[test]
@@ -179,8 +185,8 @@ mod tests {
         assert_eq!(lexer.next(), Some(Token::Semicolon));
         assert_eq!(lexer.next(), Some(Token::Semicolon));
         assert_eq!(lexer.next(), Some(Token::RightParenthesis));
-        assert_eq!(lexer.next(), Some(Token::LeftBracket));
-        assert_eq!(lexer.next(), Some(Token::RightBracket));
+        assert_eq!(lexer.next(), Some(Token::LeftBrace));
+        assert_eq!(lexer.next(), Some(Token::RightBrace));
     }
 
     #[test]
@@ -190,8 +196,8 @@ mod tests {
         assert_eq!(lexer.next(), Some(Token::While));
         assert_eq!(lexer.next(), Some(Token::LeftParenthesis));
         assert_eq!(lexer.next(), Some(Token::RightParenthesis));
-        assert_eq!(lexer.next(), Some(Token::LeftBracket));
-        assert_eq!(lexer.next(), Some(Token::RightBracket));
+        assert_eq!(lexer.next(), Some(Token::LeftBrace));
+        assert_eq!(lexer.next(), Some(Token::RightBrace));
     }
 
     #[test]
@@ -199,8 +205,8 @@ mod tests {
         let mut lexer = Token::lexer("loop {}");
 
         assert_eq!(lexer.next(), Some(Token::Loop));
-        assert_eq!(lexer.next(), Some(Token::LeftBracket));
-        assert_eq!(lexer.next(), Some(Token::RightBracket));
+        assert_eq!(lexer.next(), Some(Token::LeftBrace));
+        assert_eq!(lexer.next(), Some(Token::RightBrace));
     }
 
     #[test]
@@ -239,8 +245,8 @@ mod tests {
         assert_eq!(lexer.next(), Some(Token::Identifier("hello".to_string())));
         assert_eq!(lexer.next(), Some(Token::LeftParenthesis));
         assert_eq!(lexer.next(), Some(Token::RightParenthesis));
-        assert_eq!(lexer.next(), Some(Token::LeftBracket));
-        assert_eq!(lexer.next(), Some(Token::RightBracket));
+        assert_eq!(lexer.next(), Some(Token::LeftBrace));
+        assert_eq!(lexer.next(), Some(Token::RightBrace));
     }
 
     #[test]
@@ -251,11 +257,11 @@ mod tests {
         assert_eq!(lexer.next(), Some(Token::Identifier("hello".to_string())));
         assert_eq!(lexer.next(), Some(Token::LeftParenthesis));
         assert_eq!(lexer.next(), Some(Token::RightParenthesis));
-        assert_eq!(lexer.next(), Some(Token::LeftBracket));
+        assert_eq!(lexer.next(), Some(Token::LeftBrace));
         assert_eq!(lexer.next(), Some(Token::Return));
         assert_eq!(lexer.next(), Some(Token::Number(5)));
         assert_eq!(lexer.next(), Some(Token::Semicolon));
-        assert_eq!(lexer.next(), Some(Token::RightBracket));
+        assert_eq!(lexer.next(), Some(Token::RightBrace));
     }
 
     #[test]
@@ -283,21 +289,21 @@ mod tests {
     fn left_bracket_test() {
         let mut lexer = Token::lexer("{{ {    {\t{");
 
-        assert_eq!(lexer.next(), Some(Token::LeftBracket));
-        assert_eq!(lexer.next(), Some(Token::LeftBracket));
-        assert_eq!(lexer.next(), Some(Token::LeftBracket));
-        assert_eq!(lexer.next(), Some(Token::LeftBracket));
-        assert_eq!(lexer.next(), Some(Token::LeftBracket));
+        assert_eq!(lexer.next(), Some(Token::LeftBrace));
+        assert_eq!(lexer.next(), Some(Token::LeftBrace));
+        assert_eq!(lexer.next(), Some(Token::LeftBrace));
+        assert_eq!(lexer.next(), Some(Token::LeftBrace));
+        assert_eq!(lexer.next(), Some(Token::LeftBrace));
     }
 
     #[test]
     fn right_bracket_test() {
         let mut lexer = Token::lexer("}}\t\t}   }\n");
 
-        assert_eq!(lexer.next(), Some(Token::RightBracket));
-        assert_eq!(lexer.next(), Some(Token::RightBracket));
-        assert_eq!(lexer.next(), Some(Token::RightBracket));
-        assert_eq!(lexer.next(), Some(Token::RightBracket));
+        assert_eq!(lexer.next(), Some(Token::RightBrace));
+        assert_eq!(lexer.next(), Some(Token::RightBrace));
+        assert_eq!(lexer.next(), Some(Token::RightBrace));
+        assert_eq!(lexer.next(), Some(Token::RightBrace));
     }
 
     #[test]
@@ -498,7 +504,7 @@ mod tests {
         assert_eq!(lexer.next(), Some(Token::RightParenthesis));
         assert_eq!(lexer.next(), Some(Token::Colon));
         assert_eq!(lexer.next(), Some(Token::Type(ValueType::Void)));
-        assert_eq!(lexer.next(), Some(Token::LeftBracket));
-        assert_eq!(lexer.next(), Some(Token::RightBracket));
+        assert_eq!(lexer.next(), Some(Token::LeftBrace));
+        assert_eq!(lexer.next(), Some(Token::RightBrace));
     }
 }
