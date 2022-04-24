@@ -367,7 +367,6 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
     }
 
     fn visit_array_access(&mut self, call_expr: &ArrayAccess) -> AnyValueEnum<'a> {
-        println!("access");
         let expr = self.visit_expr(&call_expr.index);
         let ptr = self.variables.get(&call_expr.identifier).unwrap();
         let value = self.get_int_value(expr);

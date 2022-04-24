@@ -42,7 +42,9 @@ impl<'m> FileBuilder<'m> {
         if let Some(mut stmts) = parser.parse() {
             let mut type_checker = TypeChecker::new();
 
-            if let Ok(_) = type_checker.check_ast_type(&stmts) {
+            let t_check = type_checker.check_ast_type(&stmts);
+
+            if let Ok(_) = t_check {
                 generator.module = self
                     .context
                     .create_module(Path::new(path).file_name().unwrap().to_str().unwrap());
@@ -52,6 +54,7 @@ impl<'m> FileBuilder<'m> {
                 self.modules
                     .push((String::from_str(path).unwrap(), generator));
             } else {
+                eprintln!("{}", t_check.err().unwrap());
                 return false;
             }
         } else {

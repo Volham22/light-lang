@@ -75,8 +75,6 @@ impl<'a> IRGenerator<'a> {
     }
 
     pub fn generate_ir(&mut self, stmts: &Vec<Statement>) -> Option<ValueType> {
-        println!("{}", stmts.len());
-
         for stmt in stmts {
             match stmt {
                 Statement::Function(f) => {
