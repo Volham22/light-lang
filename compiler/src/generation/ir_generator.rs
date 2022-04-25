@@ -13,6 +13,7 @@ use inkwell::{
     execution_engine::ExecutionEngine,
     module::Module,
     values::{AnyValueEnum, FloatValue, FunctionValue, IntValue, PointerValue},
+    AddressSpace,
 };
 
 pub struct IRGenerator<'a> {
@@ -152,6 +153,9 @@ impl<'a> IRGenerator<'a> {
             ValueType::Number => self.builder.build_alloca(self.context.i64_type(), name),
             ValueType::Real => self.builder.build_alloca(self.context.f64_type(), name),
             ValueType::Bool => self.builder.build_alloca(self.context.bool_type(), name),
+            ValueType::String => self
+                .builder
+                .build_alloca(self.context.i8_type().ptr_type(AddressSpace::Generic), name),
             _ => todo!("type support"),
         }
     }

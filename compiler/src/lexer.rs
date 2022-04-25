@@ -1,6 +1,27 @@
-use logos::Logos;
+use logos::{Lexer, Logos};
 
 use crate::type_system::value_type::ValueType;
+
+/// Walks the source code until an other " is reached.
+/// Then bump the lexer to second " location to resume lexing
+/// it acts likes Flex sublexer
+fn handle_quote(lex: &mut Lexer<Token>) -> Result<String, ()> {
+    let mut inner_content: Vec<char> = Vec::new();
+    let remainder_string = lex.remainder();
+
+    for chr in remainder_string.chars() {
+        if chr == '"' {
+            // Bump to the literal's size + 1 to skip the closing quote
+            lex.bump(inner_content.len() + 1);
+            return Ok(inner_content.iter().collect());
+        }
+
+        inner_content.push(chr);
+    }
+
+    eprint!("Error: Unclosed string literal.");
+    Err(())
+}
 
 #[derive(Logos, Debug)]
 pub enum Token {
@@ -80,6 +101,8 @@ pub enum Token {
     True,
     #[token("false")]
     False,
+    #[token("\"", handle_quote)]
+    Quote(String),
 
     // Light types
     #[regex("(number)|(real)|(bool)|(string)|(void)", |lex| lex.slice().parse())]
@@ -98,7 +121,7 @@ pub enum Token {
 
     // Skip spaces characters and handle error
     #[error]
-    #[regex(r"[ \t\n\f]", logos::skip)]
+    #[regex(r"[ \n\t\v\r]", logos::skip)]
     Error,
 }
 
@@ -147,6 +170,7 @@ impl PartialEq for Token {
             (Token::Number(_), Token::Number(_)) => true,
             (Token::Real(_), Token::Real(_)) => true,
             (Token::Identifier(_), Token::Identifier(_)) => true,
+            (Token::Quote(_), Token::Quote(_)) => true,
             (Token::EndOfFile, Token::EndOfFile) => true,
             (Token::Error, Token::Error) => true,
             _ => false,
@@ -506,5 +530,51 @@ mod tests {
         assert_eq!(lexer.next(), Some(Token::Type(ValueType::Void)));
         assert_eq!(lexer.next(), Some(Token::LeftBrace));
         assert_eq!(lexer.next(), Some(Token::RightBrace));
+    }
+
+    #[test]
+    fn quote_test() {
+        let mut lexer = Token::lexer("\"\"");
+        assert_eq!(lexer.next(), Some(Token::Quote(String::new())));
+        assert_eq!(lexer.next(), None);
+    }
+
+    #[test]
+    fn quote_test_statement() {
+        let mut lexer = Token::lexer("\"word!\";");
+        let quote_tk = lexer.next();
+        assert_eq!(quote_tk, Some(Token::Quote(String::new())));
+        assert_eq!(
+            if let Token::Quote(s) = quote_tk.unwrap() {
+                s
+            } else {
+                unreachable!()
+            },
+            "word!"
+        );
+
+        assert_eq!(lexer.next(), Some(Token::Semicolon));
+    }
+
+    #[test]
+    fn quote_with_content_test() {
+        let mut lexer = Token::lexer("\"hey mom *&*(^)\"");
+        let tk = lexer.next();
+
+        assert!(tk.is_some());
+        assert_eq!(
+            if let Token::Quote(s) = tk.unwrap() {
+                s
+            } else {
+                unreachable!()
+            },
+            "hey mom *&*(^)"
+        );
+    }
+
+    #[test]
+    fn unclosed_quote_with_content_test() {
+        let mut lexer = Token::lexer("\"hey mom *&*(^)");
+        assert_eq!(lexer.next().unwrap(), Token::Error);
     }
 }

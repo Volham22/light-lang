@@ -333,6 +333,7 @@ impl ExpressionVisitor<TypeCheckerReturn> for TypeChecker {
             Literal::Number(_) => Ok(ValueType::Number),
             Literal::Real(_) => Ok(ValueType::Real),
             Literal::Bool(_) => Ok(ValueType::Bool),
+            Literal::StringLiteral(_) => Ok(ValueType::String),
             Literal::Identifier(identifier) => {
                 if let Some(var_type) = self.find_variable_type(identifier) {
                     Ok(var_type.clone())

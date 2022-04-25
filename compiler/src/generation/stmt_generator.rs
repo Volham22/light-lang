@@ -122,6 +122,7 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
         match init_expr {
             AnyValueEnum::IntValue(v) => self.builder.build_store(val_ptr, v),
             AnyValueEnum::FloatValue(v) => self.builder.build_store(val_ptr, v),
+            AnyValueEnum::PointerValue(v) => self.builder.build_store(val_ptr, v),
             _ => panic!(),
         };
 
@@ -138,6 +139,7 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
         match new_expr {
             AnyValueEnum::IntValue(v) => self.builder.build_store(*val_ptr, v),
             AnyValueEnum::FloatValue(v) => self.builder.build_store(*val_ptr, v),
+            AnyValueEnum::PointerValue(v) => self.builder.build_store(*val_ptr, v),
             _ => panic!(),
         };
 

@@ -9,6 +9,7 @@ pub enum Literal {
     Number(i64),
     Real(f64),
     Bool(bool),
+    StringLiteral(String),
     Identifier(String),
 }
 
@@ -19,6 +20,7 @@ impl Display for Literal {
             Literal::Real(r) => f.write_fmt(format_args!("{}", r)),
             Literal::Bool(b) => f.write_fmt(format_args!("{}", b)),
             Literal::Identifier(s) => f.write_fmt(format_args!("{}", s)),
+            Literal::StringLiteral(s) => f.write_fmt(format_args!("{}", s)),
         }
     }
 }

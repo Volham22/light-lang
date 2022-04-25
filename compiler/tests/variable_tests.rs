@@ -344,3 +344,18 @@ fn array_invalid_type_check_assign() {
         assert!(false, "Parser failed!");
     }
 }
+
+#[test]
+fn string_declaration_valid() {
+    let source = "let words: string = \"word!\";";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+
+    if let Some(ast) = parser.parse() {
+        let mut type_check = TypeChecker::new();
+        assert!(type_check.check_ast_type(&ast).is_ok());
+    } else {
+        assert!(false, "Parser failed!");
+    }
+}
