@@ -7,21 +7,12 @@ use crate::type_system::value_type::ValueType;
 /// it acts likes Flex sublexer
 fn handle_quote(lex: &mut Lexer<Token>) -> Result<String, ()> {
     let mut inner_content: Vec<char> = Vec::new();
-    let current_token = lex.source().len() - lex.remainder().len();
     let remainder_string = lex.remainder();
 
     for chr in remainder_string.chars() {
         if chr == '"' {
-            // Bump the lexer to the end of the string literal
-            // If the literal is the end of the source we bump the lexer to
-            // total_src_len - 1 to avoid wrong bump size
-            lex.bump(
-                if current_token + remainder_string.len() >= lex.source().len() {
-                    lex.source().len() - 1
-                } else {
-                    current_token + remainder_string.len()
-                },
-            );
+            // Bump to the literal's size + 1 to skip the closing quote
+            lex.bump(inner_content.len() + 1);
             return Ok(inner_content.iter().collect());
         }
 
@@ -546,6 +537,23 @@ mod tests {
         let mut lexer = Token::lexer("\"\"");
         assert_eq!(lexer.next(), Some(Token::Quote(String::new())));
         assert_eq!(lexer.next(), None);
+    }
+
+    #[test]
+    fn quote_test_statement() {
+        let mut lexer = Token::lexer("\"word!\";");
+        let quote_tk = lexer.next();
+        assert_eq!(quote_tk, Some(Token::Quote(String::new())));
+        assert_eq!(
+            if let Token::Quote(s) = quote_tk.unwrap() {
+                s
+            } else {
+                unreachable!()
+            },
+            "word!"
+        );
+
+        assert_eq!(lexer.next(), Some(Token::Semicolon));
     }
 
     #[test]
