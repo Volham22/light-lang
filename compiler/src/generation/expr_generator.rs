@@ -30,6 +30,7 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
                     .build_load(*val_ptr, name.as_str())
                     .as_any_value_enum()
             }
+            Literal::StringLiteral(_) => todo!(),
         }
     }
 
