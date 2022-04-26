@@ -57,6 +57,9 @@ with the `continue` keyword.
 By default functions are not exported (static keyword in C). A function must be
 exported with the `export` keyword.
 
+Note that the main function is exported by default to avoid linker
+errors. So we can omit the `export` keyword on main function.
+
 ```
 [export] fn <identifier>(<arg_identifier>: type, <other_identifier>: type): <return_type> {
     <statement>*

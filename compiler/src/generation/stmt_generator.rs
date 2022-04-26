@@ -1,6 +1,7 @@
 use std::ops::Deref;
 
 use inkwell::{
+    module::Linkage,
     types::BasicMetadataTypeEnum,
     values::{AnyValue, AnyValueEnum, BasicValue, BasicValueEnum, PointerValue},
 };
@@ -158,7 +159,11 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                             ValueType::Number => self.context.i64_type().into(),
                             ValueType::Real => self.context.f64_type().into(),
                             ValueType::Bool => self.context.bool_type().into(),
-                            ValueType::String => todo!(),
+                            ValueType::String => self
+                                .context
+                                .i8_type()
+                                .ptr_type(inkwell::AddressSpace::Generic)
+                                .into(),
                             ValueType::Function => todo!(),
                             ValueType::Void => todo!(),
                             ValueType::Array(_) => todo!(),
@@ -208,9 +213,16 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
             ValueType::Array(_) => todo!(),
         };
 
-        let fn_val = self
-            .module
-            .add_function(expr.callee.as_str(), fn_type, None);
+        let fn_val = self.module.add_function(
+            expr.callee.as_str(),
+            fn_type,
+            // Main is implicitly exported
+            if expr.is_exported || expr.callee == "main" {
+                Some(Linkage::External)
+            } else {
+                Some(Linkage::Internal)
+            },
+        );
 
         self.current_fn = Some(fn_val);
 
@@ -241,6 +253,7 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
             self.generate_block_instructions(&b);
         } else {
             // else just declare the function, it has no block
+            self.current_fn = None;
             return Some(fn_val.as_any_value_enum());
         }
 

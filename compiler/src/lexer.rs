@@ -43,6 +43,8 @@ pub enum Token {
     Continue,
     #[token("fn")]
     Function,
+    #[token("export")]
+    Export,
     #[token("return")]
     Return,
     #[token("import")]
@@ -137,6 +139,7 @@ impl PartialEq for Token {
             (Token::Break, Token::Break) => true,
             (Token::Continue, Token::Continue) => true,
             (Token::Function, Token::Function) => true,
+            (Token::Export, Token::Export) => true,
             (Token::Return, Token::Return) => true,
             (Token::Import, Token::Import) => true,
             (Token::Print, Token::Print) => true,

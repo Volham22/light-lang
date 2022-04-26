@@ -354,6 +354,7 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
                 args_values.push(match self.visit_borrowed_expr(arg) {
                     AnyValueEnum::IntValue(v) => v.into(),
                     AnyValueEnum::FloatValue(v) => v.into(),
+                    AnyValueEnum::PointerValue(v) => v.into(),
                     _ => panic!(),
                 });
             }

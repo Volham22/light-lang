@@ -10,7 +10,7 @@ use super::{
 };
 
 impl Parser {
-    pub fn parse_function_statement(&mut self) -> Result<Statement, ()> {
+    fn parse_function(&mut self, exported: bool) -> Result<Statement, ()> {
         if self.match_expr(&[Token::Function]) {
             let callee = match self.consume(
                 &Token::Identifier(String::new()),
@@ -89,6 +89,7 @@ impl Parser {
                     args: if !args.is_empty() { Some(args) } else { None },
                     block: None,
                     return_type,
+                    is_exported: exported,
                 }));
             }
 
@@ -99,10 +100,20 @@ impl Parser {
                 args: if !args.is_empty() { Some(args) } else { None },
                 block: Some(block),
                 return_type,
+                is_exported: exported,
             }));
         }
 
+        if exported {
+            println!("Expected 'fn' keyword after 'export'.");
+            return Err(());
+        }
+
         self.parse_if_statement()
+    }
+    pub fn parse_function_statement(&mut self) -> Result<Statement, ()> {
+        let exported = self.match_expr(&[Token::Export]);
+        self.parse_function(exported)
     }
 
     fn parse_block(&mut self) -> Result<BlockStatement, ()> {

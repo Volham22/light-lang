@@ -238,6 +238,13 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
                 self.in_function = None;
                 return Err(format!("Function '{}' returns no values", expr.callee));
             }
+        } else {
+            self.in_function = None;
+
+            // A function must have a block definition if exported
+            if expr.is_exported {
+                return Err(format!("Error: exported function must have a body."));
+            }
         }
 
         Ok(expr.return_type.clone())
