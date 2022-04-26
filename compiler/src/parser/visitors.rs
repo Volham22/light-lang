@@ -102,7 +102,8 @@ pub struct BlockStatement {
 pub struct FunctionStatement {
     pub callee: String,
     pub args: Option<Vec<Argument>>,
-    pub block: BlockStatement,
+    // If the function has no block it means it's a declaration
+    pub block: Option<BlockStatement>,
     pub return_type: ValueType,
 }
 

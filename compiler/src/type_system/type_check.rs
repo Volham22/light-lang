@@ -215,26 +215,29 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
         }
 
         self.in_function = Some(expr.return_type.clone());
-        self.visit_block_statement(&expr.block)?;
-        self.in_function = None;
 
-        // TODO:
-        // for now we only check if the function body has a return statement if
-        // the return type is not 'void'. In the future it may be better to have
-        // a smarter way to check that every path in the function leads to a
-        // valid return statement
+        if let Some(b) = &expr.block {
+            self.visit_block_statement(&b)?;
 
-        if expr.return_type != ValueType::Void {
-            for stmt in &expr.block.statements {
-                match stmt {
-                    Statement::Return(_) => {
-                        return Ok(expr.return_type.clone());
+            // TODO:
+            // for now we only check if the function body has a return statement if
+            // the return type is not 'void'. In the future it may be better to have
+            // a smarter way to check that every path in the function leads to a
+            // valid return statement
+            if expr.return_type != ValueType::Void {
+                for stmt in &b.statements {
+                    match stmt {
+                        Statement::Return(_) => {
+                            self.in_function = None;
+                            return Ok(expr.return_type.clone());
+                        }
+                        _ => continue,
                     }
-                    _ => continue,
                 }
-            }
 
-            return Err(format!("Function '{}' returns no values", expr.callee));
+                self.in_function = None;
+                return Err(format!("Function '{}' returns no values", expr.callee));
+            }
         }
 
         Ok(expr.return_type.clone())

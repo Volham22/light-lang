@@ -2,7 +2,7 @@ use std::ops::Deref;
 
 use inkwell::{
     types::BasicMetadataTypeEnum,
-    values::{AnyValueEnum, BasicValue, BasicValueEnum, PointerValue},
+    values::{AnyValue, AnyValueEnum, BasicValue, BasicValueEnum, PointerValue},
 };
 
 use crate::{
@@ -213,30 +213,37 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
             .add_function(expr.callee.as_str(), fn_type, None);
 
         self.current_fn = Some(fn_val);
-        let entry = self.context.append_basic_block(fn_val, "entry");
-        self.builder.position_at_end(entry);
 
-        for (i, arg) in fn_val.get_param_iter().enumerate() {
-            match arg {
-                BasicValueEnum::IntValue(v) => {
-                    let (arg_name, arg_type) = expr.args.as_ref().unwrap().get(i).unwrap();
-                    v.set_name(arg_name.as_str());
-                    let alloca = self.create_entry_block_alloca(arg_name, arg_type);
-                    self.builder.build_store(alloca, v);
-                    self.variables.insert(arg_name.to_string(), alloca);
+        // If it's a function definition
+        if let Some(b) = &expr.block {
+            let entry = self.context.append_basic_block(fn_val, "entry");
+            self.builder.position_at_end(entry);
+
+            for (i, arg) in fn_val.get_param_iter().enumerate() {
+                match arg {
+                    BasicValueEnum::IntValue(v) => {
+                        let (arg_name, arg_type) = expr.args.as_ref().unwrap().get(i).unwrap();
+                        v.set_name(arg_name.as_str());
+                        let alloca = self.create_entry_block_alloca(arg_name, arg_type);
+                        self.builder.build_store(alloca, v);
+                        self.variables.insert(arg_name.to_string(), alloca);
+                    }
+                    BasicValueEnum::FloatValue(v) => {
+                        let (arg_name, arg_type) = expr.args.as_ref().unwrap().get(i).unwrap();
+                        v.set_name(arg_name.as_str());
+                        let alloca = self.create_entry_block_alloca(arg_name, arg_type);
+                        self.builder.build_store(alloca, v);
+                        self.variables.insert(arg_name.to_string(), alloca);
+                    }
+                    _ => panic!(),
                 }
-                BasicValueEnum::FloatValue(v) => {
-                    let (arg_name, arg_type) = expr.args.as_ref().unwrap().get(i).unwrap();
-                    v.set_name(arg_name.as_str());
-                    let alloca = self.create_entry_block_alloca(arg_name, arg_type);
-                    self.builder.build_store(alloca, v);
-                    self.variables.insert(arg_name.to_string(), alloca);
-                }
-                _ => panic!(),
             }
+            self.generate_block_instructions(&b);
+        } else {
+            // else just declare the function, it has no block
+            return Some(fn_val.as_any_value_enum());
         }
 
-        self.generate_block_instructions(&expr.block);
         self.current_fn = None;
 
         if expr.return_type == ValueType::Void {

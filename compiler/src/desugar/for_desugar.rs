@@ -65,7 +65,9 @@ impl MutableStatementVisitor<()> for ForDesugar {
     }
 
     fn visit_function_statement(&mut self, expr: &mut FunctionStatement) -> () {
-        self.visit_block_statement(&mut expr.block)
+        if let Some(b) = &mut expr.block {
+            self.visit_block_statement(b);
+        }
     }
 
     fn visit_block_statement(&mut self, expr: &mut BlockStatement) -> () {

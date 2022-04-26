@@ -239,3 +239,33 @@ fn simple_program_without_args() {
         assert!(false, "Parser failed!");
     }
 }
+
+#[test]
+fn function_declaration_no_args() {
+    let source = "fn do_something(): void;";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+
+    if let Some(ast) = parser.parse() {
+        let mut type_check = TypeChecker::new();
+        assert!(type_check.check_ast_type(&ast).is_ok());
+    } else {
+        assert!(false, "Parser failed!");
+    }
+}
+
+#[test]
+fn function_declaration_with_args() {
+    let source = "fn add(a: number, b: number): number;";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+
+    if let Some(ast) = parser.parse() {
+        let mut type_check = TypeChecker::new();
+        assert!(type_check.check_ast_type(&ast).is_ok());
+    } else {
+        assert!(false, "Parser failed!");
+    }
+}

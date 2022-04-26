@@ -77,8 +77,19 @@ impl Parser {
                     _ => return Err(()),
                 };
 
-            if let None = self.consume(&Token::LeftBrace, "Expected block after function.") {
-                return Err(());
+            if !self.match_expr(&[Token::LeftBrace]) {
+                if let None =
+                    self.consume(&Token::Semicolon, "Expected ';' after function declaration")
+                {
+                    return Err(());
+                }
+
+                return Ok(Statement::Function(FunctionStatement {
+                    callee,
+                    args: if !args.is_empty() { Some(args) } else { None },
+                    block: None,
+                    return_type,
+                }));
             }
 
             let block = self.parse_block()?;
@@ -86,7 +97,7 @@ impl Parser {
             return Ok(Statement::Function(FunctionStatement {
                 callee,
                 args: if !args.is_empty() { Some(args) } else { None },
-                block,
+                block: Some(block),
                 return_type,
             }));
         }
