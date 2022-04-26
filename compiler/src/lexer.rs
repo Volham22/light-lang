@@ -1,4 +1,4 @@
-use logos::{Lexer, Logos};
+use logos::{Lexer, Logos, Skip};
 
 use crate::type_system::value_type::ValueType;
 
@@ -21,6 +21,21 @@ fn handle_quote(lex: &mut Lexer<Token>) -> Result<String, ()> {
 
     eprint!("Error: Unclosed string literal.");
     Err(())
+}
+
+fn handle_comment(lex: &mut Lexer<Token>) -> Skip {
+    let mut chars_to_bump: usize = 0;
+
+    for chr in lex.remainder().chars() {
+        if chr == '\n' {
+            lex.bump(chars_to_bump + 1);
+            return Skip {};
+        }
+
+        chars_to_bump += 1;
+    }
+
+    return Skip {};
 }
 
 #[derive(Logos, Debug)]
@@ -120,6 +135,9 @@ pub enum Token {
     // End of file
     #[token("\0")]
     EndOfFile,
+
+    #[token("//", handle_comment)]
+    Comment,
 
     // Skip spaces characters and handle error
     #[error]

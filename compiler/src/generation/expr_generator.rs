@@ -367,7 +367,10 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
 
         match value.left() {
             Some(v) => v.into(),
-            None => panic!("wrong call"),
+            None => match value.right() {
+                Some(v) => v.into(),
+                None => panic!("wrong call!"),
+            },
         }
     }
 

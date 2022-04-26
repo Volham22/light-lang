@@ -247,6 +247,7 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
             }
         }
 
+        self.in_function = None;
         Ok(expr.return_type.clone())
     }
 
