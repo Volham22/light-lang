@@ -89,7 +89,7 @@ pub struct VariableDeclaration {
 
 #[derive(Clone)]
 pub struct VariableAssignment {
-    pub identifier: String,
+    pub identifier: Expression,
     pub new_value: Expression,
 }
 

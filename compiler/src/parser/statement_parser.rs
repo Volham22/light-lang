@@ -43,15 +43,16 @@ impl Parser {
                     return Err(());
                 }
 
-                let arg_type = match self.consume(
-                    &Token::Type(ValueType::Void),
-                    "Expected argument type after ':'",
-                ) {
-                    Some(Token::Type(t)) => t,
-                    _ => {
-                        return Err(());
-                    }
-                };
+                let arg_type = self.parse_type()?;
+                // let arg_type = match self.consume(
+                //     &Token::Type(ValueType::Void),
+                //     "Expected argument type after ':'",
+                // ) {
+                //     Some(Token::Type(t)) => t,
+                //     _ => {
+                //         return Err(());
+                //     }
+                // };
 
                 args.push((id.clone(), arg_type.clone()));
 
@@ -290,13 +291,13 @@ impl Parser {
             match expr {
                 Expression::Literal(Literal::Identifier(id)) => {
                     return Ok(Statement::VariableAssignment(VariableAssignment {
-                        identifier: id,
+                        identifier: Expression::Literal(Literal::Identifier(id)),
                         new_value: rhs,
                     }));
                 }
                 Expression::ArrayAccess(a) => {
                     return Ok(Statement::VariableAssignment(VariableAssignment {
-                        identifier: a.identifier,
+                        identifier: Expression::ArrayAccess(a),
                         new_value: rhs,
                     }))
                 }

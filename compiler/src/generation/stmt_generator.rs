@@ -2,8 +2,9 @@ use std::ops::Deref;
 
 use inkwell::{
     module::Linkage,
-    types::BasicMetadataTypeEnum,
+    types::{AnyTypeEnum, ArrayType, BasicMetadataTypeEnum, BasicType, BasicTypeEnum, PointerType},
     values::{AnyValue, AnyValueEnum, BasicValue, BasicValueEnum, PointerValue},
+    AddressSpace,
 };
 
 use crate::{
@@ -23,6 +24,51 @@ impl<'a> IRGenerator<'a> {
         }
     }
 
+    pub fn get_llvm_array_type(&self, array_type: &StaticArray) -> ArrayType<'a> {
+        match array_type.array_type.deref() {
+            ValueType::Array(a) => self.get_llvm_array_type(a),
+            ValueType::Number => self.context.i64_type().array_type(array_type.size as u32),
+            ValueType::Real => self.context.f64_type().array_type(array_type.size as u32),
+            ValueType::Bool => self.context.bool_type().array_type(array_type.size as u32),
+            ValueType::String => self
+                .context
+                .i8_type()
+                .ptr_type(inkwell::AddressSpace::Generic)
+                .array_type(array_type.size as u32),
+            ValueType::Function => todo!(),
+            ValueType::Void => unreachable!(),
+        }
+    }
+
+    pub fn get_concrete_array_type(&self, array_type: &StaticArray) -> BasicTypeEnum<'a> {
+        match array_type.array_type.deref() {
+            ValueType::Array(a) => self.get_concrete_array_type(a),
+            ValueType::Number => self
+                .context
+                .i64_type()
+                .ptr_type(AddressSpace::Generic)
+                .into(),
+            ValueType::Real => self
+                .context
+                .f64_type()
+                .ptr_type(AddressSpace::Generic)
+                .into(),
+            ValueType::Bool => self
+                .context
+                .bool_type()
+                .ptr_type(AddressSpace::Generic)
+                .into(),
+            ValueType::String => self
+                .context
+                .i8_type()
+                .ptr_type(AddressSpace::Generic)
+                .ptr_type(AddressSpace::Generic)
+                .into(),
+            ValueType::Function => todo!(),
+            ValueType::Void => unreachable!("array type can't be void!"),
+        }
+    }
+
     fn allocate_array(&self, array_type: &StaticArray, array_name: &str) -> PointerValue<'a> {
         let size_value = self
             .context
@@ -30,18 +76,19 @@ impl<'a> IRGenerator<'a> {
             .const_int(array_type.size as u64, false);
 
         match array_type.array_type.deref() {
-            ValueType::Number => {
-                self.builder
-                    .build_array_alloca(self.context.i64_type(), size_value, array_name)
-            }
+            ValueType::Number => self.builder.build_array_alloca(
+                self.context.i64_type().array_type(array_type.size as u32),
+                size_value,
+                array_name,
+            ),
             ValueType::Real => {
                 self.builder
                     .build_array_alloca(self.context.f64_type(), size_value, array_name)
             }
-            ValueType::Bool => {
-                self.builder
-                    .build_array_alloca(self.context.bool_type(), size_value, array_name)
-            }
+            ValueType::Bool => self
+                .builder
+                .build_array_alloca(self.context.bool_type(), size_value, array_name)
+                .into(),
             _ => todo!(),
         }
     }
@@ -52,10 +99,17 @@ impl<'a> IRGenerator<'a> {
         array_type: &StaticArray,
         init_value: T,
     ) {
+        let concrete_type = self.get_concrete_array_type(array_type).into_pointer_type();
+
+        let array_ptr_cast = self
+            .builder
+            .build_bitcast(array_ptr, concrete_type, "array_cast")
+            .into_pointer_value();
+
         for i in 0..array_type.size {
             let offset_ptr = unsafe {
                 self.builder.build_gep(
-                    array_ptr,
+                    array_ptr_cast,
                     &[self.context.i64_type().const_int(i as u64, false)],
                     "array_init",
                 )
@@ -72,6 +126,7 @@ impl<'a> IRGenerator<'a> {
         array_name: &String,
     ) {
         let array_ptr = self.allocate_array(array_type, array_name.as_str());
+
         self.variables.insert(array_name.to_string(), array_ptr);
 
         match array_type.array_type.deref() {
@@ -88,6 +143,47 @@ impl<'a> IRGenerator<'a> {
                 self.init_array(array_ptr, array_type, init_value)
             }
             _ => todo!(),
+        }
+    }
+
+    /// If the lhs is an array cast it to the correct array
+    /// element pointer and build the store
+    fn build_assignment<T: BasicValue<'a> + Copy>(
+        &mut self,
+        val_ptr: &PointerValue<'a>,
+        new_value: T,
+        lhs_expr: &Expression,
+    ) -> Option<AnyValueEnum<'a>> {
+        if val_ptr.get_type().get_element_type().is_array_type() {
+            let array_type = self
+                .builder
+                .build_bitcast(
+                    *val_ptr,
+                    val_ptr
+                        .get_type()
+                        .get_element_type()
+                        .into_array_type()
+                        .get_element_type()
+                        .ptr_type(AddressSpace::Generic),
+                    "store_array_element_cast",
+                )
+                .into_pointer_value();
+
+            let array_access = if let Expression::ArrayAccess(a) = lhs_expr {
+                a
+            } else {
+                panic!();
+            };
+            let index_value = self.visit_expr(&array_access.index).into_int_value();
+
+            let offset_ptr = unsafe {
+                self.builder
+                    .build_gep(array_type, &[index_value], "array_assign_gep")
+            };
+
+            Some(self.builder.build_store(offset_ptr, new_value).into())
+        } else {
+            Some(self.builder.build_store(*val_ptr, new_value).into())
         }
     }
 }
@@ -135,12 +231,20 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
         var_ass: &VariableAssignment,
     ) -> Option<AnyValueEnum<'a>> {
         let new_expr = self.visit_borrowed_expr(&var_ass.new_value);
-        let val_ptr = self.variables.get(&var_ass.identifier).unwrap();
+        let val_ptr = match &var_ass.identifier {
+            Expression::Literal(Literal::Identifier(id)) => self.variables.get(id).unwrap().clone(),
+            Expression::ArrayAccess(access) => {
+                self.variables.get(&access.identifier).unwrap().clone()
+            }
+            _ => panic!("non lvalue type in generator!"),
+        };
 
         match new_expr {
-            AnyValueEnum::IntValue(v) => self.builder.build_store(*val_ptr, v),
-            AnyValueEnum::FloatValue(v) => self.builder.build_store(*val_ptr, v),
-            AnyValueEnum::PointerValue(v) => self.builder.build_store(*val_ptr, v),
+            AnyValueEnum::IntValue(v) => self.build_assignment(&val_ptr, v, &var_ass.identifier),
+            AnyValueEnum::FloatValue(v) => self.build_assignment(&val_ptr, v, &var_ass.identifier),
+            AnyValueEnum::PointerValue(v) => {
+                self.build_assignment(&val_ptr, v, &var_ass.identifier)
+            }
             _ => panic!(),
         };
 
@@ -155,7 +259,7 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                     .unwrap()
                     .iter()
                     .map(|t| -> BasicMetadataTypeEnum {
-                        match t.1 {
+                        match &t.1 {
                             ValueType::Number => self.context.i64_type().into(),
                             ValueType::Real => self.context.f64_type().into(),
                             ValueType::Bool => self.context.bool_type().into(),
@@ -166,7 +270,7 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                                 .into(),
                             ValueType::Function => todo!(),
                             ValueType::Void => todo!(),
-                            ValueType::Array(_) => todo!(),
+                            ValueType::Array(arr) => self.get_concrete_array_type(arr).into(),
                         }
                     })
                     .collect::<Vec<BasicMetadataTypeEnum>>(),
@@ -182,7 +286,7 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                 } else {
                     &[]
                 },
-                true,
+                false,
             ),
             ValueType::Real => self.context.f64_type().fn_type(
                 if args_type.is_some() {
@@ -190,7 +294,7 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                 } else {
                     &[]
                 },
-                true,
+                false,
             ),
             ValueType::Bool => self.context.bool_type().fn_type(
                 if args_type.is_some() {
@@ -198,7 +302,7 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                 } else {
                     &[]
                 },
-                true,
+                false,
             ),
             ValueType::Void => self.context.void_type().fn_type(
                 if args_type.is_some() {
@@ -206,7 +310,7 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                 } else {
                     &[]
                 },
-                true,
+                false,
             ),
             ValueType::Function => todo!(),
             ValueType::String => todo!(),
@@ -243,6 +347,20 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                     BasicValueEnum::FloatValue(v) => {
                         let (arg_name, arg_type) = expr.args.as_ref().unwrap().get(i).unwrap();
                         v.set_name(arg_name.as_str());
+                        let alloca = self.create_entry_block_alloca(arg_name, arg_type);
+                        self.builder.build_store(alloca, v);
+                        self.variables.insert(arg_name.to_string(), alloca);
+                    }
+                    // BasicValueEnum::ArrayValue(v) => {
+                    //     let (arg_name, arg_type) = expr.args.as_ref().unwrap().get(i).unwrap();
+                    //     v.set_name(&arg_name);
+                    //     let alloca = self.create_entry_block_alloca(arg_name, arg_type);
+                    //     self.builder.build_store(alloca, v);
+                    //     self.variables.insert(arg_name.to_string(), alloca);
+                    // }
+                    BasicValueEnum::PointerValue(v) => {
+                        let (arg_name, arg_type) = expr.args.as_ref().unwrap().get(i).unwrap();
+                        v.set_name(&arg_name);
                         let alloca = self.create_entry_block_alloca(arg_name, arg_type);
                         self.builder.build_store(alloca, v);
                         self.variables.insert(arg_name.to_string(), alloca);

@@ -27,7 +27,7 @@ impl<'m> FileBuilder<'m> {
             modules: Vec::new(),
         }
     }
-    pub fn generate_module_ir(&mut self, path: &str) -> bool {
+    pub fn generate_module_ir(&mut self, path: &str, print_ir_code: bool) -> bool {
         let content = if let Ok(c) = Self::read_file_content(path) {
             c
         } else {
@@ -51,6 +51,12 @@ impl<'m> FileBuilder<'m> {
 
                 desugar_ast(&mut stmts);
                 generator.generate_ir(&stmts);
+
+                if print_ir_code {
+                    println!("=== {}: IR Code ===", path);
+                    generator.print_code();
+                    println!("===================");
+                }
                 self.modules
                     .push((String::from_str(path).unwrap(), generator));
             } else {
