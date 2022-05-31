@@ -1,5 +1,5 @@
 use inkwell::types::{AnyType, BasicType};
-use inkwell::values::{AnyValue, AnyValueEnum};
+use inkwell::values::{AnyValue, AnyValueEnum, BasicValue};
 use inkwell::{FloatPredicate, IntPredicate};
 
 use crate::generation::ir_generator::IRGenerator;
@@ -27,9 +27,23 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
                 .as_any_value_enum(),
             Literal::Identifier(name) => {
                 let val_ptr = self.variables.get(name).unwrap();
-                self.builder
-                    .build_load(*val_ptr, name.as_str())
-                    .as_any_value_enum()
+
+                if val_ptr.get_type().get_element_type().is_array_type() {
+                    let ty = val_ptr
+                        .get_type()
+                        .get_element_type()
+                        .into_array_type()
+                        .get_element_type()
+                        .ptr_type(inkwell::AddressSpace::Generic);
+
+                    self.builder
+                        .build_bitcast(*val_ptr, ty, "array_to_array_ptr")
+                        .as_any_value_enum()
+                } else {
+                    self.builder
+                        .build_load(*val_ptr, name.as_str())
+                        .as_any_value_enum()
+                }
             }
             Literal::StringLiteral(s) => self
                 .builder
@@ -389,29 +403,34 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
         let value = self.get_int_value(expr);
 
         // If the array is passed as a function argument it is accessed as array ptr
-        let true_ty = if ptr.get_type().get_element_type().is_array_type() {
-            ptr.get_type()
+        if ptr.get_type().get_element_type().is_array_type() {
+            let ty = ptr
+                .get_type()
                 .get_element_type()
                 .into_array_type()
                 .get_element_type()
-                .ptr_type(inkwell::AddressSpace::Generic)
+                .ptr_type(inkwell::AddressSpace::Generic);
+
+            let array_ptr = self.builder.build_pointer_cast(*ptr, ty, "array_cast");
+
+            let offset_ptr = unsafe {
+                self.builder
+                    .build_gep(array_ptr, &[value], call_expr.identifier.as_str())
+            };
+
+            self.builder.build_load(offset_ptr, "load_array").into()
         } else {
-            ptr.get_type()
-                .get_element_type()
-                .into_pointer_type()
-                .get_element_type()
-                .into_array_type()
-                .get_element_type()
-                .ptr_type(inkwell::AddressSpace::Generic)
-        };
+            let loaded_value = self.builder.build_load(*ptr, "pre_array_ptr_load");
 
-        let array_ptr = self.builder.build_pointer_cast(*ptr, true_ty, "array_cast");
+            let offset_ptr = unsafe {
+                self.builder.build_gep(
+                    loaded_value.into_pointer_value(),
+                    &[value],
+                    call_expr.identifier.as_str(),
+                )
+            };
 
-        let offset_ptr = unsafe {
-            self.builder
-                .build_gep(array_ptr, &[value], call_expr.identifier.as_str())
-        };
-
-        self.builder.build_load(offset_ptr, "load_array").into()
+            self.builder.build_load(offset_ptr, "load_array_ptr").into()
+        }
     }
 }

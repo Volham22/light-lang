@@ -158,9 +158,26 @@ impl<'a> IRGenerator<'a> {
             ValueType::String => self
                 .builder
                 .build_alloca(self.context.i8_type().ptr_type(AddressSpace::Generic), name),
-            ValueType::Array(arr) => self
-                .builder
-                .build_alloca(self.get_concrete_array_type(arr), name),
+            ValueType::Array(arr) => match *arr.array_type {
+                ValueType::Array(_) => todo!(),
+                ValueType::Number => self.builder.build_alloca(
+                    self.context.i64_type().ptr_type(AddressSpace::Generic),
+                    name,
+                ),
+                ValueType::Real => self.builder.build_alloca(
+                    self.context.f64_type().ptr_type(AddressSpace::Generic),
+                    name,
+                ),
+                ValueType::Bool => self.builder.build_alloca(
+                    self.context.bool_type().ptr_type(AddressSpace::Generic),
+                    name,
+                ),
+                ValueType::String => self
+                    .builder
+                    .build_alloca(self.context.i8_type().ptr_type(AddressSpace::Generic), name),
+                ValueType::Function => todo!(),
+                ValueType::Void => unreachable!(),
+            },
             _ => todo!("type support"),
         }
     }
