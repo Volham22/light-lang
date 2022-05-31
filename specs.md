@@ -7,14 +7,14 @@ A staticaly typed language
 * number: signed 64 bits numbers
 * real: 64 bits floating point numbers
 * bool: a boolean can be true or false
-* string: TODO
+* string: it's just strings literals yet
 
 ### Syntax
 
 Variables can be declared with the following syntax:
 All variables are mutable and must be initialized with a value.
 
-```
+```js
 let <var_identifier>: <type> = <init_expr>;
 ```
 
@@ -24,26 +24,26 @@ let <var_identifier>: <type> = <init_expr>;
 
 Classic while loop
 
-```
+```js
 while <expr> {
     <statement>*
 }
 ```
 
 ### For loop
-C-styled for loop
+C-styled for loop (a syntactic sugar of while loops)
 
-```
+```js
 for <init>;<loop_expr>;<next_expr> {
     <statement>*
 }
 ```
 
 ### Loop
-
+__Not implemented yet__
 Loops forever (syntactic sugar of while loop)
 
-```
+```js
 loop {
 
 }
@@ -57,7 +57,7 @@ with the `continue` keyword.
 By default functions are not exported (static keyword in C). A function must be
 exported with the `export` keyword.
 
-```
+```js
 [export] fn <identifier>(<arg_identifier>: type, <other_identifier>: type): <return_type> {
     <statement>*
     return <expr>;
@@ -69,7 +69,7 @@ exported with the `export` keyword.
 
 We can declare static arrays and use it as C-styled arrays. Arrays are 0 indexed.
 
-```
+```js
 let my_array: [number; 10] = 0;
 
 for let i: number = 0; i < 10; i = i + 1; {
@@ -81,7 +81,7 @@ for let i: number = 0; i < 10; i = i + 1; {
 
 ### Add
 
-```
+```js
 fn add(a: number, b: number): number {
     return a + b;
 }
@@ -89,7 +89,7 @@ fn add(a: number, b: number): number {
 
 ### Factorial
 
-```
+```js
 fn fact(n: number): number {
     let result: number = 1;
     for i: number = 1; i <= n; i = i + 1 {
