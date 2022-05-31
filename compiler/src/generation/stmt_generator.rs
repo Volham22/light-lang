@@ -2,7 +2,7 @@ use std::ops::Deref;
 
 use inkwell::{
     module::Linkage,
-    types::{AnyTypeEnum, ArrayType, BasicMetadataTypeEnum, BasicType, BasicTypeEnum, PointerType},
+    types::{ArrayType, BasicMetadataTypeEnum, BasicType, BasicTypeEnum},
     values::{AnyValue, AnyValueEnum, BasicValue, BasicValueEnum, PointerValue},
     AddressSpace,
 };
@@ -351,13 +351,13 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                         self.builder.build_store(alloca, v);
                         self.variables.insert(arg_name.to_string(), alloca);
                     }
-                    // BasicValueEnum::ArrayValue(v) => {
-                    //     let (arg_name, arg_type) = expr.args.as_ref().unwrap().get(i).unwrap();
-                    //     v.set_name(&arg_name);
-                    //     let alloca = self.create_entry_block_alloca(arg_name, arg_type);
-                    //     self.builder.build_store(alloca, v);
-                    //     self.variables.insert(arg_name.to_string(), alloca);
-                    // }
+                    BasicValueEnum::ArrayValue(v) => {
+                        let (arg_name, arg_type) = expr.args.as_ref().unwrap().get(i).unwrap();
+                        v.set_name(&arg_name);
+                        let alloca = self.create_entry_block_alloca(arg_name, arg_type);
+                        self.builder.build_store(alloca, v);
+                        self.variables.insert(arg_name.to_string(), alloca);
+                    }
                     BasicValueEnum::PointerValue(v) => {
                         let (arg_name, arg_type) = expr.args.as_ref().unwrap().get(i).unwrap();
                         v.set_name(&arg_name);

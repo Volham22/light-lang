@@ -1,5 +1,6 @@
 use std::{
     fmt::{Debug, Display},
+    ops::Deref,
     str::FromStr,
 };
 
@@ -27,10 +28,12 @@ impl PartialEq for ValueType {
             (ValueType::Real, ValueType::Real) => true,
             (ValueType::Bool, ValueType::Bool) => true,
             (ValueType::String, ValueType::String) => true,
-            (ValueType::Function, ValueType::Function) => true,
+            (ValueType::Function, ValueType::Function) => true, // TODO
             (ValueType::Void, ValueType::Void) => true,
-            (ValueType::Array(a), _) => a.array_type.as_ref() == other,
-            (_, ValueType::Array(a)) => a.array_type.as_ref() == self,
+            (ValueType::Array(lhs), ValueType::Array(rhs)) => {
+                ValueType::is_compatible(lhs.array_type.deref(), rhs.array_type.deref())
+                    && lhs.size == rhs.size
+            }
             _ => false,
         }
     }
@@ -65,6 +68,14 @@ impl Debug for ValueType {
 impl ValueType {
     pub fn is_compatible(ltype: &ValueType, rtype: &ValueType) -> bool {
         rtype == ltype
+    }
+
+    pub fn is_compatible_for_init(ltype: &ValueType, rtype: &ValueType) -> bool {
+        match (ltype, rtype) {
+            (ValueType::Array(lhs), rhs) => lhs.array_type.deref() == rhs,
+            (lhs, ValueType::Array(rhs)) => lhs == rhs.array_type.deref(),
+            _ => rtype == ltype,
+        }
     }
 }
 

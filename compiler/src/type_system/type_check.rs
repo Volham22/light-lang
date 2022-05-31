@@ -6,7 +6,7 @@ use crate::{
     },
     type_system::value_type::ValueType,
 };
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::Deref};
 
 pub struct FunctionSignature {
     name: String,
@@ -149,8 +149,16 @@ impl TypeChecker {
     ) -> TypeCheckerReturn {
         if let Some(array_dec) = self.find_variable(&access.identifier) {
             let rhs_ty = self.check_expr(rhs)?;
-            if ValueType::is_compatible(&array_dec, &rhs_ty) {
-                Ok(rhs_ty)
+
+            if let ValueType::Array(arr) = &array_dec {
+                if ValueType::is_compatible(arr.array_type.deref(), &rhs_ty) {
+                    Ok(rhs_ty)
+                } else {
+                    Err(format!(
+                        "Can't assign expression of type '{}' to array element of type '{}'",
+                        rhs_ty, array_dec
+                    ))
+                }
             } else {
                 Err(format!(
                     "Can't assign expression of type '{}' to array element of type '{}'",
@@ -193,7 +201,7 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
     fn visit_declaration_statement(&mut self, expr: &VariableDeclaration) -> TypeCheckerReturn {
         let init_type = self.check_expr(&expr.init_expr)?;
 
-        if !ValueType::is_compatible(&expr.variable_type, &init_type) {
+        if !ValueType::is_compatible_for_init(&expr.variable_type, &init_type) {
             let message = format!(
                 "variable '{}' is declared as '{}' but init expression has type '{}'",
                 expr.identifier, expr.variable_type, init_type
