@@ -7,9 +7,20 @@ Note that this is in early stage for now and the compiler is unstable.
 
 Here is a simple main function for light :
 
-```js
+``` js
 fn main(): number {
     return 0;
+}
+```
+
+And of course the traditional "Hello World!" program :
+
+``` js
+fn puts(message: string): number;
+
+fn main(): number {
+   puts("Hello World!");
+   return 0;
 }
 ```
 

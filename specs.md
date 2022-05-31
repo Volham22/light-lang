@@ -82,6 +82,24 @@ for let i: number = 0; i < 10; i = i + 1; {
 
 ## Code samples
 
+### Hello World!
+
+Note that since the standard library is not yet implemented some C standard
+library's functions must be forward declared.
+
+``` js
+// Forward declare C library functions
+// stdio.h
+//      puts
+
+fn puts(message: string): number;
+
+fn main(): number {
+   puts("Hello World!");
+   return 0;
+}
+```
+
 ### Add
 
 ```
@@ -95,13 +113,13 @@ fn add(a: number, b: number): number {
 ```
 fn fact(n: number): number {
     let result: number = 1;
-    for i: number = 1; i <= n; i = i + 1 {
+
+    for i: number = 1; i <= n; i = i + 1; {
         result  = result * i;
     }
 
     return result;
 }
-
 ```
 
 ### Random array
