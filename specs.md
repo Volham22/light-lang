@@ -103,3 +103,43 @@ fn fact(n: number): number {
 }
 
 ```
+
+### Random array
+This program will fill an array of 10 random number and print the array
+
+```js
+// This program will fill an array of 10 random number and print the array
+
+// Forward declare C library functions
+// stdio.h
+//      printf
+//      puts
+// stdlib.h
+//      srand
+//      rand
+// time.h
+//      time.h
+
+fn puts(message: string): number;
+fn printf(format: string, n: number): number;
+fn rand(): number;
+fn srand(seed: number): void;
+fn time(_: number): number;
+
+fn print_number(n: number): void {
+   printf("%d", n);
+}
+
+fn main(): number {
+   srand(time(0));
+   let array: [number; 10] = 0;
+
+   for let i: number = 0; i < 10; i = i + 1; {
+        array[i] = rand() % 100;
+        print_number(array[i]);
+        puts(""); // newline
+   }
+
+   return 0;
+}
+```
