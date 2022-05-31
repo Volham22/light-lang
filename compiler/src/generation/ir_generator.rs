@@ -1,3 +1,4 @@
+use core::panic;
 use std::{collections::HashMap, fmt::Debug};
 
 use crate::{
@@ -12,6 +13,7 @@ use inkwell::{
     context::Context,
     execution_engine::ExecutionEngine,
     module::Module,
+    types::{AnyType, AnyTypeEnum, PointerType},
     values::{AnyValueEnum, FloatValue, FunctionValue, IntValue, PointerValue},
     AddressSpace,
 };
@@ -156,6 +158,9 @@ impl<'a> IRGenerator<'a> {
             ValueType::String => self
                 .builder
                 .build_alloca(self.context.i8_type().ptr_type(AddressSpace::Generic), name),
+            ValueType::Array(arr) => self
+                .builder
+                .build_alloca(self.get_concrete_array_type(arr), name),
             _ => todo!("type support"),
         }
     }
@@ -199,6 +204,17 @@ impl<'a> IRGenerator<'a> {
             self.module
                 .add_function("__anonymous_function", fntype, None),
         );
+    }
+
+    pub fn get_ptr_type(val: &AnyTypeEnum<'a>) -> PointerType<'a> {
+        match val {
+            AnyTypeEnum::ArrayType(t) => t.ptr_type(AddressSpace::Generic),
+            AnyTypeEnum::IntType(t) => t.ptr_type(AddressSpace::Generic),
+            AnyTypeEnum::FloatType(t) => t.ptr_type(AddressSpace::Generic),
+            AnyTypeEnum::FunctionType(t) => t.ptr_type(AddressSpace::Generic),
+            AnyTypeEnum::PointerType(t) => t.ptr_type(AddressSpace::Generic),
+            _ => panic!(),
+        }
     }
 }
 

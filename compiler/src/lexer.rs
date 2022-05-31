@@ -1,4 +1,4 @@
-use logos::{Lexer, Logos};
+use logos::{Lexer, Logos, Skip};
 
 use crate::type_system::value_type::ValueType;
 
@@ -23,6 +23,21 @@ fn handle_quote(lex: &mut Lexer<Token>) -> Result<String, ()> {
     Err(())
 }
 
+fn handle_comment(lex: &mut Lexer<Token>) -> Skip {
+    let mut chars_to_bump: usize = 0;
+
+    for chr in lex.remainder().chars() {
+        if chr == '\n' {
+            lex.bump(chars_to_bump + 1);
+            return Skip {};
+        }
+
+        chars_to_bump += 1;
+    }
+
+    return Skip {};
+}
+
 #[derive(Logos, Debug)]
 pub enum Token {
     #[token("if")]
@@ -43,6 +58,8 @@ pub enum Token {
     Continue,
     #[token("fn")]
     Function,
+    #[token("export")]
+    Export,
     #[token("return")]
     Return,
     #[token("import")]
@@ -119,6 +136,9 @@ pub enum Token {
     #[token("\0")]
     EndOfFile,
 
+    #[token("//", handle_comment)]
+    Comment,
+
     // Skip spaces characters and handle error
     #[error]
     #[regex(r"[ \n\t\v\r]", logos::skip)]
@@ -137,6 +157,7 @@ impl PartialEq for Token {
             (Token::Break, Token::Break) => true,
             (Token::Continue, Token::Continue) => true,
             (Token::Function, Token::Function) => true,
+            (Token::Export, Token::Export) => true,
             (Token::Return, Token::Return) => true,
             (Token::Import, Token::Import) => true,
             (Token::Print, Token::Print) => true,

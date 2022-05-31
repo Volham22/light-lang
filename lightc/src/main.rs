@@ -15,15 +15,19 @@ struct Args {
     #[clap(short = 'c', long = "only-objects")]
     pub only_objects: bool,
 
+    /// Print LLVM IR code for each module to stdout
+    #[clap(short = 'p', long = "print-llvm-ir")]
+    pub print_ir_code: bool,
+
     /// Output name
     #[clap(short, long, default_value = "program")]
     pub output: String,
 }
 
-fn build_objects(filenames: &Vec<String>, builder: &mut FileBuilder) -> bool {
+fn build_objects(filenames: &Vec<String>, builder: &mut FileBuilder, print_ir: bool) -> bool {
     let mut failure = false;
     for file in filenames {
-        if !builder.generate_module_ir(file.as_str()) {
+        if !builder.generate_module_ir(file.as_str(), print_ir) {
             failure = true;
         }
     }
@@ -44,7 +48,7 @@ fn main() {
         std::process::exit(0);
     }
 
-    if !build_objects(&args.files, &mut builder) {
+    if !build_objects(&args.files, &mut builder, args.print_ir_code) {
         std::process::exit(1);
     }
 

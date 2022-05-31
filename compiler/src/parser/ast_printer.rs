@@ -158,7 +158,7 @@ impl StatementVisitor<()> for AstPrinter {
     }
 
     fn visit_assignment_statement(&mut self, expr: &VariableAssignment) -> () {
-        print!("Assigment: [identifier: {}, new_expr: ", expr.identifier);
+        self.visit_expr(&expr.identifier);
         self.visit_expr(&expr.new_value);
         println!("] ");
     }

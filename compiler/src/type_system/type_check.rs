@@ -42,6 +42,16 @@ impl TypeChecker {
         Ok(ValueType::Number)
     }
 
+    fn find_variable(&self, identifier: &String) -> Option<ValueType> {
+        for frame in self.variables_table.iter().rev() {
+            if let Some(ty) = frame.get(identifier) {
+                return Some(ty.clone());
+            }
+        }
+
+        None
+    }
+
     fn visit_statement(&mut self, stmt: &Statement) -> TypeCheckerReturn {
         match stmt {
             Statement::Expression(expr) => self.visit_expression_statement(expr),
@@ -131,6 +141,48 @@ impl TypeChecker {
             last.insert(name.to_string(), arg_type.clone());
         }
     }
+
+    fn check_array_element_assignment(
+        &mut self,
+        access: &ArrayAccess,
+        rhs: &Expression,
+    ) -> TypeCheckerReturn {
+        if let Some(array_dec) = self.find_variable(&access.identifier) {
+            let rhs_ty = self.check_expr(rhs)?;
+            if ValueType::is_compatible(&array_dec, &rhs_ty) {
+                Ok(rhs_ty)
+            } else {
+                Err(format!(
+                    "Can't assign expression of type '{}' to array element of type '{}'",
+                    rhs_ty, array_dec
+                ))
+            }
+        } else {
+            Err(format!("Array '{}' is not declared.", access.identifier))
+        }
+    }
+
+    fn check_simple_assignment(
+        &mut self,
+        identifier: &String,
+        rhs: &Expression,
+    ) -> TypeCheckerReturn {
+        let expr_type = self.check_expr(rhs)?;
+        let variable_type = if let Some(v) = self.find_variable_type(identifier) {
+            v
+        } else {
+            return Err(format!("Undeclared variable '{}'", identifier));
+        };
+
+        if !ValueType::is_compatible(&expr_type, variable_type) {
+            return Err(format!(
+                "Cannot assign expression of type '{}' to variable '{}' of type '{}'.",
+                expr_type, identifier, variable_type
+            ));
+        }
+
+        Ok(expr_type)
+    }
 }
 
 impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
@@ -162,24 +214,15 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
     }
 
     fn visit_assignment_statement(&mut self, expr: &VariableAssignment) -> TypeCheckerReturn {
-        if let None = self.find_variable_type(&expr.identifier) {
-            return Err(format!(
-                "'{}' is not declared. Declare it 'let {}: <typename> = <init_expr>;'",
-                expr.identifier, expr.identifier
-            ));
+        match &expr.identifier {
+            Expression::Literal(Literal::Identifier(identifier)) => {
+                self.check_simple_assignment(&identifier, &expr.new_value)
+            }
+            Expression::ArrayAccess(access) => {
+                self.check_array_element_assignment(&access, &expr.new_value)
+            }
+            _ => Err(format!("Assignment left hand side is not an lvalue.")),
         }
-
-        let expr_type = self.check_expr(&expr.new_value)?;
-        let variable_type = self.find_variable_type(&expr.identifier).unwrap();
-
-        if !ValueType::is_compatible(&expr_type, variable_type) {
-            return Err(format!(
-                "Cannot assign expression of type '{}' to variable '{}' of type '{}'.",
-                expr_type, expr.identifier, variable_type
-            ));
-        }
-
-        Ok(expr_type)
     }
 
     fn visit_function_statement(&mut self, expr: &FunctionStatement) -> TypeCheckerReturn {
@@ -215,28 +258,43 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
         }
 
         self.in_function = Some(expr.return_type.clone());
-        self.visit_block_statement(&expr.block)?;
-        self.in_function = None;
 
-        // TODO:
-        // for now we only check if the function body has a return statement if
-        // the return type is not 'void'. In the future it may be better to have
-        // a smarter way to check that every path in the function leads to a
-        // valid return statement
+        if let Some(b) = &expr.block {
+            self.visit_block_statement(&b)?;
 
-        if expr.return_type != ValueType::Void {
-            for stmt in &expr.block.statements {
-                match stmt {
-                    Statement::Return(_) => {
-                        return Ok(expr.return_type.clone());
-                    }
-                    _ => continue,
-                }
+            if expr.args.is_some() {
+                self.variables_table.pop(); // remove arguments scope if any
             }
 
-            return Err(format!("Function '{}' returns no values", expr.callee));
+            // TODO:
+            // for now we only check if the function body has a return statement if
+            // the return type is not 'void'. In the future it may be better to have
+            // a smarter way to check that every path in the function leads to a
+            // valid return statement
+            if expr.return_type != ValueType::Void {
+                for stmt in &b.statements {
+                    match stmt {
+                        Statement::Return(_) => {
+                            self.in_function = None;
+                            return Ok(expr.return_type.clone());
+                        }
+                        _ => continue,
+                    }
+                }
+
+                self.in_function = None;
+                return Err(format!("Function '{}' returns no values", expr.callee));
+            }
+        } else {
+            self.in_function = None;
+
+            // A function must have a block definition if exported
+            if expr.is_exported {
+                return Err(format!("Error: exported function must have a body."));
+            }
         }
 
+        self.in_function = None;
         Ok(expr.return_type.clone())
     }
 
@@ -447,9 +505,7 @@ impl ExpressionVisitor<TypeCheckerReturn> for TypeChecker {
     }
 
     fn visit_array_access(&mut self, call_expr: &ArrayAccess) -> TypeCheckerReturn {
-        let table = self.variables_table.last().unwrap();
-
-        if let Some(dec) = table.get(&call_expr.identifier) {
+        if let Some(dec) = self.find_variable(&call_expr.identifier) {
             Ok(dec.clone())
         } else {
             Err(format!("Undeclared array '{}'", call_expr.identifier))

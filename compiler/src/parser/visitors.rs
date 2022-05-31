@@ -89,7 +89,7 @@ pub struct VariableDeclaration {
 
 #[derive(Clone)]
 pub struct VariableAssignment {
-    pub identifier: String,
+    pub identifier: Expression,
     pub new_value: Expression,
 }
 
@@ -102,8 +102,10 @@ pub struct BlockStatement {
 pub struct FunctionStatement {
     pub callee: String,
     pub args: Option<Vec<Argument>>,
-    pub block: BlockStatement,
+    // If the function has no block it means it's a declaration
+    pub block: Option<BlockStatement>,
     pub return_type: ValueType,
+    pub is_exported: bool,
 }
 
 #[derive(Clone)]

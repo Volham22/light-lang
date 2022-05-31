@@ -57,6 +57,9 @@ with the `continue` keyword.
 By default functions are not exported (static keyword in C). A function must be
 exported with the `export` keyword.
 
+Note that the main function is exported by default to avoid linker
+errors. So we can omit the `export` keyword on main function.
+
 ```
 [export] fn <identifier>(<arg_identifier>: type, <other_identifier>: type): <return_type> {
     <statement>*
@@ -79,6 +82,24 @@ for let i: number = 0; i < 10; i = i + 1; {
 
 ## Code samples
 
+### Hello World!
+
+Note that since the standard library is not yet implemented some C standard
+library's functions must be forward declared.
+
+``` js
+// Forward declare C library functions
+// stdio.h
+//      puts
+
+fn puts(message: string): number;
+
+fn main(): number {
+   puts("Hello World!");
+   return 0;
+}
+```
+
 ### Add
 
 ```
@@ -92,11 +113,51 @@ fn add(a: number, b: number): number {
 ```
 fn fact(n: number): number {
     let result: number = 1;
-    for i: number = 1; i <= n; i = i + 1 {
+
+    for i: number = 1; i <= n; i = i + 1; {
         result  = result * i;
     }
 
     return result;
 }
+```
 
+### Random array
+This program will fill an array of 10 random number and print the array
+
+```js
+// This program will fill an array of 10 random number and print the array
+
+// Forward declare C library functions
+// stdio.h
+//      printf
+//      puts
+// stdlib.h
+//      srand
+//      rand
+// time.h
+//      time.h
+
+fn puts(message: string): number;
+fn printf(format: string, n: number): number;
+fn rand(): number;
+fn srand(seed: number): void;
+fn time(_: number): number;
+
+fn print_number(n: number): void {
+   printf("%d", n);
+}
+
+fn main(): number {
+   srand(time(0));
+   let array: [number; 10] = 0;
+
+   for let i: number = 0; i < 10; i = i + 1; {
+        array[i] = rand() % 100;
+        print_number(array[i]);
+        puts(""); // newline
+   }
+
+   return 0;
+}
 ```

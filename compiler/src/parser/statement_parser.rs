@@ -10,7 +10,7 @@ use super::{
 };
 
 impl Parser {
-    pub fn parse_function_statement(&mut self) -> Result<Statement, ()> {
+    fn parse_function(&mut self, exported: bool) -> Result<Statement, ()> {
         if self.match_expr(&[Token::Function]) {
             let callee = match self.consume(
                 &Token::Identifier(String::new()),
@@ -43,15 +43,16 @@ impl Parser {
                     return Err(());
                 }
 
-                let arg_type = match self.consume(
-                    &Token::Type(ValueType::Void),
-                    "Expected argument type after ':'",
-                ) {
-                    Some(Token::Type(t)) => t,
-                    _ => {
-                        return Err(());
-                    }
-                };
+                let arg_type = self.parse_type()?;
+                // let arg_type = match self.consume(
+                //     &Token::Type(ValueType::Void),
+                //     "Expected argument type after ':'",
+                // ) {
+                //     Some(Token::Type(t)) => t,
+                //     _ => {
+                //         return Err(());
+                //     }
+                // };
 
                 args.push((id.clone(), arg_type.clone()));
 
@@ -77,8 +78,20 @@ impl Parser {
                     _ => return Err(()),
                 };
 
-            if let None = self.consume(&Token::LeftBrace, "Expected block after function.") {
-                return Err(());
+            if !self.match_expr(&[Token::LeftBrace]) {
+                if let None =
+                    self.consume(&Token::Semicolon, "Expected ';' after function declaration")
+                {
+                    return Err(());
+                }
+
+                return Ok(Statement::Function(FunctionStatement {
+                    callee,
+                    args: if !args.is_empty() { Some(args) } else { None },
+                    block: None,
+                    return_type,
+                    is_exported: exported,
+                }));
             }
 
             let block = self.parse_block()?;
@@ -86,12 +99,22 @@ impl Parser {
             return Ok(Statement::Function(FunctionStatement {
                 callee,
                 args: if !args.is_empty() { Some(args) } else { None },
-                block,
+                block: Some(block),
                 return_type,
+                is_exported: exported,
             }));
         }
 
+        if exported {
+            println!("Expected 'fn' keyword after 'export'.");
+            return Err(());
+        }
+
         self.parse_if_statement()
+    }
+    pub fn parse_function_statement(&mut self) -> Result<Statement, ()> {
+        let exported = self.match_expr(&[Token::Export]);
+        self.parse_function(exported)
     }
 
     fn parse_block(&mut self) -> Result<BlockStatement, ()> {
@@ -268,13 +291,13 @@ impl Parser {
             match expr {
                 Expression::Literal(Literal::Identifier(id)) => {
                     return Ok(Statement::VariableAssignment(VariableAssignment {
-                        identifier: id,
+                        identifier: Expression::Literal(Literal::Identifier(id)),
                         new_value: rhs,
                     }));
                 }
                 Expression::ArrayAccess(a) => {
                     return Ok(Statement::VariableAssignment(VariableAssignment {
-                        identifier: a.identifier,
+                        identifier: Expression::ArrayAccess(a),
                         new_value: rhs,
                     }))
                 }
