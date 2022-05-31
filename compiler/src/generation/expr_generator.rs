@@ -1,5 +1,5 @@
 use inkwell::types::{AnyType, BasicType};
-use inkwell::values::{AnyValue, AnyValueEnum, BasicValue};
+use inkwell::values::{AnyValue, AnyValueEnum};
 use inkwell::{FloatPredicate, IntPredicate};
 
 use crate::generation::ir_generator::IRGenerator;

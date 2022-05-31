@@ -13,7 +13,7 @@ use inkwell::{
     context::Context,
     execution_engine::ExecutionEngine,
     module::Module,
-    types::{AnyType, AnyTypeEnum, PointerType},
+    types::{AnyTypeEnum, PointerType},
     values::{AnyValueEnum, FloatValue, FunctionValue, IntValue, PointerValue},
     AddressSpace,
 };

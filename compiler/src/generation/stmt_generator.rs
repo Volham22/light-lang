@@ -2,7 +2,7 @@ use std::ops::Deref;
 
 use inkwell::{
     module::Linkage,
-    types::{AnyTypeEnum, ArrayType, BasicMetadataTypeEnum, BasicType, BasicTypeEnum, PointerType},
+    types::{ArrayType, BasicMetadataTypeEnum, BasicType, BasicTypeEnum},
     values::{AnyValue, AnyValueEnum, BasicValue, BasicValueEnum, PointerValue},
     AddressSpace,
 };
