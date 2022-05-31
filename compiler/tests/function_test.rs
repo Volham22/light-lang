@@ -314,3 +314,33 @@ fn exported_function_missing_body() {
         assert!(false, "Parser failed!");
     }
 }
+
+#[test]
+fn pass_array_as_parameter() {
+    let source = "fn f(a: [number; 10]): void {} fn main(): number {let array: [number; 10] = 42; f(array); return 0;}";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+
+    if let Some(ast) = parser.parse() {
+        let mut type_check = TypeChecker::new();
+        assert!(type_check.check_ast_type(&ast).is_ok());
+    } else {
+        assert!(false, "Parser failed!");
+    }
+}
+
+#[test]
+fn pass_array_as_parameter_wrong_size() {
+    let source = "fn f(a: [number; 5]): void {} fn main(): number {let array: [number; 10] = 42; f(array); return 0;}";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+
+    if let Some(ast) = parser.parse() {
+        let mut type_check = TypeChecker::new();
+        assert!(type_check.check_ast_type(&ast).is_err());
+    } else {
+        assert!(false, "Parser failed!");
+    }
+}
