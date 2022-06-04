@@ -222,3 +222,18 @@ fn for_no_next_statement() {
 
     assert!(parser.parse().is_none());
 }
+
+#[test]
+fn two_for_statement() {
+    let source =
+        "for let i: number = 0; i < 10; i = i + 1; {} for let i: number = 0; i < 10; i = i + 1; {}";
+
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+    let mut checker = TypeChecker::new();
+    let stmts = parser.parse();
+
+    assert!(stmts.is_some());
+    assert!(checker.check_ast_type(&stmts.unwrap()).is_ok());
+}

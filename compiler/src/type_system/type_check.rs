@@ -370,10 +370,18 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
     }
 
     fn visit_for_statement(&mut self, for_stmt: &ForStatement) -> TypeCheckerReturn {
+        // A for loop declare a variable (ie. i) and this variable needs its
+        // own scope to avoid false positive redifinitions
+        self.variables_table.push(HashMap::new());
+
         let init_type = self.visit_declaration_statement(&for_stmt.init_expr)?;
         let loop_type = self.visit_expression_statement(&for_stmt.loop_condition)?;
         self.visit_statement(&for_stmt.next_expr)?;
         self.visit_block_statement(&for_stmt.block_stmt)?;
+
+        // Pop the for's variable scope here it's not needed and can lead to
+        // false positive variable redefinitions errors
+        self.variables_table.pop();
 
         if init_type != ValueType::Number && init_type != ValueType::Real {
             return Err(format!(
