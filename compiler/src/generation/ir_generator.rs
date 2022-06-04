@@ -9,6 +9,7 @@ use crate::{
 use crate::parser::visitors::StatementVisitor;
 
 use inkwell::{
+    basic_block::BasicBlock,
     builder::Builder,
     context::Context,
     execution_engine::ExecutionEngine,
@@ -24,6 +25,8 @@ pub struct IRGenerator<'a> {
     pub module: Module<'a>,
     pub current_fn: Option<FunctionValue<'a>>,
     pub variables: HashMap<String, PointerValue<'a>>,
+    pub loop_bb_stack: Vec<BasicBlock<'a>>,
+    pub has_branched: bool,
 }
 
 impl<'a> IRGenerator<'a> {
@@ -59,6 +62,7 @@ impl<'a> IRGenerator<'a> {
                 self.visit_while_statement(while_stmt);
             }
             Statement::ForStatement(_) => unreachable!(),
+            Statement::BreakStatement => todo!(),
         };
 
         match body {
@@ -210,7 +214,8 @@ impl<'a> IRGenerator<'a> {
                 self.visit_while_statement(expr);
                 None
             }
-            Statement::ForStatement(_) => todo!(),
+            Statement::ForStatement(_) => unreachable!(),
+            Statement::BreakStatement => self.visit_break_statement(),
         }
     }
 
@@ -231,6 +236,15 @@ impl<'a> IRGenerator<'a> {
             AnyTypeEnum::FunctionType(t) => t.ptr_type(AddressSpace::Generic),
             AnyTypeEnum::PointerType(t) => t.ptr_type(AddressSpace::Generic),
             _ => panic!(),
+        }
+    }
+
+    pub fn block_has_branch(&mut self) -> bool {
+        if self.has_branched {
+            self.has_branched = false;
+            true
+        } else {
+            false
         }
     }
 }
@@ -256,6 +270,8 @@ pub fn create_generator<'gen>(context: &'gen Context, name: &str) -> IRGenerator
         module: context.create_module(name),
         current_fn: None,
         variables: HashMap::new(),
+        loop_bb_stack: Vec::new(),
+        has_branched: false,
     }
 }
 

@@ -446,7 +446,10 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
 
         self.builder.position_at_end(then_bb);
         self.visit_block_statement(&if_stmt.then_branch);
-        self.builder.build_unconditional_branch(merge_bb);
+
+        if !self.block_has_branch() {
+            self.builder.build_unconditional_branch(merge_bb);
+        }
 
         self.builder.position_at_end(else_bb);
 
@@ -454,7 +457,10 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
             self.visit_block_statement(&if_stmt.else_branch.as_ref().unwrap());
         }
 
-        self.builder.build_unconditional_branch(merge_bb);
+        if !self.block_has_branch() {
+            self.builder.build_unconditional_branch(merge_bb);
+        }
+
         self.builder.position_at_end(merge_bb);
 
         None
@@ -471,10 +477,11 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
 
         let test_bb = self.context.append_basic_block(parent, "while_test");
         let body_bb = self.context.append_basic_block(parent, "while_body");
-        let end_loop_bb = self.context.append_basic_block(parent, "while_body");
+        let end_loop_bb = self.context.append_basic_block(parent, "while_end");
 
         self.builder.build_unconditional_branch(test_bb);
         self.builder.position_at_end(test_bb);
+
         let condition = match self.visit_borrowed_expr(&while_stmt.condition) {
             AnyValueEnum::IntValue(v) => v,
             _ => panic!(),
@@ -490,9 +497,15 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
         self.builder
             .build_conditional_branch(cond_instr, body_bb, end_loop_bb);
 
+        self.loop_bb_stack.push(end_loop_bb);
         self.builder.position_at_end(body_bb);
         self.visit_block_statement(&while_stmt.loop_block);
-        self.builder.build_unconditional_branch(test_bb);
+
+        if !self.block_has_branch() {
+            self.builder.build_unconditional_branch(test_bb);
+        }
+
+        self.loop_bb_stack.pop();
 
         self.builder.position_at_end(end_loop_bb);
 
@@ -501,5 +514,13 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
 
     fn visit_for_statement(&mut self, _for_stmt: &ForStatement) -> Option<AnyValueEnum<'a>> {
         unreachable!()
+    }
+
+    fn visit_break_statement(&mut self) -> Option<AnyValueEnum<'a>> {
+        self.builder
+            .build_unconditional_branch(*self.loop_bb_stack.last().unwrap());
+        self.has_branched = true;
+
+        None
     }
 }

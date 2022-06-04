@@ -40,7 +40,6 @@ for <init>;<loop_expr>;<next_expr> {
 ```
 
 ### Loop
-__Not implemented yet__
 Loops forever (syntactic sugar of while loop)
 
 ```js

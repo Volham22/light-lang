@@ -18,6 +18,7 @@ pub struct TypeChecker {
     variables_table: Vec<HashMap<String, ValueType>>,
     function_table: HashMap<String, FunctionSignature>,
     in_function: Option<ValueType>,
+    loop_count: u32,
 }
 
 pub type TypeCheckerReturn = Result<ValueType, String>;
@@ -28,6 +29,7 @@ impl TypeChecker {
             variables_table: Vec::new(),
             function_table: HashMap::new(),
             in_function: None,
+            loop_count: 0,
         };
 
         s.variables_table.push(HashMap::new()); // default global scope
@@ -63,6 +65,7 @@ impl TypeChecker {
             Statement::IfStatement(if_stmt) => self.visit_if_statement(if_stmt),
             Statement::WhileStatement(while_stmt) => self.visit_while_statement(while_stmt),
             Statement::ForStatement(for_stmt) => self.visit_for_statement(for_stmt),
+            Statement::BreakStatement => self.visit_break_statement(),
         }
     }
 
@@ -355,6 +358,7 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
 
     fn visit_while_statement(&mut self, while_stmt: &WhileStatement) -> TypeCheckerReturn {
         let condition_type = self.visit_expression_statement(&while_stmt.condition)?;
+        self.loop_count += 1;
 
         if condition_type != ValueType::Bool {
             return Err(format!(
@@ -364,6 +368,7 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
         }
 
         self.visit_block_statement(&while_stmt.loop_block)?;
+        self.loop_count -= 1;
 
         // An while statement has void type
         Ok(ValueType::Void)
@@ -373,6 +378,7 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
         // A for loop declare a variable (ie. i) and this variable needs its
         // own scope to avoid false positive redifinitions
         self.variables_table.push(HashMap::new());
+        self.loop_count += 1;
 
         let init_type = self.visit_declaration_statement(&for_stmt.init_expr)?;
         let loop_type = self.visit_expression_statement(&for_stmt.loop_condition)?;
@@ -382,6 +388,7 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
         // Pop the for's variable scope here it's not needed and can lead to
         // false positive variable redefinitions errors
         self.variables_table.pop();
+        self.loop_count -= 1;
 
         if init_type != ValueType::Number && init_type != ValueType::Real {
             return Err(format!(
@@ -395,6 +402,14 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
                 "For loop expression has type '{}' but type 'bool' is required.",
                 loop_type
             ));
+        }
+
+        Ok(ValueType::Void)
+    }
+
+    fn visit_break_statement(&mut self) -> TypeCheckerReturn {
+        if self.loop_count == 0 {
+            return Err(format!("Break statement outside a loop."));
         }
 
         Ok(ValueType::Void)

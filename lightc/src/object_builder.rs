@@ -53,9 +53,9 @@ impl<'m> FileBuilder<'m> {
                 generator.generate_ir(&stmts);
 
                 if print_ir_code {
-                    println!("=== {}: IR Code ===", path);
+                    // println!("=== {}: IR Code ===", path);
                     generator.print_code();
-                    println!("===================");
+                    // println!("===================");
                 }
                 self.modules
                     .push((String::from_str(path).unwrap(), generator));

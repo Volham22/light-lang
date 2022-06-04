@@ -22,8 +22,8 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
                 .as_any_value_enum(),
             Literal::Bool(val) => self
                 .context
-                .bool_type()
-                .const_int(*val as u64, false)
+                .i8_type()
+                .const_int(if *val { 1 } else { 0 }, false)
                 .as_any_value_enum(),
             Literal::Identifier(name) => {
                 let val_ptr = self.variables.get(name).unwrap();

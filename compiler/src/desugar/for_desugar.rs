@@ -111,4 +111,8 @@ impl MutableStatementVisitor<()> for ForDesugar {
     fn visit_for_statement(&mut self, _for_stmt: &mut ForStatement) -> () {
         unreachable!()
     }
+
+    fn visit_break_statement(&mut self) {
+        unreachable!()
+    }
 }
