@@ -285,6 +285,14 @@ impl Parser {
     }
 
     fn parse_expression_statement(&mut self) -> Result<Statement, ()> {
+        if self.match_expr(&[Token::Break]) {
+            if let None = self.consume(&Token::Semicolon, "Expected ';' after assigment.") {
+                return Err(());
+            }
+
+            return Ok(Statement::BreakStatement);
+        }
+
         let expr = self.or()?;
 
         if self.match_expr(&[Token::Equal]) {

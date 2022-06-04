@@ -18,6 +18,7 @@ impl AstPrinter {
             Statement::IfStatement(if_stmt) => self.visit_if_statement(if_stmt),
             Statement::WhileStatement(while_stmt) => self.visit_while_statement(while_stmt),
             Statement::ForStatement(for_stmt) => self.visit_for_statement(for_stmt),
+            Statement::BreakStatement => self.visit_break_statement(),
         }
     }
 
@@ -222,6 +223,10 @@ impl StatementVisitor<()> for AstPrinter {
         print!("; ");
         self.visit_stmt(&for_stmt.next_expr.as_ref());
         print!(") \n");
+    }
+
+    fn visit_break_statement(&mut self) {
+        println!("Break");
     }
 }
 

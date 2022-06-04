@@ -239,7 +239,7 @@ fn two_for_statement() {
 }
 
 #[test]
-fn parse_loop_statements() {
+fn parse_loop_statement() {
     let source = "loop {}";
 
     let lexer = Token::lexer(source);
@@ -250,4 +250,32 @@ fn parse_loop_statements() {
 
     assert!(stmts.is_some());
     assert!(checker.check_ast_type(&stmts.unwrap()).is_ok());
+}
+
+#[test]
+fn parse_loop_statement_with_break() {
+    let source = "loop { break; }";
+
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+    let mut checker = TypeChecker::new();
+    let stmts = parser.parse();
+
+    assert!(stmts.is_some());
+    assert!(checker.check_ast_type(&stmts.unwrap()).is_ok());
+}
+
+#[test]
+fn parse_break_outside_loop() {
+    let source = "loop {} break;";
+
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+    let mut checker = TypeChecker::new();
+    let stmts = parser.parse();
+
+    assert!(stmts.is_some());
+    assert!(checker.check_ast_type(&stmts.unwrap()).is_err());
 }
