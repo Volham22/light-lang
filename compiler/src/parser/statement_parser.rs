@@ -44,16 +44,6 @@ impl Parser {
                 }
 
                 let arg_type = self.parse_type()?;
-                // let arg_type = match self.consume(
-                //     &Token::Type(ValueType::Void),
-                //     "Expected argument type after ':'",
-                // ) {
-                //     Some(Token::Type(t)) => t,
-                //     _ => {
-                //         return Err(());
-                //     }
-                // };
-
                 args.push((id.clone(), arg_type.clone()));
 
                 if !self.match_expr(&[Token::Comma]) {
@@ -112,6 +102,7 @@ impl Parser {
 
         self.parse_if_statement()
     }
+
     pub fn parse_function_statement(&mut self) -> Result<Statement, ()> {
         let exported = self.match_expr(&[Token::Export]);
         self.parse_function(exported)
@@ -211,6 +202,21 @@ impl Parser {
 
             return Ok(Statement::WhileStatement(WhileStatement {
                 condition,
+                loop_block,
+            }));
+        }
+
+        Ok(self.parse_loop_statement()?)
+    }
+
+    fn parse_loop_statement(&mut self) -> Result<Statement, ()> {
+        if self.match_expr(&[Token::Loop]) {
+            self.consume(&Token::LeftBrace, "Expected '{' after 'loop'");
+            let loop_block = self.parse_block()?;
+
+            // A loop is just a while true {}
+            return Ok(Statement::WhileStatement(WhileStatement {
+                condition: Expression::Literal(Literal::Bool(true)),
                 loop_block,
             }));
         }

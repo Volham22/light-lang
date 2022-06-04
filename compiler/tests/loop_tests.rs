@@ -237,3 +237,17 @@ fn two_for_statement() {
     assert!(stmts.is_some());
     assert!(checker.check_ast_type(&stmts.unwrap()).is_ok());
 }
+
+#[test]
+fn parse_loop_statements() {
+    let source = "loop {}";
+
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+    let mut checker = TypeChecker::new();
+    let stmts = parser.parse();
+
+    assert!(stmts.is_some());
+    assert!(checker.check_ast_type(&stmts.unwrap()).is_ok());
+}
