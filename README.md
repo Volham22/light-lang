@@ -32,7 +32,7 @@ More informations can be found [here](specs.md).
 
 * Rust toolchain (use rustup)
 * LLVM13 (for inkwell)
-    
+
 then use cargo to build the project (and launch tests).
 
 ### Compile and launch a program
