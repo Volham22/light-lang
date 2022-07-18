@@ -536,8 +536,8 @@ impl ExpressionVisitor<TypeCheckerReturn> for TypeChecker {
     }
 
     fn visit_array_access(&mut self, call_expr: &ArrayAccess) -> TypeCheckerReturn {
-        if let Some(dec) = self.find_variable(&call_expr.identifier) {
-            Ok(dec.clone())
+        if let Some(ValueType::Array(arr)) = self.find_variable(&call_expr.identifier) {
+            Ok(*arr.array_type)
         } else {
             Err(format!("Undeclared array '{}'", call_expr.identifier))
         }
