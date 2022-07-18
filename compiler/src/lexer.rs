@@ -121,6 +121,16 @@ pub enum Token {
     #[token("\"", handle_quote)]
     Quote(String),
 
+    // Pointer keywords
+    #[token("ptr")]
+    Pointer,
+    #[token("deref")]
+    Dereference,
+    #[token("addrof")]
+    AddressOf,
+    #[token("null")]
+    Null,
+
     // Light types
     #[regex("(number)|(real)|(bool)|(string)|(void)", |lex| lex.slice().parse())]
     Type(ValueType),
@@ -193,6 +203,9 @@ impl PartialEq for Token {
             (Token::Identifier(_), Token::Identifier(_)) => true,
             (Token::Quote(_), Token::Quote(_)) => true,
             (Token::EndOfFile, Token::EndOfFile) => true,
+            (Token::Pointer, Token::Pointer) => true,
+            (Token::AddressOf, Token::AddressOf) => true,
+            (Token::Dereference, Token::Dereference) => true,
             (Token::Error, Token::Error) => true,
             _ => false,
         }
@@ -597,5 +610,37 @@ mod tests {
     fn unclosed_quote_with_content_test() {
         let mut lexer = Token::lexer("\"hey mom *&*(^)");
         assert_eq!(lexer.next().unwrap(), Token::Error);
+    }
+
+    #[test]
+    fn ptr_keyword_test() {
+        let mut lexer = Token::lexer("let my_ptr: ptr");
+        assert_eq!(lexer.next().unwrap(), Token::Let);
+        assert_eq!(
+            lexer.next().unwrap(),
+            Token::Identifier(String::from("my_ptr"))
+        );
+        assert_eq!(lexer.next().unwrap(), Token::Colon);
+        assert_eq!(lexer.next().unwrap(), Token::Pointer);
+    }
+
+    #[test]
+    fn deref_keyword_test() {
+        let mut lexer = Token::lexer("deref my_ptr");
+        assert_eq!(lexer.next().unwrap(), Token::Dereference);
+        assert_eq!(
+            lexer.next().unwrap(),
+            Token::Identifier(String::from("my_ptr"))
+        );
+    }
+
+    #[test]
+    fn addrof_keyword_test() {
+        let mut lexer = Token::lexer("addrof my_ptr");
+        assert_eq!(lexer.next().unwrap(), Token::AddressOf);
+        assert_eq!(
+            lexer.next().unwrap(),
+            Token::Identifier(String::from("my_ptr"))
+        );
     }
 }
