@@ -79,6 +79,56 @@ for let i: number = 0; i < 10; i = i + 1; {
 }
 ```
 
+## Pointers and heap allocation
+
+Sometimes we don't know in the exact size of an array at compile time, so we
+can't store it in the stack. That's where heap allocation comes in.
+
+### Pointers
+Pointers are declared this way :
+
+```js
+let my_ptr: ptr number = null;
+```
+
+We can a variable address like this :
+```js
+let answer: number = 42;
+let ans_ptr: ptr number = addrof answer;
+printf("%p", ans_ptr); // some address ... 0x[...]
+```
+
+### Heap allocation
+We can use the libc's malloc function like this :
+
+```js
+let my_ptr: ptr number = malloc(8);
+deref my_ptr = 32;
+free(my_ptr);
+```
+
+#### Dynamic arrays
+```js
+let array_size: number = some_function(); // returns 5
+let dyn_array: ptr number = malloc(8 * array_size);
+dyn_array[1] = 43;
+dyn_array[5] = 12; // Out of bounds access! May raise in a SIGSEGV on Unix systems.
+```
+
+### Void pointer
+It acts like C's `void*`.
+
+```js
+let answer: number = 4;
+let greeting: string = "hi mom!";
+let void_ptr: ptr void = addrof answer;
+void_ptr = addrof void_ptr;
+printf("%p", void_ptr); // some address ... 0x[...]
+```
+
+**A void ptr cannot be dereferenced!**
+
+
 ## Code samples
 
 ### Hello World!
