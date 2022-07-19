@@ -1,8 +1,9 @@
 use crate::{
     parser::visitors::{
-        ArrayAccess, Binary, BinaryLogic, BlockStatement, Call, Expression, ExpressionVisitor,
-        ForStatement, FunctionStatement, Group, IfStatement, Literal, ReturnStatement, Statement,
-        StatementVisitor, Unary, VariableAssignment, VariableDeclaration, WhileStatement,
+        AddressOf, ArrayAccess, Binary, BinaryLogic, BlockStatement, Call, Expression,
+        ExpressionVisitor, ForStatement, FunctionStatement, Group, IfStatement, Literal,
+        ReturnStatement, Statement, StatementVisitor, Unary, VariableAssignment,
+        VariableDeclaration, WhileStatement,
     },
     type_system::value_type::ValueType,
 };
@@ -79,6 +80,7 @@ impl TypeChecker {
             Expression::Call(e) => self.visit_call(&e),
             Expression::ArrayAccess(a) => self.visit_array_access(&a),
             Expression::Null => self.visit_null_expression(),
+            Expression::AddressOf(address_of) => self.visit_address_of_expression(address_of),
         }
     }
 
@@ -92,6 +94,7 @@ impl TypeChecker {
             Expression::Call(e) => self.visit_call(&e),
             Expression::ArrayAccess(a) => self.visit_array_access(&a),
             Expression::Null => self.visit_null_expression(),
+            Expression::AddressOf(address_of) => self.visit_address_of_expression(address_of),
         }
     }
 
@@ -547,5 +550,13 @@ impl ExpressionVisitor<TypeCheckerReturn> for TypeChecker {
 
     fn visit_null_expression(&mut self) -> TypeCheckerReturn {
         Ok(ValueType::Null)
+    }
+
+    fn visit_address_of_expression(&mut self, address_of: &AddressOf) -> TypeCheckerReturn {
+        if let Some(ty) = self.find_variable_type(&address_of.identifier) {
+            Ok(ValueType::Pointer(Box::new(ty.clone())))
+        } else {
+            Err(format!("Undeclared variable '{}'", &address_of.identifier))
+        }
     }
 }

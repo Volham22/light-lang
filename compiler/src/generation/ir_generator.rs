@@ -110,6 +110,7 @@ impl<'a> IRGenerator<'a> {
             Expression::Call(call) => self.visit_call(call),
             Expression::ArrayAccess(array) => self.visit_array_access(array),
             Expression::Null => self.visit_null_expression(),
+            Expression::AddressOf(addr_of) => self.visit_address_of_expression(addr_of),
         }
     }
 
@@ -123,6 +124,7 @@ impl<'a> IRGenerator<'a> {
             Expression::Call(call) => self.visit_call(call),
             Expression::ArrayAccess(array) => self.visit_array_access(array),
             Expression::Null => self.visit_null_expression(),
+            Expression::AddressOf(addr_of) => self.visit_address_of_expression(addr_of),
         }
     }
 

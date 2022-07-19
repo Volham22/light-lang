@@ -70,6 +70,11 @@ pub struct ArrayAccess {
 }
 
 #[derive(Clone)]
+pub struct AddressOf {
+    pub identifier: String,
+}
+
+#[derive(Clone)]
 pub enum Expression {
     Literal(Literal),
     Binary(Binary),
@@ -78,6 +83,7 @@ pub enum Expression {
     Unary(Unary),
     Call(Call),
     ArrayAccess(ArrayAccess),
+    AddressOf(AddressOf),
     Null,
 }
 
@@ -184,4 +190,5 @@ pub trait ExpressionVisitor<T> {
     fn visit_call(&mut self, call_expr: &Call) -> T;
     fn visit_array_access(&mut self, call_expr: &ArrayAccess) -> T;
     fn visit_null_expression(&mut self) -> T;
+    fn visit_address_of_expression(&mut self, address_of: &AddressOf) -> T;
 }
