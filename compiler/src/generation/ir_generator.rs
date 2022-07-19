@@ -111,6 +111,7 @@ impl<'a> IRGenerator<'a> {
             Expression::ArrayAccess(array) => self.visit_array_access(array),
             Expression::Null => self.visit_null_expression(),
             Expression::AddressOf(addr_of) => self.visit_address_of_expression(addr_of),
+            Expression::DeReference(deref) => self.visit_dereference_expression(deref),
         }
     }
 
@@ -125,6 +126,7 @@ impl<'a> IRGenerator<'a> {
             Expression::ArrayAccess(array) => self.visit_array_access(array),
             Expression::Null => self.visit_null_expression(),
             Expression::AddressOf(addr_of) => self.visit_address_of_expression(addr_of),
+            Expression::DeReference(deref) => self.visit_dereference_expression(deref),
         }
     }
 

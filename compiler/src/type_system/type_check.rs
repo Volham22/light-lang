@@ -1,6 +1,6 @@
 use crate::{
     parser::visitors::{
-        AddressOf, ArrayAccess, Binary, BinaryLogic, BlockStatement, Call, Expression,
+        AddressOf, ArrayAccess, Binary, BinaryLogic, BlockStatement, Call, DeReference, Expression,
         ExpressionVisitor, ForStatement, FunctionStatement, Group, IfStatement, Literal,
         ReturnStatement, Statement, StatementVisitor, Unary, VariableAssignment,
         VariableDeclaration, WhileStatement,
@@ -81,6 +81,7 @@ impl TypeChecker {
             Expression::ArrayAccess(a) => self.visit_array_access(&a),
             Expression::Null => self.visit_null_expression(),
             Expression::AddressOf(address_of) => self.visit_address_of_expression(address_of),
+            Expression::DeReference(deref) => self.visit_dereference_expression(deref),
         }
     }
 
@@ -95,6 +96,7 @@ impl TypeChecker {
             Expression::ArrayAccess(a) => self.visit_array_access(&a),
             Expression::Null => self.visit_null_expression(),
             Expression::AddressOf(address_of) => self.visit_address_of_expression(address_of),
+            Expression::DeReference(deref) => self.visit_dereference_expression(deref),
         }
     }
 
@@ -236,6 +238,19 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
             }
             Expression::ArrayAccess(access) => {
                 self.check_array_element_assignment(&access, &expr.new_value)
+            }
+            Expression::DeReference(deref) => {
+                let deref_ty = self.visit_dereference_expression(deref)?;
+                let init_ty = self.check_expr(&expr.new_value)?;
+
+                if !ValueType::is_compatible(&deref_ty, &init_ty) {
+                    return Err(format!(
+                        "Cannot assign type '{}' with a dereferenced pointer of type '{}'",
+                        init_ty, deref_ty
+                    ));
+                }
+
+                Ok(deref_ty)
             }
             _ => Err(format!("Assignment left hand side is not an lvalue.")),
         }
@@ -557,6 +572,17 @@ impl ExpressionVisitor<TypeCheckerReturn> for TypeChecker {
             Ok(ValueType::Pointer(Box::new(ty.clone())))
         } else {
             Err(format!("Undeclared variable '{}'", &address_of.identifier))
+        }
+    }
+
+    fn visit_dereference_expression(&mut self, dereference: &DeReference) -> TypeCheckerReturn {
+        if let Some(ValueType::Pointer(ptr_ty)) = self.find_variable_type(&dereference.identifier) {
+            Ok(*ptr_ty.clone())
+        } else {
+            Err(format!(
+                "'{}' is either not a pointer or declared in this scope.",
+                &dereference.identifier
+            ))
         }
     }
 }

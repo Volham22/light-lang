@@ -3,7 +3,8 @@ use crate::lexer::Token;
 use super::{
     parser::Parser,
     visitors::{
-        AddressOf, ArrayAccess, Binary, BinaryLogic, Call, Expression, Group, Literal, Unary,
+        AddressOf, ArrayAccess, Binary, BinaryLogic, Call, DeReference, Expression, Group, Literal,
+        Unary,
     },
 };
 
@@ -201,7 +202,7 @@ impl Parser {
             Some(Token::AddressOf) => {
                 let identifier = if let Some(Token::Identifier(id)) = self.consume(
                     &Token::Identifier(String::new()),
-                    "Expected <identifier> after addrof keyword",
+                    "Expected <identifier> after 'addrof' keyword",
                 ) {
                     id
                 } else {
@@ -209,6 +210,20 @@ impl Parser {
                 };
 
                 Ok(Expression::AddressOf(AddressOf {
+                    identifier: identifier.to_string(),
+                }))
+            }
+            Some(Token::Dereference) => {
+                let identifier = if let Some(Token::Identifier(id)) = self.consume(
+                    &Token::Identifier(String::new()),
+                    "Expected <identifier> after 'deref' keyword",
+                ) {
+                    id
+                } else {
+                    return Err(());
+                };
+
+                Ok(Expression::DeReference(DeReference {
                     identifier: identifier.to_string(),
                 }))
             }

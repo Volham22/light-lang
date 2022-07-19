@@ -4,7 +4,8 @@ use inkwell::{FloatPredicate, IntPredicate};
 
 use crate::generation::ir_generator::IRGenerator;
 use crate::parser::visitors::{
-    AddressOf, ArrayAccess, Binary, BinaryLogic, Call, ExpressionVisitor, Group, Literal, Unary,
+    AddressOf, ArrayAccess, Binary, BinaryLogic, Call, DeReference, ExpressionVisitor, Group,
+    Literal, Unary,
 };
 
 impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
@@ -443,6 +444,10 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
     }
 
     fn visit_address_of_expression(&mut self, address_of: &AddressOf) -> AnyValueEnum<'a> {
+        todo!()
+    }
+
+    fn visit_dereference_expression(&mut self, dereference: &DeReference) -> AnyValueEnum<'a> {
         todo!()
     }
 }

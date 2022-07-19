@@ -309,6 +309,12 @@ impl Parser {
                         new_value: rhs,
                     }));
                 }
+                Expression::DeReference(deref) => {
+                    return Ok(Statement::VariableAssignment(VariableAssignment {
+                        identifier: Expression::DeReference(deref),
+                        new_value: rhs,
+                    }));
+                }
                 Expression::ArrayAccess(a) => {
                     return Ok(Statement::VariableAssignment(VariableAssignment {
                         identifier: Expression::ArrayAccess(a),

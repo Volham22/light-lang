@@ -1,5 +1,5 @@
 use super::visitors::{
-    AddressOf, ArrayAccess, Binary, BinaryLogic, BlockStatement, Call, Expression,
+    AddressOf, ArrayAccess, Binary, BinaryLogic, BlockStatement, Call, DeReference, Expression,
     ExpressionVisitor, ForStatement, FunctionStatement, Group, IfStatement, Literal,
     ReturnStatement, Statement, StatementVisitor, Unary, VariableAssignment, VariableDeclaration,
     WhileStatement,
@@ -34,6 +34,7 @@ impl AstPrinter {
             Expression::ArrayAccess(access) => self.visit_array_access(access),
             Expression::Null => self.visit_null_expression(),
             Expression::AddressOf(address_of) => self.visit_address_of_expression(address_of),
+            Expression::DeReference(deref) => self.visit_dereference_expression(deref),
         }
     }
 
@@ -150,6 +151,10 @@ impl ExpressionVisitor<()> for AstPrinter {
 
     fn visit_address_of_expression(&mut self, address_of: &AddressOf) -> () {
         print!("Address of {}", &address_of.identifier);
+    }
+
+    fn visit_dereference_expression(&mut self, dereference: &DeReference) -> () {
+        print!("Dereference of {}", &dereference.identifier)
     }
 }
 
