@@ -1,7 +1,8 @@
 use super::visitors::{
-    ArrayAccess, Binary, BinaryLogic, BlockStatement, Call, Expression, ExpressionVisitor,
-    ForStatement, FunctionStatement, Group, IfStatement, Literal, ReturnStatement, Statement,
-    StatementVisitor, Unary, VariableAssignment, VariableDeclaration, WhileStatement,
+    AddressOf, ArrayAccess, Binary, BinaryLogic, BlockStatement, Call, DeReference, Expression,
+    ExpressionVisitor, ForStatement, FunctionStatement, Group, IfStatement, Literal,
+    ReturnStatement, Statement, StatementVisitor, Unary, VariableAssignment, VariableDeclaration,
+    WhileStatement,
 };
 
 struct AstPrinter;
@@ -31,6 +32,9 @@ impl AstPrinter {
             Expression::Unary(val) => self.visit_unary(val),
             Expression::Call(call) => self.visit_call(call),
             Expression::ArrayAccess(access) => self.visit_array_access(access),
+            Expression::Null => self.visit_null_expression(),
+            Expression::AddressOf(address_of) => self.visit_address_of_expression(address_of),
+            Expression::DeReference(deref) => self.visit_dereference_expression(deref),
         }
     }
 
@@ -139,6 +143,18 @@ impl ExpressionVisitor<()> for AstPrinter {
         print!("{}[", call_expr.identifier);
         self.visit_expr(call_expr.index.as_ref());
         print!("] ");
+    }
+
+    fn visit_null_expression(&mut self) -> () {
+        print!("Null")
+    }
+
+    fn visit_address_of_expression(&mut self, address_of: &AddressOf) -> () {
+        print!("Address of {}", &address_of.identifier);
+    }
+
+    fn visit_dereference_expression(&mut self, dereference: &DeReference) -> () {
+        print!("Dereference of {}", &dereference.identifier)
     }
 }
 

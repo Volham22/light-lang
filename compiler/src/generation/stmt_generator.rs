@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::{borrow::Borrow, ops::Deref};
 
 use inkwell::{
     module::Linkage,
@@ -37,6 +37,8 @@ impl<'a> IRGenerator<'a> {
                 .array_type(array_type.size as u32),
             ValueType::Function => todo!(),
             ValueType::Void => unreachable!(),
+            ValueType::Pointer(_) => todo!(),
+            ValueType::Null => unreachable!(),
         }
     }
 
@@ -64,8 +66,10 @@ impl<'a> IRGenerator<'a> {
                 .ptr_type(AddressSpace::Generic)
                 .ptr_type(AddressSpace::Generic)
                 .into(),
+            ValueType::Pointer(_) => todo!(),
             ValueType::Function => todo!(),
             ValueType::Void => unreachable!("array type can't be void!"),
+            ValueType::Null => unreachable!("Array type of null!"),
         }
     }
 
@@ -234,7 +238,23 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
         let val_ptr = match &var_ass.identifier {
             Expression::Literal(Literal::Identifier(id)) => self.variables.get(id).unwrap().clone(),
             Expression::ArrayAccess(access) => {
-                self.variables.get(&access.identifier).unwrap().clone()
+                let ptr_val = self.variables.get(&access.identifier).unwrap().clone();
+
+                // Array is an pointer
+                if ptr_val.get_type().get_element_type().is_pointer_type() {
+                    let array_ptr = self.builder.build_load(ptr_val, "load_array_ptr");
+                    let index_value = self.visit_expr(&access.index);
+
+                    unsafe {
+                        self.builder.build_gep(
+                            array_ptr.into_pointer_value(),
+                            &[index_value.into_int_value()],
+                            "array_ptr_gep",
+                        )
+                    }
+                } else {
+                    ptr_val
+                }
             }
             _ => panic!("non lvalue type in generator!"),
         };
@@ -271,6 +291,10 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                             ValueType::Function => todo!(),
                             ValueType::Void => todo!(),
                             ValueType::Array(arr) => self.get_concrete_array_type(arr).into(),
+                            ValueType::Pointer(ptr) => {
+                                self.get_ptr_type(&self.get_llvm_type(ptr)).into()
+                            }
+                            ValueType::Null => unreachable!("Parameter of type null!"),
                         }
                     })
                     .collect::<Vec<BasicMetadataTypeEnum>>(),
@@ -279,7 +303,7 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
             None
         };
 
-        let fn_type = match expr.return_type {
+        let fn_type = match &expr.return_type {
             ValueType::Number => self.context.i64_type().fn_type(
                 if args_type.is_some() {
                     args_type.as_ref().unwrap().as_slice()
@@ -315,6 +339,17 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
             ValueType::Function => todo!(),
             ValueType::String => todo!(),
             ValueType::Array(_) => todo!(),
+            ValueType::Pointer(ptr) => self
+                .get_ptr_type(&self.get_llvm_type(ptr.borrow()))
+                .fn_type(
+                    if args_type.is_some() {
+                        args_type.as_ref().unwrap().as_slice()
+                    } else {
+                        &[]
+                    },
+                    false,
+                ),
+            ValueType::Null => unreachable!("null return type!"),
         };
 
         let fn_val = self.module.add_function(

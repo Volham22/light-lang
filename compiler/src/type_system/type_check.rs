@@ -1,8 +1,9 @@
 use crate::{
     parser::visitors::{
-        ArrayAccess, Binary, BinaryLogic, BlockStatement, Call, Expression, ExpressionVisitor,
-        ForStatement, FunctionStatement, Group, IfStatement, Literal, ReturnStatement, Statement,
-        StatementVisitor, Unary, VariableAssignment, VariableDeclaration, WhileStatement,
+        AddressOf, ArrayAccess, Binary, BinaryLogic, BlockStatement, Call, DeReference, Expression,
+        ExpressionVisitor, ForStatement, FunctionStatement, Group, IfStatement, Literal,
+        ReturnStatement, Statement, StatementVisitor, Unary, VariableAssignment,
+        VariableDeclaration, WhileStatement,
     },
     type_system::value_type::ValueType,
 };
@@ -78,6 +79,9 @@ impl TypeChecker {
             Expression::Unary(e) => self.visit_unary(&e),
             Expression::Call(e) => self.visit_call(&e),
             Expression::ArrayAccess(a) => self.visit_array_access(&a),
+            Expression::Null => self.visit_null_expression(),
+            Expression::AddressOf(address_of) => self.visit_address_of_expression(address_of),
+            Expression::DeReference(deref) => self.visit_dereference_expression(deref),
         }
     }
 
@@ -90,6 +94,9 @@ impl TypeChecker {
             Expression::Unary(e) => self.visit_unary(&e),
             Expression::Call(e) => self.visit_call(&e),
             Expression::ArrayAccess(a) => self.visit_array_access(&a),
+            Expression::Null => self.visit_null_expression(),
+            Expression::AddressOf(address_of) => self.visit_address_of_expression(address_of),
+            Expression::DeReference(deref) => self.visit_dereference_expression(deref),
         }
     }
 
@@ -153,20 +160,28 @@ impl TypeChecker {
         if let Some(array_dec) = self.find_variable(&access.identifier) {
             let rhs_ty = self.check_expr(rhs)?;
 
-            if let ValueType::Array(arr) = &array_dec {
-                if ValueType::is_compatible(arr.array_type.deref(), &rhs_ty) {
-                    Ok(rhs_ty)
-                } else {
-                    Err(format!(
-                        "Can't assign expression of type '{}' to array element of type '{}'",
-                        rhs_ty, array_dec
-                    ))
+            match &array_dec {
+                ValueType::Array(arr) => {
+                    if ValueType::is_compatible(arr.array_type.deref(), &rhs_ty) {
+                        Ok(rhs_ty)
+                    } else {
+                        Err(format!(
+                            "Can't assign expression of type '{}' to array element of type '{}'",
+                            rhs_ty, array_dec
+                        ))
+                    }
                 }
-            } else {
-                Err(format!(
-                    "Can't assign expression of type '{}' to array element of type '{}'",
-                    rhs_ty, array_dec
-                ))
+                ValueType::Pointer(ptr_ty) => {
+                    if ValueType::is_compatible(ptr_ty, &rhs_ty) {
+                        Ok(rhs_ty)
+                    } else {
+                        Err(format!(
+                            "Can't assign expression of type '{}' to array element of type '{}'",
+                            rhs_ty, array_dec
+                        ))
+                    }
+                }
+                _ => Err(format!("Can't assign on a non-array type '{}'", &array_dec)),
             }
         } else {
             Err(format!("Array '{}' is not declared.", access.identifier))
@@ -231,6 +246,19 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
             }
             Expression::ArrayAccess(access) => {
                 self.check_array_element_assignment(&access, &expr.new_value)
+            }
+            Expression::DeReference(deref) => {
+                let deref_ty = self.visit_dereference_expression(deref)?;
+                let init_ty = self.check_expr(&expr.new_value)?;
+
+                if !ValueType::is_compatible(&deref_ty, &init_ty) {
+                    return Err(format!(
+                        "Cannot assign type '{}' with a dereferenced pointer of type '{}'",
+                        init_ty, deref_ty
+                    ));
+                }
+
+                Ok(deref_ty)
             }
             _ => Err(format!("Assignment left hand side is not an lvalue.")),
         }
@@ -536,10 +564,40 @@ impl ExpressionVisitor<TypeCheckerReturn> for TypeChecker {
     }
 
     fn visit_array_access(&mut self, call_expr: &ArrayAccess) -> TypeCheckerReturn {
-        if let Some(ValueType::Array(arr)) = self.find_variable(&call_expr.identifier) {
-            Ok(*arr.array_type)
+        if let Some(id) = self.find_variable(&call_expr.identifier) {
+            match id {
+                ValueType::Array(arr_ty) => Ok(*arr_ty.array_type),
+                ValueType::Pointer(ptr_ty) => Ok(*ptr_ty),
+                _ => Err(format!(
+                    "'{}' is not a subscriptable type.",
+                    &call_expr.identifier
+                )),
+            }
         } else {
             Err(format!("Undeclared array '{}'", call_expr.identifier))
+        }
+    }
+
+    fn visit_null_expression(&mut self) -> TypeCheckerReturn {
+        Ok(ValueType::Null)
+    }
+
+    fn visit_address_of_expression(&mut self, address_of: &AddressOf) -> TypeCheckerReturn {
+        if let Some(ty) = self.find_variable_type(&address_of.identifier) {
+            Ok(ValueType::Pointer(Box::new(ty.clone())))
+        } else {
+            Err(format!("Undeclared variable '{}'", &address_of.identifier))
+        }
+    }
+
+    fn visit_dereference_expression(&mut self, dereference: &DeReference) -> TypeCheckerReturn {
+        if let Some(ValueType::Pointer(ptr_ty)) = self.find_variable_type(&dereference.identifier) {
+            Ok(*ptr_ty.clone())
+        } else {
+            Err(format!(
+                "'{}' is either not a pointer or declared in this scope.",
+                &dereference.identifier
+            ))
         }
     }
 }

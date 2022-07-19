@@ -32,8 +32,12 @@ impl Parser {
         } else {
             match self.advance() {
                 Some(Token::Type(t)) => Ok(t.clone()),
+                Some(Token::Pointer) => {
+                    let inner_type = self.parse_type()?;
+                    Ok(ValueType::Pointer(Box::new(inner_type)))
+                }
                 _ => {
-                    println!("Unexpected typename.");
+                    println!("Expected type hints.");
                     Err(())
                 }
             }

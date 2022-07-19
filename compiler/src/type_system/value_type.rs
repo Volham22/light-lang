@@ -18,7 +18,9 @@ pub enum ValueType {
     Bool,
     String,
     Function,
+    Pointer(Box<ValueType>),
     Void,
+    Null,
 }
 
 impl PartialEq for ValueType {
@@ -34,6 +36,19 @@ impl PartialEq for ValueType {
                 ValueType::is_compatible(lhs.array_type.deref(), rhs.array_type.deref())
                     && lhs.size == rhs.size
             }
+            (ValueType::Pointer(lhs), ValueType::Pointer(rhs)) => {
+                if let ValueType::Void = **rhs {
+                    true
+                } else {
+                    if let ValueType::Void = **lhs {
+                        true
+                    } else {
+                        ValueType::is_compatible(lhs, rhs)
+                    }
+                }
+            }
+            (ValueType::Pointer(_), ValueType::Null) => true,
+            (ValueType::Null, ValueType::Pointer(_)) => true,
             _ => false,
         }
     }
@@ -48,12 +63,14 @@ impl Display for ValueType {
             ValueType::String => f.write_str("String"),
             ValueType::Function => f.write_str("Function"),
             ValueType::Void => f.write_str("Void"),
+            ValueType::Null => f.write_str("Null"),
             ValueType::Array(a) => {
                 f.write_str("Array of ").unwrap();
                 f.write_fmt(format_args!("{}", a.array_type.as_ref()))
                     .unwrap();
                 f.write_fmt(format_args!(" size: {}", a.size))
             }
+            ValueType::Pointer(ptr) => f.write_fmt(format_args!("Pointer of {}", ptr)),
         }
     }
 }

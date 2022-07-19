@@ -14,7 +14,7 @@ use inkwell::{
     context::Context,
     execution_engine::ExecutionEngine,
     module::Module,
-    types::{AnyTypeEnum, PointerType},
+    types::{AnyTypeEnum, BasicType, PointerType},
     values::{AnyValueEnum, FloatValue, FunctionValue, IntValue, PointerValue},
     AddressSpace,
 };
@@ -109,6 +109,9 @@ impl<'a> IRGenerator<'a> {
             Expression::Unary(unary) => self.visit_unary(&unary),
             Expression::Call(call) => self.visit_call(call),
             Expression::ArrayAccess(array) => self.visit_array_access(array),
+            Expression::Null => self.visit_null_expression(),
+            Expression::AddressOf(addr_of) => self.visit_address_of_expression(addr_of),
+            Expression::DeReference(deref) => self.visit_dereference_expression(deref),
         }
     }
 
@@ -121,6 +124,9 @@ impl<'a> IRGenerator<'a> {
             Expression::Unary(unary) => self.visit_unary(&unary),
             Expression::Call(call) => self.visit_call(call),
             Expression::ArrayAccess(array) => self.visit_array_access(array),
+            Expression::Null => self.visit_null_expression(),
+            Expression::AddressOf(addr_of) => self.visit_address_of_expression(addr_of),
+            Expression::DeReference(deref) => self.visit_dereference_expression(deref),
         }
     }
 
@@ -181,7 +187,12 @@ impl<'a> IRGenerator<'a> {
                     .build_alloca(self.context.i8_type().ptr_type(AddressSpace::Generic), name),
                 ValueType::Function => todo!(),
                 ValueType::Void => unreachable!(),
+                ValueType::Pointer(_) => todo!(),
+                ValueType::Null => todo!(),
             },
+            ValueType::Pointer(ptr_ty) => self
+                .builder
+                .build_alloca(self.get_ptr_type(&self.get_llvm_type(ptr_ty)), name),
             _ => todo!("type support"),
         }
     }
@@ -228,14 +239,15 @@ impl<'a> IRGenerator<'a> {
         );
     }
 
-    pub fn get_ptr_type(val: &AnyTypeEnum<'a>) -> PointerType<'a> {
+    pub fn get_ptr_type(&self, val: &AnyTypeEnum<'a>) -> PointerType<'a> {
         match val {
             AnyTypeEnum::ArrayType(t) => t.ptr_type(AddressSpace::Generic),
             AnyTypeEnum::IntType(t) => t.ptr_type(AddressSpace::Generic),
             AnyTypeEnum::FloatType(t) => t.ptr_type(AddressSpace::Generic),
             AnyTypeEnum::FunctionType(t) => t.ptr_type(AddressSpace::Generic),
             AnyTypeEnum::PointerType(t) => t.ptr_type(AddressSpace::Generic),
-            _ => panic!(),
+            AnyTypeEnum::VoidType(_) => self.context.i64_type().ptr_type(AddressSpace::Generic),
+            _ => panic!("{:?}", val),
         }
     }
 
@@ -245,6 +257,41 @@ impl<'a> IRGenerator<'a> {
             true
         } else {
             false
+        }
+    }
+
+    pub fn get_llvm_type(&self, value_type: &ValueType) -> AnyTypeEnum<'a> {
+        match value_type {
+            ValueType::Array(arr) => self.get_llvm_array_type(arr).into(),
+            ValueType::Number => self.context.i64_type().into(),
+            ValueType::Real => self.context.f64_type().into(),
+            ValueType::Bool => self.context.bool_type().into(),
+            ValueType::String => self
+                .context
+                .i8_type()
+                .ptr_type(AddressSpace::Generic)
+                .into(),
+            ValueType::Function => todo!("function pointer"),
+            ValueType::Pointer(ptr) => match self.get_llvm_type(ptr) {
+                AnyTypeEnum::ArrayType(arr) => arr.ptr_type(AddressSpace::Generic).into(),
+                AnyTypeEnum::FloatType(f) => f.ptr_type(AddressSpace::Generic).into(),
+                AnyTypeEnum::FunctionType(ft) => ft.ptr_type(AddressSpace::Generic).into(),
+                AnyTypeEnum::IntType(i) => i.ptr_type(AddressSpace::Generic).into(),
+                AnyTypeEnum::PointerType(pt) => pt.ptr_type(AddressSpace::Generic).into(),
+                AnyTypeEnum::StructType(st) => st.ptr_type(AddressSpace::Generic).into(),
+                AnyTypeEnum::VectorType(_) => unreachable!(),
+                AnyTypeEnum::VoidType(_) => self
+                    .context
+                    .i64_type()
+                    .ptr_type(AddressSpace::Generic)
+                    .into(),
+            },
+            ValueType::Void => self.context.void_type().into(),
+            ValueType::Null => self
+                .context
+                .i64_type()
+                .ptr_type(AddressSpace::Generic)
+                .into(),
         }
     }
 }

@@ -2,7 +2,10 @@ use crate::lexer::Token;
 
 use super::{
     parser::Parser,
-    visitors::{ArrayAccess, Binary, BinaryLogic, Call, Expression, Group, Literal, Unary},
+    visitors::{
+        AddressOf, ArrayAccess, Binary, BinaryLogic, Call, DeReference, Expression, Group, Literal,
+        Unary,
+    },
 };
 
 impl Parser {
@@ -195,6 +198,35 @@ impl Parser {
             Some(Token::Number(value)) => Ok(Expression::Literal(Literal::Number(*value))),
             Some(Token::Real(value)) => Ok(Expression::Literal(Literal::Real(*value))),
             Some(Token::Quote(s)) => Ok(Expression::Literal(Literal::StringLiteral(s.clone()))),
+            Some(Token::Null) => Ok(Expression::Null),
+            Some(Token::AddressOf) => {
+                let identifier = if let Some(Token::Identifier(id)) = self.consume(
+                    &Token::Identifier(String::new()),
+                    "Expected <identifier> after 'addrof' keyword",
+                ) {
+                    id
+                } else {
+                    return Err(());
+                };
+
+                Ok(Expression::AddressOf(AddressOf {
+                    identifier: identifier.to_string(),
+                }))
+            }
+            Some(Token::Dereference) => {
+                let identifier = if let Some(Token::Identifier(id)) = self.consume(
+                    &Token::Identifier(String::new()),
+                    "Expected <identifier> after 'deref' keyword",
+                ) {
+                    id
+                } else {
+                    return Err(());
+                };
+
+                Ok(Expression::DeReference(DeReference {
+                    identifier: identifier.to_string(),
+                }))
+            }
             Some(Token::Identifier(value)) => {
                 let name = value.clone(); // Copy the literal's name to avoid borrow checker errors
 

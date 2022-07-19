@@ -4,7 +4,8 @@ use inkwell::{FloatPredicate, IntPredicate};
 
 use crate::generation::ir_generator::IRGenerator;
 use crate::parser::visitors::{
-    ArrayAccess, Binary, BinaryLogic, Call, ExpressionVisitor, Group, Literal, Unary,
+    AddressOf, ArrayAccess, Binary, BinaryLogic, Call, DeReference, ExpressionVisitor, Group,
+    Literal, Unary,
 };
 
 impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
@@ -374,7 +375,7 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
                         .builder
                         .build_bitcast(
                             v,
-                            Self::get_ptr_type(&v.get_type().get_element_type().as_any_type_enum()),
+                            self.get_ptr_type(&v.get_type().get_element_type().as_any_type_enum()),
                             "arg_array_ptr_cast",
                         )
                         .into(),
@@ -432,5 +433,33 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
 
             self.builder.build_load(offset_ptr, "load_array_ptr").into()
         }
+    }
+
+    fn visit_null_expression(&mut self) -> AnyValueEnum<'a> {
+        self.context
+            .i64_type()
+            .ptr_type(inkwell::AddressSpace::Generic)
+            .const_null()
+            .as_any_value_enum()
+    }
+
+    fn visit_address_of_expression(&mut self, address_of: &AddressOf) -> AnyValueEnum<'a> {
+        self.variables
+            .get(&address_of.identifier)
+            .unwrap()
+            .as_any_value_enum()
+    }
+
+    fn visit_dereference_expression(&mut self, dereference: &DeReference) -> AnyValueEnum<'a> {
+        let ptr = self.variables.get(&dereference.identifier).unwrap();
+
+        let ptr_address = self
+            .builder
+            .build_load(*ptr, "load_ptr_address")
+            .into_pointer_value();
+
+        self.builder
+            .build_load(ptr_address, "deref_ptr_address")
+            .as_any_value_enum()
     }
 }
