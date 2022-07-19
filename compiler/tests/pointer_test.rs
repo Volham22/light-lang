@@ -117,3 +117,31 @@ fn void_pointer_init() {
     let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
     assert!(tc_result.is_ok(), "Type error: {}", tc_result.unwrap_err());
 }
+
+#[test]
+fn pointer_init_from_void() {
+    let source = "fn malloc(size: number): ptr void; let dyn_arr: ptr number = malloc(8 * 3);";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+    let mut type_check = TypeChecker::new();
+
+    let ast_opt = parser.parse();
+    assert!(ast_opt.is_some());
+    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    assert!(tc_result.is_ok(), "Type error: {}", tc_result.unwrap_err());
+}
+
+#[test]
+fn malloc_array_and_assign() {
+    let source = "fn malloc(size: number): ptr void; let dyn_arr: ptr number = malloc(8 * 3); dyn_arr[0] = 2;";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+    let mut type_check = TypeChecker::new();
+
+    let ast_opt = parser.parse();
+    assert!(ast_opt.is_some());
+    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    assert!(tc_result.is_ok(), "Type error: {}", tc_result.unwrap_err());
+}

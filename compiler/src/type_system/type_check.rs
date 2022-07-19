@@ -160,20 +160,28 @@ impl TypeChecker {
         if let Some(array_dec) = self.find_variable(&access.identifier) {
             let rhs_ty = self.check_expr(rhs)?;
 
-            if let ValueType::Array(arr) = &array_dec {
-                if ValueType::is_compatible(arr.array_type.deref(), &rhs_ty) {
-                    Ok(rhs_ty)
-                } else {
-                    Err(format!(
-                        "Can't assign expression of type '{}' to array element of type '{}'",
-                        rhs_ty, array_dec
-                    ))
+            match &array_dec {
+                ValueType::Array(arr) => {
+                    if ValueType::is_compatible(arr.array_type.deref(), &rhs_ty) {
+                        Ok(rhs_ty)
+                    } else {
+                        Err(format!(
+                            "Can't assign expression of type '{}' to array element of type '{}'",
+                            rhs_ty, array_dec
+                        ))
+                    }
                 }
-            } else {
-                Err(format!(
-                    "Can't assign expression of type '{}' to array element of type '{}'",
-                    rhs_ty, array_dec
-                ))
+                ValueType::Pointer(ptr_ty) => {
+                    if ValueType::is_compatible(ptr_ty, &rhs_ty) {
+                        Ok(rhs_ty)
+                    } else {
+                        Err(format!(
+                            "Can't assign expression of type '{}' to array element of type '{}'",
+                            rhs_ty, array_dec
+                        ))
+                    }
+                }
+                _ => Err(format!("Can't assign on a non-array type '{}'", &array_dec)),
             }
         } else {
             Err(format!("Array '{}' is not declared.", access.identifier))

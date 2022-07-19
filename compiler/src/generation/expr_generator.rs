@@ -375,7 +375,7 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
                         .builder
                         .build_bitcast(
                             v,
-                            Self::get_ptr_type(&v.get_type().get_element_type().as_any_type_enum()),
+                            self.get_ptr_type(&v.get_type().get_element_type().as_any_type_enum()),
                             "arg_array_ptr_cast",
                         )
                         .into(),
@@ -444,10 +444,22 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
     }
 
     fn visit_address_of_expression(&mut self, address_of: &AddressOf) -> AnyValueEnum<'a> {
-        todo!()
+        self.variables
+            .get(&address_of.identifier)
+            .unwrap()
+            .as_any_value_enum()
     }
 
     fn visit_dereference_expression(&mut self, dereference: &DeReference) -> AnyValueEnum<'a> {
-        todo!()
+        let ptr = self.variables.get(&dereference.identifier).unwrap();
+
+        let ptr_address = self
+            .builder
+            .build_load(*ptr, "load_ptr_address")
+            .into_pointer_value();
+
+        self.builder
+            .build_load(ptr_address, "deref_ptr_address")
+            .as_any_value_enum()
     }
 }

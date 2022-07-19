@@ -40,7 +40,11 @@ impl PartialEq for ValueType {
                 if let ValueType::Void = **rhs {
                     true
                 } else {
-                    ValueType::is_compatible(lhs, rhs)
+                    if let ValueType::Void = **lhs {
+                        true
+                    } else {
+                        ValueType::is_compatible(lhs, rhs)
+                    }
                 }
             }
             (ValueType::Pointer(_), ValueType::Null) => true,

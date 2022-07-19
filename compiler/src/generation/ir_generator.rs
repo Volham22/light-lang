@@ -192,7 +192,7 @@ impl<'a> IRGenerator<'a> {
             },
             ValueType::Pointer(ptr_ty) => self
                 .builder
-                .build_alloca(IRGenerator::get_ptr_type(&self.get_llvm_type(ptr_ty)), name),
+                .build_alloca(self.get_ptr_type(&self.get_llvm_type(ptr_ty)), name),
             _ => todo!("type support"),
         }
     }
@@ -239,14 +239,15 @@ impl<'a> IRGenerator<'a> {
         );
     }
 
-    pub fn get_ptr_type(val: &AnyTypeEnum<'a>) -> PointerType<'a> {
+    pub fn get_ptr_type(&self, val: &AnyTypeEnum<'a>) -> PointerType<'a> {
         match val {
             AnyTypeEnum::ArrayType(t) => t.ptr_type(AddressSpace::Generic),
             AnyTypeEnum::IntType(t) => t.ptr_type(AddressSpace::Generic),
             AnyTypeEnum::FloatType(t) => t.ptr_type(AddressSpace::Generic),
             AnyTypeEnum::FunctionType(t) => t.ptr_type(AddressSpace::Generic),
             AnyTypeEnum::PointerType(t) => t.ptr_type(AddressSpace::Generic),
-            _ => panic!(),
+            AnyTypeEnum::VoidType(_) => self.context.i64_type().ptr_type(AddressSpace::Generic),
+            _ => panic!("{:?}", val),
         }
     }
 
@@ -259,7 +260,7 @@ impl<'a> IRGenerator<'a> {
         }
     }
 
-    fn get_llvm_type(&self, value_type: &ValueType) -> AnyTypeEnum<'a> {
+    pub fn get_llvm_type(&self, value_type: &ValueType) -> AnyTypeEnum<'a> {
         match value_type {
             ValueType::Array(arr) => self.get_llvm_array_type(arr).into(),
             ValueType::Number => self.context.i64_type().into(),

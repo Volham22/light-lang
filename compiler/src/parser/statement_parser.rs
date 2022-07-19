@@ -1,4 +1,4 @@
-use crate::{lexer::Token, type_system::value_type::ValueType};
+use crate::lexer::Token;
 
 use super::{
     parser::Parser,
@@ -62,11 +62,7 @@ impl Parser {
                 return Err(());
             }
 
-            let return_type =
-                match self.consume(&Token::Type(ValueType::Void), "Expected <type> after ':'") {
-                    Some(Token::Type(t)) => t.clone(),
-                    _ => return Err(()),
-                };
+            let return_type = self.parse_type()?;
 
             if !self.match_expr(&[Token::LeftBrace]) {
                 if let None =
