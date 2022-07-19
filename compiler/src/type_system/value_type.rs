@@ -37,9 +37,12 @@ impl PartialEq for ValueType {
                     && lhs.size == rhs.size
             }
             (ValueType::Pointer(lhs), ValueType::Pointer(rhs)) => {
-                ValueType::is_compatible(lhs, rhs)
+                if let ValueType::Void = **rhs {
+                    true
+                } else {
+                    ValueType::is_compatible(lhs, rhs)
+                }
             }
-            // Only a pointer can be be 'null'
             (ValueType::Pointer(_), ValueType::Null) => true,
             (ValueType::Null, ValueType::Pointer(_)) => true,
             _ => false,
