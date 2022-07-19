@@ -43,3 +43,20 @@ fn pointer_dereference_assignment() {
     let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
     assert!(tc_result.is_ok(), "Type error: {}", tc_result.unwrap_err());
 }
+
+#[test]
+fn pointer_array_subscript() {
+    // This is valid in type checker and parser side
+    // Homewer this will segfault at runtime. This test is just to make
+    // sure pointers can be used as arrays
+    let source = "let ans_ptr: ptr number = null; ans_ptr[1];";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+    let mut type_check = TypeChecker::new();
+
+    let ast_opt = parser.parse();
+    assert!(ast_opt.is_some());
+    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    assert!(tc_result.is_ok(), "Type error: {}", tc_result.unwrap_err());
+}

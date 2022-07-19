@@ -556,8 +556,15 @@ impl ExpressionVisitor<TypeCheckerReturn> for TypeChecker {
     }
 
     fn visit_array_access(&mut self, call_expr: &ArrayAccess) -> TypeCheckerReturn {
-        if let Some(ValueType::Array(arr)) = self.find_variable(&call_expr.identifier) {
-            Ok(*arr.array_type)
+        if let Some(id) = self.find_variable(&call_expr.identifier) {
+            match id {
+                ValueType::Array(arr_ty) => Ok(*arr_ty.array_type),
+                ValueType::Pointer(ptr_ty) => Ok(*ptr_ty),
+                _ => Err(format!(
+                    "'{}' is not a subscriptable type.",
+                    &call_expr.identifier
+                )),
+            }
         } else {
             Err(format!("Undeclared array '{}'", call_expr.identifier))
         }
