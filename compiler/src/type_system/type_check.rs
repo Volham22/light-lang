@@ -78,6 +78,7 @@ impl TypeChecker {
             Expression::Unary(e) => self.visit_unary(&e),
             Expression::Call(e) => self.visit_call(&e),
             Expression::ArrayAccess(a) => self.visit_array_access(&a),
+            Expression::Null => self.visit_null_expression(),
         }
     }
 
@@ -90,6 +91,7 @@ impl TypeChecker {
             Expression::Unary(e) => self.visit_unary(&e),
             Expression::Call(e) => self.visit_call(&e),
             Expression::ArrayAccess(a) => self.visit_array_access(&a),
+            Expression::Null => self.visit_null_expression(),
         }
     }
 
@@ -541,5 +543,9 @@ impl ExpressionVisitor<TypeCheckerReturn> for TypeChecker {
         } else {
             Err(format!("Undeclared array '{}'", call_expr.identifier))
         }
+    }
+
+    fn visit_null_expression(&mut self) -> TypeCheckerReturn {
+        Ok(ValueType::Null)
     }
 }

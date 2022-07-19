@@ -195,6 +195,7 @@ impl Parser {
             Some(Token::Number(value)) => Ok(Expression::Literal(Literal::Number(*value))),
             Some(Token::Real(value)) => Ok(Expression::Literal(Literal::Real(*value))),
             Some(Token::Quote(s)) => Ok(Expression::Literal(Literal::StringLiteral(s.clone()))),
+            Some(Token::Null) => Ok(Expression::Null),
             Some(Token::Identifier(value)) => {
                 let name = value.clone(); // Copy the literal's name to avoid borrow checker errors
 

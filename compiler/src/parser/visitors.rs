@@ -78,6 +78,7 @@ pub enum Expression {
     Unary(Unary),
     Call(Call),
     ArrayAccess(ArrayAccess),
+    Null,
 }
 
 #[derive(Clone)]
@@ -182,4 +183,5 @@ pub trait ExpressionVisitor<T> {
     fn visit_unary(&mut self, unary: &Unary) -> T;
     fn visit_call(&mut self, call_expr: &Call) -> T;
     fn visit_array_access(&mut self, call_expr: &ArrayAccess) -> T;
+    fn visit_null_expression(&mut self) -> T;
 }

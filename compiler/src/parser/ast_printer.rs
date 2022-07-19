@@ -31,6 +31,7 @@ impl AstPrinter {
             Expression::Unary(val) => self.visit_unary(val),
             Expression::Call(call) => self.visit_call(call),
             Expression::ArrayAccess(access) => self.visit_array_access(access),
+            Expression::Null => self.visit_null_expression(),
         }
     }
 
@@ -139,6 +140,10 @@ impl ExpressionVisitor<()> for AstPrinter {
         print!("{}[", call_expr.identifier);
         self.visit_expr(call_expr.index.as_ref());
         print!("] ");
+    }
+
+    fn visit_null_expression(&mut self) -> () {
+        print!("Null")
     }
 }
 

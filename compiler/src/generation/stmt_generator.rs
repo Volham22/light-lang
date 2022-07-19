@@ -37,6 +37,8 @@ impl<'a> IRGenerator<'a> {
                 .array_type(array_type.size as u32),
             ValueType::Function => todo!(),
             ValueType::Void => unreachable!(),
+            ValueType::Pointer(_) => todo!(),
+            ValueType::Null => unreachable!(),
         }
     }
 
@@ -64,8 +66,10 @@ impl<'a> IRGenerator<'a> {
                 .ptr_type(AddressSpace::Generic)
                 .ptr_type(AddressSpace::Generic)
                 .into(),
+            ValueType::Pointer(_) => todo!(),
             ValueType::Function => todo!(),
             ValueType::Void => unreachable!("array type can't be void!"),
+            ValueType::Null => unreachable!("Array type of null!"),
         }
     }
 
@@ -271,6 +275,8 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                             ValueType::Function => todo!(),
                             ValueType::Void => todo!(),
                             ValueType::Array(arr) => self.get_concrete_array_type(arr).into(),
+                            ValueType::Pointer(_) => todo!(),
+                            ValueType::Null => unreachable!("Parameter of type null!"),
                         }
                     })
                     .collect::<Vec<BasicMetadataTypeEnum>>(),
@@ -315,6 +321,8 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
             ValueType::Function => todo!(),
             ValueType::String => todo!(),
             ValueType::Array(_) => todo!(),
+            ValueType::Pointer(_) => todo!(),
+            ValueType::Null => unreachable!("null return type!"),
         };
 
         let fn_val = self.module.add_function(

@@ -109,6 +109,7 @@ impl<'a> IRGenerator<'a> {
             Expression::Unary(unary) => self.visit_unary(&unary),
             Expression::Call(call) => self.visit_call(call),
             Expression::ArrayAccess(array) => self.visit_array_access(array),
+            Expression::Null => self.visit_null_expression(),
         }
     }
 
@@ -121,6 +122,7 @@ impl<'a> IRGenerator<'a> {
             Expression::Unary(unary) => self.visit_unary(&unary),
             Expression::Call(call) => self.visit_call(call),
             Expression::ArrayAccess(array) => self.visit_array_access(array),
+            Expression::Null => self.visit_null_expression(),
         }
     }
 
@@ -181,6 +183,8 @@ impl<'a> IRGenerator<'a> {
                     .build_alloca(self.context.i8_type().ptr_type(AddressSpace::Generic), name),
                 ValueType::Function => todo!(),
                 ValueType::Void => unreachable!(),
+                ValueType::Pointer(_) => todo!(),
+                ValueType::Null => todo!(),
             },
             _ => todo!("type support"),
         }

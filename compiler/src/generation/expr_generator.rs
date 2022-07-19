@@ -433,4 +433,12 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
             self.builder.build_load(offset_ptr, "load_array_ptr").into()
         }
     }
+
+    fn visit_null_expression(&mut self) -> AnyValueEnum<'a> {
+        self.context
+            .i64_type()
+            .ptr_type(inkwell::AddressSpace::Generic)
+            .const_null()
+            .as_any_value_enum()
+    }
 }
