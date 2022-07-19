@@ -30,6 +30,34 @@ fn simple_pointer_addrof() {
 }
 
 #[test]
+fn wrong_pointer_addrof() {
+    let source = "let answer: number = 42; let ans_ptr: ptr real = addrof answer;";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+    let mut type_check = TypeChecker::new();
+
+    let ast_opt = parser.parse();
+    assert!(ast_opt.is_some());
+    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    assert!(tc_result.is_err(), "Type check should fail.");
+}
+
+#[test]
+fn addrof_of_non_pointer_type() {
+    let source = "let answer: number = 42; let ans_ptr: number = addrof answer;";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+    let mut type_check = TypeChecker::new();
+
+    let ast_opt = parser.parse();
+    assert!(ast_opt.is_some());
+    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    assert!(tc_result.is_err(), "Type check should fail.");
+}
+
+#[test]
 fn pointer_dereference_assignment() {
     let source =
         "let answer: number = 42; let ans_ptr: ptr number = addrof answer; deref ans_ptr = 32;";
@@ -42,6 +70,21 @@ fn pointer_dereference_assignment() {
     assert!(ast_opt.is_some());
     let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
     assert!(tc_result.is_ok(), "Type error: {}", tc_result.unwrap_err());
+}
+
+#[test]
+fn wrong_type_pointer_dereference_assignment() {
+    let source =
+        "let answer: number = 42; let ans_ptr: ptr bool = addrof answer; deref ans_ptr = 32;";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+    let mut type_check = TypeChecker::new();
+
+    let ast_opt = parser.parse();
+    assert!(ast_opt.is_some());
+    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    assert!(tc_result.is_err(), "Type checking should fail.");
 }
 
 #[test]
