@@ -291,7 +291,9 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                             ValueType::Function => todo!(),
                             ValueType::Void => todo!(),
                             ValueType::Array(arr) => self.get_concrete_array_type(arr).into(),
-                            ValueType::Pointer(_) => todo!(),
+                            ValueType::Pointer(ptr) => {
+                                self.get_ptr_type(&self.get_llvm_type(ptr)).into()
+                            }
                             ValueType::Null => unreachable!("Parameter of type null!"),
                         }
                     })
