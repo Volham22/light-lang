@@ -210,3 +210,42 @@ fn main(): number {
    return 0;
 }
 ```
+
+### Heap allocated random array
+
+```js
+fn printf(msg: string, n: number): number;
+fn puts(msg: string): number;
+fn malloc(size: number): ptr void;
+fn free(freed_ptr: ptr void): void;
+fn rand(): number;
+fn srand(seed: number): void;
+fn time(_: ptr number): number;
+
+fn print_number(n: number): void {
+   printf("%d", n);
+   puts("");
+}
+
+fn fill_array_of_random(arr: ptr number, size: number): void {
+    srand(time(null));
+
+    for let i: number = 0; i < size; i = i + 1; {
+        arr[i] = rand() % 100;
+    }
+}
+
+// Heap allocate an array of 100000 numbers
+fn main(): void {
+   let array_size: number = 100000;
+   let dyn_arr: ptr number = malloc(8 * array_size);
+   fill_array_of_random(dyn_arr, array_size);
+
+   for let i: number = 0; i < array_size; i = i + 1; {
+       print_number(dyn_arr[i]);
+   }
+
+   printf("%d", array_size); puts(" Numbers printed");
+   free(dyn_arr);
+}
+```
