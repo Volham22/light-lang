@@ -88,6 +88,12 @@ pub struct DeReference {
 }
 
 #[derive(Clone)]
+pub struct MemberAccess {
+    pub object: String,
+    pub member: String,
+}
+
+#[derive(Clone)]
 pub enum Expression {
     Literal(Literal),
     Binary(Binary),
@@ -98,6 +104,7 @@ pub enum Expression {
     ArrayAccess(ArrayAccess),
     AddressOf(AddressOf),
     DeReference(DeReference),
+    MemberAccess(MemberAccess),
     Null,
 }
 
@@ -219,4 +226,5 @@ pub trait ExpressionVisitor<T> {
     fn visit_address_of_expression(&mut self, address_of: &AddressOf) -> T;
     fn visit_dereference_expression(&mut self, dereference: &DeReference) -> T;
     fn visit_struct_literal(&mut self, struct_literal: &StructLiteral) -> T;
+    fn visit_member_access(&mut self, member_access: &MemberAccess) -> T;
 }

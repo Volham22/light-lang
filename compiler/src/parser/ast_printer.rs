@@ -1,6 +1,6 @@
 use super::visitors::{
     AddressOf, ArrayAccess, Binary, BinaryLogic, BlockStatement, Call, DeReference, Expression,
-    ExpressionVisitor, ForStatement, FunctionStatement, Group, IfStatement, Literal,
+    ExpressionVisitor, ForStatement, FunctionStatement, Group, IfStatement, Literal, MemberAccess,
     ReturnStatement, Statement, StatementVisitor, StructLiteral, StructStatement, Unary,
     VariableAssignment, VariableDeclaration, WhileStatement,
 };
@@ -36,6 +36,7 @@ impl AstPrinter {
             Expression::Null => self.visit_null_expression(),
             Expression::AddressOf(address_of) => self.visit_address_of_expression(address_of),
             Expression::DeReference(deref) => self.visit_dereference_expression(deref),
+            Expression::MemberAccess(member_access) => self.visit_member_access(member_access),
         }
     }
 
@@ -170,6 +171,13 @@ impl ExpressionVisitor<()> for AstPrinter {
             .for_each(|e| self.visit_expr(e));
 
         print!("]");
+    }
+
+    fn visit_member_access(&mut self, member_access: &MemberAccess) -> () {
+        print!(
+            " Access [{}.{}]",
+            member_access.object, member_access.member
+        );
     }
 }
 

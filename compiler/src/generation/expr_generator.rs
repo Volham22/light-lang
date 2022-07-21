@@ -5,7 +5,7 @@ use inkwell::{FloatPredicate, IntPredicate};
 use crate::generation::ir_generator::IRGenerator;
 use crate::parser::visitors::{
     AddressOf, ArrayAccess, Binary, BinaryLogic, Call, DeReference, ExpressionVisitor, Group,
-    Literal, StructLiteral, Unary,
+    Literal, MemberAccess, StructLiteral, Unary,
 };
 
 impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
@@ -465,6 +465,10 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
     }
 
     fn visit_struct_literal(&mut self, struct_literal: &StructLiteral) -> AnyValueEnum<'a> {
+        todo!()
+    }
+
+    fn visit_member_access(&mut self, member_access: &MemberAccess) -> AnyValueEnum<'a> {
         todo!()
     }
 }

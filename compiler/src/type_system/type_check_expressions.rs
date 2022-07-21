@@ -174,6 +174,37 @@ impl ExpressionVisitor<Result<ValueType, String>> for TypeChecker {
     }
 
     fn visit_member_access(&mut self, member_access: &MemberAccess) -> Result<ValueType, String> {
-        todo!()
+        let declaration_type = match self.find_variable(&member_access.object) {
+            Some(var) => {
+                if let ValueType::Struct(struct_name) = var {
+                    if let Some(ty) = self.structs_table.get(&struct_name) {
+                        ty
+                    } else {
+                        unreachable!("Struct declared with an undeclared type!??")
+                    }
+                } else {
+                    return Err(format!(
+                        "Variable '{}' is not a struct, the dot operator can't be applied on it.",
+                        &member_access.object
+                    ));
+                }
+            }
+            None => {
+                return Err(format!("Undeclared variable '{}'", member_access.object));
+            }
+        };
+
+        if let Some(field) = declaration_type
+            .fields
+            .iter()
+            .find(|f| f.0 == member_access.member)
+        {
+            Ok(field.1.clone())
+        } else {
+            Err(format!(
+                "Type '{}' (accessed from variable '{}') has no field '{}'",
+                declaration_type.type_name, member_access.object, member_access.member
+            ))
+        }
     }
 }

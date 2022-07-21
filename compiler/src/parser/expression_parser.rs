@@ -4,7 +4,7 @@ use super::{
     parser::Parser,
     visitors::{
         AddressOf, ArrayAccess, Binary, BinaryLogic, Call, DeReference, Expression, Group, Literal,
-        StructLiteral, Unary,
+        MemberAccess, StructLiteral, Unary,
     },
 };
 
@@ -230,19 +230,42 @@ impl Parser {
             Some(Token::Identifier(value)) => {
                 let name = value.clone(); // Copy the literal's name to avoid borrow checker errors
 
-                if self.match_expr(&[Token::LeftBracket]) {
-                    let index = self.or()?;
+                if self.match_expr(&[Token::LeftBracket, Token::Dot]) {
+                    let matched_token = self.previous().unwrap();
 
-                    if let None =
-                        self.consume(&Token::RightBracket, "Unclosed ']' in array access.")
-                    {
-                        return Err(());
+                    match matched_token {
+                        Token::LeftBracket => {
+                            let index = self.or()?;
+
+                            if let None =
+                                self.consume(&Token::RightBracket, "Unclosed ']' in array access.")
+                            {
+                                return Err(());
+                            }
+
+                            Ok(Expression::ArrayAccess(ArrayAccess {
+                                identifier: name,
+                                index: Box::new(index.clone()),
+                            }))
+                        }
+                        Token::Dot => {
+                            let member = self.or()?;
+
+                            Ok(Expression::MemberAccess(MemberAccess {
+                                object: name,
+                                // TODO: In the future we may need to do things like obj.1
+                                member: if let Expression::Literal(Literal::Identifier(name)) =
+                                    member
+                                {
+                                    name.to_string()
+                                } else {
+                                    println!("Error: Expected identifier after '.'.");
+                                    return Err(());
+                                },
+                            }))
+                        }
+                        _ => unreachable!(),
                     }
-
-                    Ok(Expression::ArrayAccess(ArrayAccess {
-                        identifier: name,
-                        index: Box::new(index),
-                    }))
                 } else {
                     Ok(Expression::Literal(Literal::Identifier(name)))
                 }
