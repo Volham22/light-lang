@@ -2,8 +2,8 @@ use crate::{
     parser::visitors::{
         AddressOf, ArrayAccess, Binary, BinaryLogic, BlockStatement, Call, DeReference, Expression,
         ExpressionVisitor, ForStatement, FunctionStatement, Group, IfStatement, Literal,
-        ReturnStatement, Statement, StatementVisitor, StructStatement, Unary, VariableAssignment,
-        VariableDeclaration, WhileStatement,
+        ReturnStatement, Statement, StatementVisitor, StructLiteral, StructStatement, Unary,
+        VariableAssignment, VariableDeclaration, WhileStatement,
     },
     type_system::value_type::ValueType,
 };
@@ -211,6 +211,35 @@ impl TypeChecker {
         }
 
         Ok(expr_type)
+    }
+
+    fn check_valid_struct_literal(&mut self, struct_literal: &StructLiteral) -> TypeCheckerReturn {
+        let struct_dec = if let Some(dec) = self.structs_table.get(&struct_literal.type_name) {
+            dec.clone()
+        } else {
+            return Err(format!("Undeclared struct '{}'", struct_literal.type_name));
+        };
+
+        if struct_dec.fields.len() != struct_literal.expressions.len() {
+            return Err(format!("Incorrect number of expressions to init struct '{}', got {} expressions but {} are required.", struct_literal.type_name,
+                               struct_literal.expressions.len(), struct_dec.fields.len()));
+        }
+
+        for (i, expr) in struct_literal.expressions.iter().enumerate() {
+            let expr_type = self.check_expr(expr)?;
+
+            if !ValueType::is_compatible_for_init(&struct_dec.fields[i].1, &expr_type) {
+                return Err(format!(
+                    "In struct '{}' literal, can't init type {} with type {} at position {}",
+                    struct_literal.type_name,
+                    struct_dec.fields[i].1,
+                    expr_type,
+                    i + 1
+                ));
+            }
+        }
+
+        Ok(ValueType::Struct(struct_dec.type_name))
     }
 }
 
@@ -458,7 +487,7 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
     }
 }
 
-impl ExpressionVisitor<TypeCheckerReturn> for TypeChecker {
+impl ExpressionVisitor<Result<ValueType, String>> for TypeChecker {
     fn visit_literal(&mut self, literal: &Literal) -> TypeCheckerReturn {
         match literal {
             Literal::Number(_) => Ok(ValueType::Number),
@@ -475,6 +504,7 @@ impl ExpressionVisitor<TypeCheckerReturn> for TypeChecker {
                     ))
                 }
             }
+            Literal::StructLiteral(s) => self.check_valid_struct_literal(s),
         }
     }
 
@@ -613,5 +643,12 @@ impl ExpressionVisitor<TypeCheckerReturn> for TypeChecker {
                 &dereference.identifier
             ))
         }
+    }
+
+    fn visit_struct_literal(
+        &mut self,
+        struct_literal: &StructLiteral,
+    ) -> Result<ValueType, String> {
+        todo!()
     }
 }

@@ -10,6 +10,7 @@ pub enum Literal {
     Real(f64),
     Bool(bool),
     StringLiteral(String),
+    StructLiteral(StructLiteral),
     Identifier(String),
 }
 
@@ -21,8 +22,15 @@ impl Display for Literal {
             Literal::Bool(b) => f.write_fmt(format_args!("{}", b)),
             Literal::Identifier(s) => f.write_fmt(format_args!("{}", s)),
             Literal::StringLiteral(s) => f.write_fmt(format_args!("{}", s)),
+            Literal::StructLiteral(_) => f.write_str("Struct init expr {...}"),
         }
     }
+}
+
+#[derive(Clone)]
+pub struct StructLiteral {
+    pub type_name: String,
+    pub expressions: Vec<Expression>,
 }
 
 #[derive(Clone)]
@@ -210,4 +218,5 @@ pub trait ExpressionVisitor<T> {
     fn visit_null_expression(&mut self) -> T;
     fn visit_address_of_expression(&mut self, address_of: &AddressOf) -> T;
     fn visit_dereference_expression(&mut self, dereference: &DeReference) -> T;
+    fn visit_struct_literal(&mut self, struct_literal: &StructLiteral) -> T;
 }

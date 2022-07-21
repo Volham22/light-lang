@@ -1,8 +1,8 @@
 use super::visitors::{
     AddressOf, ArrayAccess, Binary, BinaryLogic, BlockStatement, Call, DeReference, Expression,
     ExpressionVisitor, ForStatement, FunctionStatement, Group, IfStatement, Literal,
-    ReturnStatement, Statement, StatementVisitor, StructStatement, Unary, VariableAssignment,
-    VariableDeclaration, WhileStatement,
+    ReturnStatement, Statement, StatementVisitor, StructLiteral, StructStatement, Unary,
+    VariableAssignment, VariableDeclaration, WhileStatement,
 };
 
 struct AstPrinter;
@@ -59,6 +59,9 @@ impl ExpressionVisitor<()> for AstPrinter {
             Literal::Bool(val) => print!("Literal: Bool {}", val),
             Literal::StringLiteral(val) => print!("Literal: String {}", val),
             Literal::Identifier(name) => print!("Literal: Identifier {}", name),
+            Literal::StructLiteral(s) => {
+                print!("Struct Literal")
+            }
         }
     }
 
@@ -156,6 +159,17 @@ impl ExpressionVisitor<()> for AstPrinter {
 
     fn visit_dereference_expression(&mut self, dereference: &DeReference) -> () {
         print!("Dereference of {}", &dereference.identifier)
+    }
+
+    fn visit_struct_literal(&mut self, struct_literal: &StructLiteral) -> () {
+        print!("Struct Literal [");
+
+        struct_literal
+            .expressions
+            .iter()
+            .for_each(|e| self.visit_expr(e));
+
+        print!("]");
     }
 }
 

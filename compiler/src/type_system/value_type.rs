@@ -50,6 +50,7 @@ impl PartialEq for ValueType {
             }
             (ValueType::Pointer(_), ValueType::Null) => true,
             (ValueType::Null, ValueType::Pointer(_)) => true,
+            (ValueType::Struct(lhs), ValueType::Struct(rhs)) => lhs == rhs,
             _ => false,
         }
     }

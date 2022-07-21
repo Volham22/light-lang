@@ -4,7 +4,7 @@ use super::{
     parser::Parser,
     visitors::{
         AddressOf, ArrayAccess, Binary, BinaryLogic, Call, DeReference, Expression, Group, Literal,
-        Unary,
+        StructLiteral, Unary,
     },
 };
 
@@ -257,6 +257,48 @@ impl Parser {
                 Ok(Expression::Group(Group {
                     inner_expression: Box::new(inner_expr),
                 }))
+            }
+            Some(Token::Struct) => {
+                let type_name = if let Some(Token::Identifier(name)) = self.consume(
+                    &Token::Identifier(String::new()),
+                    "Expected type name after 'struct' keyword in expression",
+                ) {
+                    name.to_string()
+                } else {
+                    return Err(());
+                };
+
+                if let None =
+                    self.consume(&Token::LeftBrace, "Expected '{' in struct initialization")
+                {
+                    return Err(());
+                }
+
+                let mut expressions: Vec<Expression> = Vec::new();
+                loop {
+                    // A right brace mark the end of the expression list.
+                    if self.check(&Token::RightBrace) {
+                        break;
+                    }
+                    expressions.push(self.or()?);
+
+                    // Expect a comma
+
+                    if !self.match_expr(&[Token::Comma]) {
+                        break;
+                    }
+                }
+
+                if let None =
+                    self.consume(&&Token::RightBrace, "Unclosed '}' in struct initialization")
+                {
+                    return Err(());
+                }
+
+                Ok(Expression::Literal(Literal::StructLiteral(StructLiteral {
+                    type_name,
+                    expressions,
+                })))
             }
             _ => {
                 if let Some(t) = token {
