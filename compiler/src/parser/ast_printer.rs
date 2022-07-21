@@ -1,8 +1,8 @@
 use super::visitors::{
     AddressOf, ArrayAccess, Binary, BinaryLogic, BlockStatement, Call, DeReference, Expression,
     ExpressionVisitor, ForStatement, FunctionStatement, Group, IfStatement, Literal,
-    ReturnStatement, Statement, StatementVisitor, Unary, VariableAssignment, VariableDeclaration,
-    WhileStatement,
+    ReturnStatement, Statement, StatementVisitor, StructStatement, Unary, VariableAssignment,
+    VariableDeclaration, WhileStatement,
 };
 
 struct AstPrinter;
@@ -20,6 +20,7 @@ impl AstPrinter {
             Statement::WhileStatement(while_stmt) => self.visit_while_statement(while_stmt),
             Statement::ForStatement(for_stmt) => self.visit_for_statement(for_stmt),
             Statement::BreakStatement => self.visit_break_statement(),
+            Statement::Struct(struct_stmt) => self.visit_struct_statement(struct_stmt),
         }
     }
 
@@ -243,6 +244,14 @@ impl StatementVisitor<()> for AstPrinter {
 
     fn visit_break_statement(&mut self) {
         println!("Break");
+    }
+
+    fn visit_struct_statement(&mut self, stct: &StructStatement) -> () {
+        println!("Struct {} [", stct.type_name);
+
+        for (field_name, field_type) in &stct.fields {
+            println!("\t{}: {};", field_name, field_type);
+        }
     }
 }
 

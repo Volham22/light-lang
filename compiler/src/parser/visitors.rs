@@ -121,6 +121,15 @@ pub struct FunctionStatement {
     pub is_exported: bool,
 }
 
+pub type StructField = (String, ValueType);
+
+#[derive(Clone)]
+pub struct StructStatement {
+    pub type_name: String,
+    pub fields: Vec<StructField>,
+    pub exported: bool,
+}
+
 #[derive(Clone)]
 pub struct ReturnStatement {
     pub expr: Expression,
@@ -153,6 +162,7 @@ pub enum Statement {
     VariableDeclaration(VariableDeclaration),
     VariableAssignment(VariableAssignment),
     Function(FunctionStatement),
+    Struct(StructStatement),
     Block(BlockStatement),
     Return(ReturnStatement),
     IfStatement(IfStatement),
@@ -166,6 +176,7 @@ pub trait StatementVisitor<T> {
     fn visit_declaration_statement(&mut self, expr: &VariableDeclaration) -> T;
     fn visit_assignment_statement(&mut self, expr: &VariableAssignment) -> T;
     fn visit_function_statement(&mut self, expr: &FunctionStatement) -> T;
+    fn visit_struct_statement(&mut self, stct: &StructStatement) -> T;
     fn visit_block_statement(&mut self, expr: &BlockStatement) -> T;
     fn visit_return_statement(&mut self, return_stmt: &ReturnStatement) -> T;
     fn visit_if_statement(&mut self, if_stmt: &IfStatement) -> T;
@@ -179,6 +190,7 @@ pub trait MutableStatementVisitor<T> {
     fn visit_declaration_statement(&mut self, expr: &mut VariableDeclaration) -> T;
     fn visit_assignment_statement(&mut self, expr: &mut VariableAssignment) -> T;
     fn visit_function_statement(&mut self, expr: &mut FunctionStatement) -> T;
+    fn visit_struct_statement(&mut self, stct: &StructStatement) -> T;
     fn visit_block_statement(&mut self, expr: &mut BlockStatement) -> T;
     fn visit_return_statement(&mut self, return_stmt: &mut ReturnStatement) -> T;
     fn visit_if_statement(&mut self, if_stmt: &mut IfStatement) -> T;

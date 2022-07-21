@@ -19,6 +19,7 @@ pub enum ValueType {
     String,
     Function,
     Pointer(Box<ValueType>),
+    Struct(String),
     Void,
     Null,
 }
@@ -71,6 +72,7 @@ impl Display for ValueType {
                 f.write_fmt(format_args!(" size: {}", a.size))
             }
             ValueType::Pointer(ptr) => f.write_fmt(format_args!("Pointer of {}", ptr)),
+            ValueType::Struct(struct_stmt) => f.write_fmt(format_args!("Struct {}", struct_stmt)),
         }
     }
 }

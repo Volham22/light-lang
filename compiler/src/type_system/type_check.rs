@@ -2,7 +2,7 @@ use crate::{
     parser::visitors::{
         AddressOf, ArrayAccess, Binary, BinaryLogic, BlockStatement, Call, DeReference, Expression,
         ExpressionVisitor, ForStatement, FunctionStatement, Group, IfStatement, Literal,
-        ReturnStatement, Statement, StatementVisitor, Unary, VariableAssignment,
+        ReturnStatement, Statement, StatementVisitor, StructStatement, Unary, VariableAssignment,
         VariableDeclaration, WhileStatement,
     },
     type_system::value_type::ValueType,
@@ -16,6 +16,7 @@ pub struct FunctionSignature {
 }
 
 pub struct TypeChecker {
+    structs_table: HashMap<String, StructStatement>,
     variables_table: Vec<HashMap<String, ValueType>>,
     function_table: HashMap<String, FunctionSignature>,
     in_function: Option<ValueType>,
@@ -27,6 +28,7 @@ pub type TypeCheckerReturn = Result<ValueType, String>;
 impl TypeChecker {
     pub fn new() -> Self {
         let mut s = Self {
+            structs_table: HashMap::new(),
             variables_table: Vec::new(),
             function_table: HashMap::new(),
             in_function: None,
@@ -67,6 +69,7 @@ impl TypeChecker {
             Statement::WhileStatement(while_stmt) => self.visit_while_statement(while_stmt),
             Statement::ForStatement(for_stmt) => self.visit_for_statement(for_stmt),
             Statement::BreakStatement => self.visit_break_statement(),
+            Statement::Struct(struct_stmt) => self.visit_struct_statement(struct_stmt),
         }
     }
 
@@ -441,6 +444,17 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
         }
 
         Ok(ValueType::Void)
+    }
+
+    fn visit_struct_statement(&mut self, stct: &StructStatement) -> TypeCheckerReturn {
+        if self.structs_table.contains_key(&stct.type_name) {
+            return Err(format!("Redefinition of struct '{}'", &stct.type_name));
+        }
+
+        self.structs_table
+            .insert(stct.type_name.clone(), stct.clone());
+
+        Ok(ValueType::Struct(stct.type_name.clone()))
     }
 }
 

@@ -62,7 +62,10 @@ impl<'a> IRGenerator<'a> {
                 self.visit_while_statement(while_stmt);
             }
             Statement::ForStatement(_) => unreachable!(),
-            Statement::BreakStatement => todo!(),
+            Statement::BreakStatement => unreachable!(),
+            Statement::Struct(struct_stmt) => {
+                self.visit_struct_statement(struct_stmt);
+            }
         };
 
         match body {
@@ -189,6 +192,7 @@ impl<'a> IRGenerator<'a> {
                 ValueType::Void => unreachable!(),
                 ValueType::Pointer(_) => todo!(),
                 ValueType::Null => todo!(),
+                ValueType::Struct(_) => todo!(),
             },
             ValueType::Pointer(ptr_ty) => self
                 .builder
@@ -227,6 +231,7 @@ impl<'a> IRGenerator<'a> {
             }
             Statement::ForStatement(_) => unreachable!(),
             Statement::BreakStatement => self.visit_break_statement(),
+            Statement::Struct(struct_stmt) => self.visit_struct_statement(struct_stmt),
         }
     }
 
@@ -292,6 +297,7 @@ impl<'a> IRGenerator<'a> {
                 .i64_type()
                 .ptr_type(AddressSpace::Generic)
                 .into(),
+            ValueType::Struct(_) => todo!(),
         }
     }
 }

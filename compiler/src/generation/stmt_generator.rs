@@ -10,7 +10,8 @@ use inkwell::{
 use crate::{
     parser::visitors::{
         BlockStatement, Expression, ForStatement, FunctionStatement, IfStatement, Literal,
-        ReturnStatement, StatementVisitor, VariableAssignment, VariableDeclaration, WhileStatement,
+        ReturnStatement, StatementVisitor, StructStatement, VariableAssignment,
+        VariableDeclaration, WhileStatement,
     },
     type_system::value_type::{StaticArray, ValueType},
 };
@@ -39,6 +40,7 @@ impl<'a> IRGenerator<'a> {
             ValueType::Void => unreachable!(),
             ValueType::Pointer(_) => todo!(),
             ValueType::Null => unreachable!(),
+            ValueType::Struct(_) => todo!(),
         }
     }
 
@@ -70,6 +72,7 @@ impl<'a> IRGenerator<'a> {
             ValueType::Function => todo!(),
             ValueType::Void => unreachable!("array type can't be void!"),
             ValueType::Null => unreachable!("Array type of null!"),
+            ValueType::Struct(_) => todo!(),
         }
     }
 
@@ -295,6 +298,7 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                                 self.get_ptr_type(&self.get_llvm_type(ptr)).into()
                             }
                             ValueType::Null => unreachable!("Parameter of type null!"),
+                            ValueType::Struct(_) => todo!(),
                         }
                     })
                     .collect::<Vec<BasicMetadataTypeEnum>>(),
@@ -350,6 +354,7 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                     false,
                 ),
             ValueType::Null => unreachable!("null return type!"),
+            ValueType::Struct(_) => todo!(),
         };
 
         let fn_val = self.module.add_function(
@@ -419,6 +424,10 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
         fn_val.verify(true);
 
         Some(AnyValueEnum::FunctionValue(fn_val))
+    }
+
+    fn visit_struct_statement(&mut self, stct: &StructStatement) -> Option<AnyValueEnum<'a>> {
+        todo!()
     }
 
     fn visit_block_statement(&mut self, expr: &BlockStatement) -> Option<AnyValueEnum<'a>> {
