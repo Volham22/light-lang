@@ -7,6 +7,8 @@ use crate::{
 };
 use std::{collections::HashMap, ops::Deref};
 
+use super::types_table::TypeTable;
+
 pub struct FunctionSignature {
     pub name: String,
     pub return_type: ValueType,
@@ -14,11 +16,12 @@ pub struct FunctionSignature {
 }
 
 pub struct TypeChecker {
-    pub structs_table: HashMap<String, StructStatement>,
-    pub variables_table: Vec<HashMap<String, ValueType>>,
-    pub function_table: HashMap<String, FunctionSignature>,
-    pub in_function: Option<ValueType>,
-    pub loop_count: u32,
+    pub(crate) structs_table: HashMap<String, StructStatement>,
+    pub(crate) variables_table: Vec<HashMap<String, ValueType>>,
+    pub(crate) function_table: HashMap<String, FunctionSignature>,
+    pub(crate) in_function: Option<ValueType>,
+    pub(crate) loop_count: u32,
+    pub(crate) type_table: TypeTable,
 }
 
 pub type TypeCheckerReturn = Result<ValueType, String>;
@@ -31,10 +34,15 @@ impl TypeChecker {
             function_table: HashMap::new(),
             in_function: None,
             loop_count: 0,
+            type_table: TypeTable::new(),
         };
 
         s.variables_table.push(HashMap::new()); // default global scope
         s
+    }
+
+    pub fn get_type_table(&self) -> TypeTable {
+        self.type_table.clone()
     }
 
     pub fn check_ast_type(&mut self, stmts: &Vec<Statement>) -> TypeCheckerReturn {
@@ -151,6 +159,7 @@ impl TypeChecker {
         let last = self.variables_table.last_mut().unwrap();
 
         for (name, arg_type) in args {
+            self.type_table.add_variable(name, arg_type);
             last.insert(name.to_string(), arg_type.clone());
         }
     }

@@ -36,6 +36,10 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
             .last_mut()
             .unwrap()
             .insert(expr.identifier.clone(), expr.variable_type.clone());
+
+        self.type_table
+            .add_variable(&expr.identifier, &expr.variable_type);
+
         Ok(init_type)
     }
 
@@ -73,6 +77,10 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
             .first_mut()
             .unwrap()
             .insert(expr.callee.to_string(), expr.return_type.clone());
+
+        // TODO: Function pointer support
+        self.type_table
+            .add_variable(&expr.callee, &ValueType::Function);
 
         self.function_table.insert(
             expr.callee.to_string(),
@@ -250,6 +258,7 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
 
         self.structs_table
             .insert(stct.type_name.clone(), stct.clone());
+        self.type_table.add_struct_type(stct);
 
         Ok(ValueType::Struct(stct.type_name.clone()))
     }
