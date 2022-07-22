@@ -2,8 +2,8 @@ use core::panic;
 use std::{collections::HashMap, fmt::Debug};
 
 use crate::{
-    parser::visitors::{Expression, ExpressionVisitor, Statement, StructStatement},
-    type_system::value_type::ValueType,
+    parser::visitors::{Expression, ExpressionVisitor, Statement},
+    type_system::{types_table::TypeTable, value_type::ValueType},
 };
 
 use crate::parser::visitors::StatementVisitor;
@@ -20,14 +20,15 @@ use inkwell::{
 };
 
 pub struct IRGenerator<'a> {
-    pub context: &'a Context, // LLVM Context
-    pub builder: Builder<'a>,
     pub module: Module<'a>,
-    pub current_fn: Option<FunctionValue<'a>>,
-    pub variables: HashMap<String, PointerValue<'a>>,
-    pub struct_types: HashMap<String, StructType<'a>>,
-    pub loop_bb_stack: Vec<BasicBlock<'a>>,
-    pub has_branched: bool,
+    pub(super) type_table: TypeTable,
+    pub(super) context: &'a Context, // LLVM Context
+    pub(super) builder: Builder<'a>,
+    pub(super) current_fn: Option<FunctionValue<'a>>,
+    pub(super) variables: HashMap<String, PointerValue<'a>>,
+    pub(super) struct_types: HashMap<String, StructType<'a>>,
+    pub(super) loop_bb_stack: Vec<BasicBlock<'a>>,
+    pub(super) has_branched: bool,
 }
 
 impl<'a> IRGenerator<'a> {
@@ -357,9 +358,14 @@ unsafe fn execute_jit_function<'a, T: Debug>(engine: &ExecutionEngine<'a>) {
     }
 }
 
-pub fn create_generator<'gen>(context: &'gen Context, name: &str) -> IRGenerator<'gen> {
+pub fn create_generator<'gen>(
+    context: &'gen Context,
+    name: &str,
+    type_table: &TypeTable,
+) -> IRGenerator<'gen> {
     IRGenerator {
         context: &context,
+        type_table: type_table.clone(),
         builder: context.create_builder(),
         module: context.create_module(name),
         struct_types: HashMap::new(),

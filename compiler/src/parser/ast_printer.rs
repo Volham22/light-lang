@@ -60,8 +60,13 @@ impl ExpressionVisitor<()> for AstPrinter {
             Literal::Bool(val) => print!("Literal: Bool {}", val),
             Literal::StringLiteral(val) => print!("Literal: String {}", val),
             Literal::Identifier(name) => print!("Literal: Identifier {}", name),
-            Literal::StructLiteral(s) => {
-                print!("Struct Literal")
+            Literal::StructLiteral(struct_literal) => {
+                print!("Struct Literal [");
+                for expr in &struct_literal.expressions {
+                    self.visit_expr(&expr);
+                }
+
+                print!("]");
             }
         }
     }

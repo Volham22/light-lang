@@ -16,12 +16,12 @@ pub struct FunctionSignature {
 }
 
 pub struct TypeChecker {
-    pub(crate) structs_table: HashMap<String, StructStatement>,
-    pub(crate) variables_table: Vec<HashMap<String, ValueType>>,
-    pub(crate) function_table: HashMap<String, FunctionSignature>,
-    pub(crate) in_function: Option<ValueType>,
-    pub(crate) loop_count: u32,
-    pub(crate) type_table: TypeTable,
+    pub(super) structs_table: HashMap<String, StructStatement>,
+    pub(super) variables_table: Vec<HashMap<String, ValueType>>,
+    pub(super) function_table: HashMap<String, FunctionSignature>,
+    pub(super) in_function: Option<ValueType>,
+    pub(super) loop_count: u32,
+    pub(super) type_table: TypeTable,
 }
 
 pub type TypeCheckerReturn = Result<ValueType, String>;

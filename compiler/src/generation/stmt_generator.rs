@@ -234,21 +234,7 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                 self.builder.build_store(val_ptr, v);
             }
             AnyValueEnum::StructValue(v) => {
-                self.builder
-                    .build_memcpy(
-                        val_ptr,
-                        4,
-                        self.builder
-                            .build_bitcast(
-                                v,
-                                v.get_type().ptr_type(AddressSpace::Generic),
-                                "const_struct_bitcast",
-                            )
-                            .into_pointer_value(),
-                        4,
-                        init_expr.get_type().size_of().unwrap(),
-                    )
-                    .unwrap();
+                self.builder.build_store(val_ptr, v);
             }
             _ => panic!(),
         };

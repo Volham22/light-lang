@@ -97,6 +97,13 @@ impl ValueType {
             _ => rtype == ltype,
         }
     }
+
+    pub fn into_struct_type(&self) -> String {
+        match self {
+            ValueType::Struct(s) => s.to_string(),
+            _ => panic!("into struct type but variant is {}", self),
+        }
+    }
 }
 
 impl FromStr for ValueType {

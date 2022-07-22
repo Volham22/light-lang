@@ -20,11 +20,6 @@ pub fn repl_loop() {
     show_repl();
     let mut type_check = TypeChecker::new();
     let context = Context::create();
-    let mut generator = create_generator(&context, "main");
-    let engine = generator
-        .module
-        .create_jit_execution_engine(OptimizationLevel::None)
-        .unwrap();
 
     let stdin = io::stdin();
     for line in stdin.lock().lines() {
@@ -39,6 +34,12 @@ pub fn repl_loop() {
                 if let Err(msg) = type_check.check_ast_type(&stmts) {
                     println!("Error: {}", msg);
                 } else {
+                    let mut generator =
+                        create_generator(&context, "main", &type_check.get_type_table());
+                    let engine = generator
+                        .module
+                        .create_jit_execution_engine(OptimizationLevel::None)
+                        .unwrap();
                     desugar_ast(&mut stmts);
                     print_ast(&stmts);
                     generate_ir_code_jit(&mut generator, &engine, &stmts);

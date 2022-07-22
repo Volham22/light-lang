@@ -1,23 +1,5 @@
-use compiler::{
-    generation::ir_generator::{create_generator, generate_ir_code_jit},
-    lexer::Token,
-    parser::{parser::Parser, visitors::Statement},
-    type_system::type_check::TypeChecker,
-};
-use inkwell::{context::Context, OptimizationLevel};
+use compiler::{lexer::Token, parser::parser::Parser, type_system::type_check::TypeChecker};
 use logos::Logos;
-
-fn assert_ir_generation(ast: &Vec<Statement>) {
-    // LLVM setup
-    let context = Context::create();
-    let mut generator = create_generator(&context, "tmp.lht");
-    let engine = generator
-        .module
-        .create_jit_execution_engine(OptimizationLevel::None)
-        .unwrap();
-
-    generate_ir_code_jit(&mut generator, &engine, &ast);
-}
 
 #[test]
 fn declare_number() {
@@ -29,7 +11,6 @@ fn declare_number() {
     if let Some(ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
         assert!(type_check.check_ast_type(&ast).is_ok());
-        assert_ir_generation(&ast);
     } else {
         assert!(false, "Parser failed!");
     }
@@ -45,7 +26,6 @@ fn declare_real() {
     if let Some(ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
         assert!(type_check.check_ast_type(&ast).is_ok());
-        assert_ir_generation(&ast);
     } else {
         assert!(false, "Parser failed!");
     }
@@ -61,7 +41,6 @@ fn declare_bool() {
     if let Some(ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
         assert!(type_check.check_ast_type(&ast).is_ok());
-        assert_ir_generation(&ast);
     } else {
         assert!(false, "Parser failed!");
     }
@@ -112,7 +91,6 @@ fn assign_valid_number() {
     if let Some(ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
         assert!(type_check.check_ast_type(&ast).is_ok());
-        assert_ir_generation(&ast);
     } else {
         assert!(false, "Parser failed!");
     }
@@ -128,7 +106,6 @@ fn assign_valid_real() {
     if let Some(ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
         assert!(type_check.check_ast_type(&ast).is_ok());
-        assert_ir_generation(&ast);
     } else {
         assert!(false, "Parser failed!");
     }
@@ -144,7 +121,6 @@ fn assign_valid_bool() {
     if let Some(ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
         assert!(type_check.check_ast_type(&ast).is_ok());
-        assert_ir_generation(&ast);
     } else {
         assert!(false, "Parser failed!");
     }
