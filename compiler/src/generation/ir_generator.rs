@@ -2,7 +2,7 @@ use core::panic;
 use std::{collections::HashMap, fmt::Debug};
 
 use crate::{
-    parser::visitors::{Expression, ExpressionVisitor, Statement},
+    parser::visitors::{Expression, ExpressionVisitor, MemberAccess, Statement},
     type_system::{types_table::TypeTable, value_type::ValueType},
 };
 
@@ -341,6 +341,39 @@ impl<'a> IRGenerator<'a> {
             ValueType::Struct(_) => todo!(),
             _ => unreachable!("Building a struct of a forbidden type."),
         }
+    }
+
+    pub fn get_struct_member_pointer_value(
+        &self,
+        member_access: &MemberAccess,
+    ) -> PointerValue<'a> {
+        // Note: Unwraping is safe here since the type checker already
+        // checked that our AST is correct.
+        let struct_value = self.variables.get(&member_access.object).unwrap();
+        let struct_type = self
+            .type_table
+            .find_struct_type(
+                &self
+                    .type_table
+                    .find_variable_type(&member_access.object)
+                    .unwrap()
+                    .into_struct_type(),
+            )
+            .unwrap();
+
+        let member_index = struct_type
+            .fields
+            .iter()
+            .position(|f| f.0 == member_access.member)
+            .unwrap();
+
+        self.builder
+            .build_struct_gep(
+                *struct_value,
+                member_index as u32,
+                "struct_member_access_gep",
+            )
+            .unwrap()
     }
 }
 

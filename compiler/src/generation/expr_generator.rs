@@ -1,6 +1,6 @@
 use inkwell::types::{AnyType, BasicType};
 use inkwell::values::{AnyValue, AnyValueEnum, BasicValue, BasicValueEnum};
-use inkwell::{AddressSpace, FloatPredicate, IntPredicate};
+use inkwell::{FloatPredicate, IntPredicate};
 
 use crate::generation::ir_generator::IRGenerator;
 use crate::parser::visitors::{
@@ -480,43 +480,13 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
             })
             .collect();
 
-        println!("Const struct!");
         self.context
             .const_struct(struct_values.as_slice(), /* packed: */ false)
             .as_any_value_enum()
     }
 
     fn visit_member_access(&mut self, member_access: &MemberAccess) -> AnyValueEnum<'a> {
-        // Note: Unwraping is safe here since the type checker already
-        // checked that our AST is correct.
-
-        let struct_value = self.variables.get(&member_access.object).unwrap();
-        let struct_type = self
-            .type_table
-            .find_struct_type(
-                &self
-                    .type_table
-                    .find_variable_type(&member_access.object)
-                    .unwrap()
-                    .into_struct_type(),
-            )
-            .unwrap();
-
-        let member_index = struct_type
-            .fields
-            .iter()
-            .position(|f| f.0 == member_access.member)
-            .unwrap();
-
-        let offset_ptr = self
-            .builder
-            .build_struct_gep(
-                *struct_value,
-                member_index as u32,
-                "struct_member_access_gep",
-            )
-            .unwrap();
-
+        let offset_ptr = self.get_struct_member_pointer_value(member_access);
         self.builder
             .build_load(offset_ptr, "load_member_access")
             .as_any_value_enum()

@@ -268,6 +268,9 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                     ptr_val
                 }
             }
+            Expression::MemberAccess(member_access) => {
+                self.get_struct_member_pointer_value(member_access)
+            }
             _ => panic!("non lvalue type in generator!"),
         };
 

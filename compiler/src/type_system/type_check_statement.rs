@@ -64,6 +64,19 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
 
                 Ok(deref_ty)
             }
+            Expression::MemberAccess(member_access) => {
+                let member_ty = self.visit_member_access(member_access)?;
+                let init_ty = self.check_expr(&expr.new_value)?;
+
+                if !ValueType::is_compatible(&member_ty, &init_ty) {
+                    return Err(format!(
+                        "Cannot assign on member '{}' of type '{}' with type '{}'",
+                        member_access.member, member_ty, init_ty
+                    ));
+                }
+
+                Ok(member_ty)
+            }
             _ => Err(format!("Assignment left hand side is not an lvalue.")),
         }
     }
