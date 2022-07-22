@@ -6,7 +6,7 @@ endif
 
 syn keyword     lightConditional    if else
 syn keyword     lightStatement      import let
-syn keyword     lightKeyword        break continue export ptr fn struct
+syn keyword     lightKeyword        break continue export ptr fn struct return
 syn keyword     lightRepeat         for while loop
 syn keyword     lightType           number real bool void string
 syn keyword     lightOperator       addrof deref
