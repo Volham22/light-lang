@@ -140,3 +140,18 @@ fn struct_member_access_wrong_type() {
     let ast_opt = parser.parse();
     assert!(ast_opt.is_none());
 }
+
+#[test]
+fn struct_member_assign() {
+    let source =
+        "struct S { count: number; } fn main(): void { let s: S = struct S { 0 }; s.count = 3; }";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+    let mut type_check = TypeChecker::new();
+
+    let ast_opt = parser.parse();
+    assert!(ast_opt.is_some());
+    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    assert!(tc_result.is_ok(), "Type error: {}", tc_result.unwrap_err());
+}

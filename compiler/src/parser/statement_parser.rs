@@ -344,30 +344,10 @@ impl Parser {
                 return Err(());
             }
 
-            match expr {
-                Expression::Literal(Literal::Identifier(id)) => {
-                    return Ok(Statement::VariableAssignment(VariableAssignment {
-                        identifier: Expression::Literal(Literal::Identifier(id)),
-                        new_value: rhs,
-                    }));
-                }
-                Expression::DeReference(deref) => {
-                    return Ok(Statement::VariableAssignment(VariableAssignment {
-                        identifier: Expression::DeReference(deref),
-                        new_value: rhs,
-                    }));
-                }
-                Expression::ArrayAccess(a) => {
-                    return Ok(Statement::VariableAssignment(VariableAssignment {
-                        identifier: Expression::ArrayAccess(a),
-                        new_value: rhs,
-                    }))
-                }
-                _ => {
-                    println!("Error: left side of assignment must be an lvalue.");
-                    return Err(());
-                }
-            };
+            return Ok(Statement::VariableAssignment(VariableAssignment {
+                identifier: expr,
+                new_value: rhs,
+            }));
         }
 
         if let None = self.consume(&Token::Semicolon, "Expected ';' after <expression>") {
