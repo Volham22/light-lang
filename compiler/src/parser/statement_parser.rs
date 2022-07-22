@@ -4,8 +4,8 @@ use super::{
     parser::Parser,
     visitors::{
         Argument, BlockStatement, Expression, ForStatement, FunctionStatement, IfStatement,
-        Literal, ReturnStatement, Statement, VariableAssignment, VariableDeclaration,
-        WhileStatement,
+        Literal, ReturnStatement, Statement, StructField, StructStatement, VariableAssignment,
+        VariableDeclaration, WhileStatement,
     },
 };
 
@@ -91,17 +91,63 @@ impl Parser {
             }));
         }
 
-        if exported {
-            println!("Expected 'fn' keyword after 'export'.");
-            return Err(());
-        }
+        if self.match_expr(&[Token::Struct]) {
+            self.parse_struct_statement(exported)
+        } else {
+            if exported {
+                println!("Expected 'fn' keyword after 'export'.");
+                return Err(());
+            }
 
-        self.parse_if_statement()
+            self.parse_if_statement()
+        }
     }
 
     pub fn parse_function_statement(&mut self) -> Result<Statement, ()> {
         let exported = self.match_expr(&[Token::Export]);
         self.parse_function(exported)
+    }
+
+    fn parse_struct_statement(&mut self, exported: bool) -> Result<Statement, ()> {
+        let type_name = if let Some(Token::Identifier(id)) = self.consume(
+            &Token::Identifier(String::new()),
+            "Expected <type identifier> after 'struct'.",
+        ) {
+            id.clone()
+        } else {
+            return Err(());
+        };
+
+        if let None = self.consume(
+            &Token::LeftBrace,
+            "Expected '{' after struct type identifier.",
+        ) {
+            return Err(());
+        }
+
+        let mut fields: Vec<StructField> = Vec::new();
+        while let Some(Token::Identifier(name)) = self.advance() {
+            // Copy here because of other mutable borrows below ...
+            let field_name = name.clone();
+
+            if let None = self.consume(&Token::Colon, "Expected ':' after field identifier.") {
+                return Err(());
+            }
+
+            let field_type = self.parse_type()?;
+
+            if let None = self.consume(&Token::Semicolon, "Expected ';' after field type name.") {
+                return Err(());
+            }
+
+            fields.push((field_name, field_type));
+        }
+
+        Ok(Statement::Struct(StructStatement {
+            type_name,
+            fields,
+            exported,
+        }))
     }
 
     fn parse_block(&mut self) -> Result<BlockStatement, ()> {
@@ -298,30 +344,10 @@ impl Parser {
                 return Err(());
             }
 
-            match expr {
-                Expression::Literal(Literal::Identifier(id)) => {
-                    return Ok(Statement::VariableAssignment(VariableAssignment {
-                        identifier: Expression::Literal(Literal::Identifier(id)),
-                        new_value: rhs,
-                    }));
-                }
-                Expression::DeReference(deref) => {
-                    return Ok(Statement::VariableAssignment(VariableAssignment {
-                        identifier: Expression::DeReference(deref),
-                        new_value: rhs,
-                    }));
-                }
-                Expression::ArrayAccess(a) => {
-                    return Ok(Statement::VariableAssignment(VariableAssignment {
-                        identifier: Expression::ArrayAccess(a),
-                        new_value: rhs,
-                    }))
-                }
-                _ => {
-                    println!("Error: left side of assignment must be an lvalue.");
-                    return Err(());
-                }
-            };
+            return Ok(Statement::VariableAssignment(VariableAssignment {
+                identifier: expr,
+                new_value: rhs,
+            }));
         }
 
         if let None = self.consume(&Token::Semicolon, "Expected ';' after <expression>") {

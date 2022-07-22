@@ -1,8 +1,8 @@
 use super::visitors::{
     AddressOf, ArrayAccess, Binary, BinaryLogic, BlockStatement, Call, DeReference, Expression,
-    ExpressionVisitor, ForStatement, FunctionStatement, Group, IfStatement, Literal,
-    ReturnStatement, Statement, StatementVisitor, Unary, VariableAssignment, VariableDeclaration,
-    WhileStatement,
+    ExpressionVisitor, ForStatement, FunctionStatement, Group, IfStatement, Literal, MemberAccess,
+    ReturnStatement, Statement, StatementVisitor, StructLiteral, StructStatement, Unary,
+    VariableAssignment, VariableDeclaration, WhileStatement,
 };
 
 struct AstPrinter;
@@ -20,6 +20,7 @@ impl AstPrinter {
             Statement::WhileStatement(while_stmt) => self.visit_while_statement(while_stmt),
             Statement::ForStatement(for_stmt) => self.visit_for_statement(for_stmt),
             Statement::BreakStatement => self.visit_break_statement(),
+            Statement::Struct(struct_stmt) => self.visit_struct_statement(struct_stmt),
         }
     }
 
@@ -35,6 +36,7 @@ impl AstPrinter {
             Expression::Null => self.visit_null_expression(),
             Expression::AddressOf(address_of) => self.visit_address_of_expression(address_of),
             Expression::DeReference(deref) => self.visit_dereference_expression(deref),
+            Expression::MemberAccess(member_access) => self.visit_member_access(member_access),
         }
     }
 
@@ -58,6 +60,14 @@ impl ExpressionVisitor<()> for AstPrinter {
             Literal::Bool(val) => print!("Literal: Bool {}", val),
             Literal::StringLiteral(val) => print!("Literal: String {}", val),
             Literal::Identifier(name) => print!("Literal: Identifier {}", name),
+            Literal::StructLiteral(struct_literal) => {
+                print!("Struct Literal [");
+                for expr in &struct_literal.expressions {
+                    self.visit_expr(&expr);
+                }
+
+                print!("]");
+            }
         }
     }
 
@@ -156,6 +166,24 @@ impl ExpressionVisitor<()> for AstPrinter {
     fn visit_dereference_expression(&mut self, dereference: &DeReference) -> () {
         print!("Dereference of {}", &dereference.identifier)
     }
+
+    fn visit_struct_literal(&mut self, struct_literal: &StructLiteral) -> () {
+        print!("Struct Literal [");
+
+        struct_literal
+            .expressions
+            .iter()
+            .for_each(|e| self.visit_expr(e));
+
+        print!("]");
+    }
+
+    fn visit_member_access(&mut self, member_access: &MemberAccess) -> () {
+        print!(
+            " Access [{}.{}]",
+            member_access.object, member_access.member
+        );
+    }
 }
 
 impl StatementVisitor<()> for AstPrinter {
@@ -190,6 +218,10 @@ impl StatementVisitor<()> for AstPrinter {
         }
 
         print!(")\n");
+
+        if let Some(b) = &expr.block {
+            self.visit_block_statement(&b)
+        }
     }
 
     fn visit_block_statement(&mut self, expr: &BlockStatement) -> () {
@@ -243,6 +275,14 @@ impl StatementVisitor<()> for AstPrinter {
 
     fn visit_break_statement(&mut self) {
         println!("Break");
+    }
+
+    fn visit_struct_statement(&mut self, stct: &StructStatement) -> () {
+        println!("Struct {} [", stct.type_name);
+
+        for (field_name, field_type) in &stct.fields {
+            println!("\t{}: {};", field_name, field_type);
+        }
     }
 }
 

@@ -58,6 +58,8 @@ pub enum Token {
     Continue,
     #[token("fn")]
     Function,
+    #[token("struct")]
+    Struct,
     #[token("export")]
     Export,
     #[token("return")]
@@ -78,6 +80,8 @@ pub enum Token {
     Divide,
     #[token("%")]
     Modulo,
+    #[token(".")]
+    Dot,
     #[token("not")]
     Not,
     #[token("and")]
@@ -206,6 +210,8 @@ impl PartialEq for Token {
             (Token::Pointer, Token::Pointer) => true,
             (Token::AddressOf, Token::AddressOf) => true,
             (Token::Dereference, Token::Dereference) => true,
+            (Token::Struct, Token::Struct) => true,
+            (Token::Dot, Token::Dot) => true,
             (Token::Error, Token::Error) => true,
             _ => false,
         }
@@ -641,6 +647,30 @@ mod tests {
         assert_eq!(
             lexer.next().unwrap(),
             Token::Identifier(String::from("my_ptr"))
+        );
+    }
+
+    #[test]
+    fn struct_keyword_test() {
+        let mut lexer = Token::lexer("struct MyStruct");
+        assert_eq!(lexer.next().unwrap(), Token::Struct);
+        assert_eq!(
+            lexer.next().unwrap(),
+            Token::Identifier(String::from("MyStruct"))
+        );
+    }
+
+    #[test]
+    fn dot_keyword_test() {
+        let mut lexer = Token::lexer("obj.member");
+        assert_eq!(
+            lexer.next().unwrap(),
+            Token::Identifier(String::from("obj"))
+        );
+        assert_eq!(lexer.next().unwrap(), Token::Dot);
+        assert_eq!(
+            lexer.next().unwrap(),
+            Token::Identifier(String::from("member"))
         );
     }
 }

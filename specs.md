@@ -128,6 +128,30 @@ printf("%p", void_ptr); // some address ... 0x[...]
 
 **A void ptr cannot be dereferenced!**
 
+## Structures
+A structure `struct` is a group a data that is considered as a new type.
+The syntax is the following :
+
+```js
+struct User {
+    name: string;
+    address: string;
+    age: number;
+}
+```
+
+And then it can be declared like this :
+*Note: The `struct` keyword is needed only for initialization.
+It is there to remind the reader that the type IS a group of data even
+if it is treated as a normal type.*
+
+```js
+    let user: User = struct User { "Bob", "Heaven", 20 };
+    // And then we can access every fields read/write
+    user.age; // -> 20
+    user.name; // -> "Bob"
+    user.address; // -> "Heaven"
+```
 
 ## Code samples
 

@@ -36,6 +36,7 @@ impl Parser {
                     let inner_type = self.parse_type()?;
                     Ok(ValueType::Pointer(Box::new(inner_type)))
                 }
+                Some(Token::Identifier(name)) => Ok(ValueType::Struct(name.to_string())),
                 _ => {
                     println!("Expected type hints.");
                     Err(())

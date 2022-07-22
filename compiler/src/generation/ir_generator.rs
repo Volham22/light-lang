@@ -2,8 +2,8 @@ use core::panic;
 use std::{collections::HashMap, fmt::Debug};
 
 use crate::{
-    parser::visitors::{Expression, ExpressionVisitor, Statement},
-    type_system::value_type::ValueType,
+    parser::visitors::{Expression, ExpressionVisitor, MemberAccess, Statement},
+    type_system::{types_table::TypeTable, value_type::ValueType},
 };
 
 use crate::parser::visitors::StatementVisitor;
@@ -14,19 +14,21 @@ use inkwell::{
     context::Context,
     execution_engine::ExecutionEngine,
     module::Module,
-    types::{AnyTypeEnum, BasicType, PointerType},
+    types::{AnyTypeEnum, BasicType, BasicTypeEnum, PointerType, StructType},
     values::{AnyValueEnum, FloatValue, FunctionValue, IntValue, PointerValue},
     AddressSpace,
 };
 
 pub struct IRGenerator<'a> {
-    pub context: &'a Context, // LLVM Context
-    pub builder: Builder<'a>,
     pub module: Module<'a>,
-    pub current_fn: Option<FunctionValue<'a>>,
-    pub variables: HashMap<String, PointerValue<'a>>,
-    pub loop_bb_stack: Vec<BasicBlock<'a>>,
-    pub has_branched: bool,
+    pub(super) type_table: TypeTable,
+    pub(super) context: &'a Context, // LLVM Context
+    pub(super) builder: Builder<'a>,
+    pub(super) current_fn: Option<FunctionValue<'a>>,
+    pub(super) variables: HashMap<String, PointerValue<'a>>,
+    pub(super) struct_types: HashMap<String, StructType<'a>>,
+    pub(super) loop_bb_stack: Vec<BasicBlock<'a>>,
+    pub(super) has_branched: bool,
 }
 
 impl<'a> IRGenerator<'a> {
@@ -62,7 +64,10 @@ impl<'a> IRGenerator<'a> {
                 self.visit_while_statement(while_stmt);
             }
             Statement::ForStatement(_) => unreachable!(),
-            Statement::BreakStatement => todo!(),
+            Statement::BreakStatement => unreachable!(),
+            Statement::Struct(struct_stmt) => {
+                self.visit_struct_statement(struct_stmt);
+            }
         };
 
         match body {
@@ -86,6 +91,9 @@ impl<'a> IRGenerator<'a> {
             match stmt {
                 Statement::Function(f) => {
                     self.visit_function_statement(f);
+                }
+                Statement::Struct(s) => {
+                    self.visit_struct_statement(s);
                 }
                 _ => {
                     return Some(self.generate_ir_anonymous(stmt));
@@ -112,6 +120,7 @@ impl<'a> IRGenerator<'a> {
             Expression::Null => self.visit_null_expression(),
             Expression::AddressOf(addr_of) => self.visit_address_of_expression(addr_of),
             Expression::DeReference(deref) => self.visit_dereference_expression(deref),
+            Expression::MemberAccess(member_access) => self.visit_member_access(member_access),
         }
     }
 
@@ -127,6 +136,7 @@ impl<'a> IRGenerator<'a> {
             Expression::Null => self.visit_null_expression(),
             Expression::AddressOf(addr_of) => self.visit_address_of_expression(addr_of),
             Expression::DeReference(deref) => self.visit_dereference_expression(deref),
+            Expression::MemberAccess(member_access) => self.visit_member_access(member_access),
         }
     }
 
@@ -189,10 +199,15 @@ impl<'a> IRGenerator<'a> {
                 ValueType::Void => unreachable!(),
                 ValueType::Pointer(_) => todo!(),
                 ValueType::Null => todo!(),
+                ValueType::Struct(_) => todo!(),
             },
             ValueType::Pointer(ptr_ty) => self
                 .builder
                 .build_alloca(self.get_ptr_type(&self.get_llvm_type(ptr_ty)), name),
+            ValueType::Struct(s) => self.builder.build_alloca(
+                self.struct_types.get(s).unwrap().as_basic_type_enum(),
+                "struct_alloca",
+            ),
             _ => todo!("type support"),
         }
     }
@@ -227,6 +242,7 @@ impl<'a> IRGenerator<'a> {
             }
             Statement::ForStatement(_) => unreachable!(),
             Statement::BreakStatement => self.visit_break_statement(),
+            Statement::Struct(struct_stmt) => self.visit_struct_statement(struct_stmt),
         }
     }
 
@@ -292,7 +308,72 @@ impl<'a> IRGenerator<'a> {
                 .i64_type()
                 .ptr_type(AddressSpace::Generic)
                 .into(),
+            ValueType::Struct(_) => todo!(),
         }
+    }
+
+    pub fn get_llvm_basic_type(&self, value_type: &ValueType) -> BasicTypeEnum<'a> {
+        match value_type {
+            ValueType::Array(arr) => self.get_llvm_array_type(arr).into(),
+            ValueType::Number => self.context.i64_type().into(),
+            ValueType::Real => self.context.f64_type().into(),
+            ValueType::Bool => self.context.bool_type().into(),
+            ValueType::String => self
+                .context
+                .i8_type()
+                .ptr_type(AddressSpace::Generic)
+                .into(),
+            ValueType::Function => todo!("function pointer"),
+            ValueType::Pointer(ptr) => match self.get_llvm_type(ptr) {
+                AnyTypeEnum::ArrayType(arr) => arr.ptr_type(AddressSpace::Generic).into(),
+                AnyTypeEnum::FloatType(f) => f.ptr_type(AddressSpace::Generic).into(),
+                AnyTypeEnum::FunctionType(ft) => ft.ptr_type(AddressSpace::Generic).into(),
+                AnyTypeEnum::IntType(i) => i.ptr_type(AddressSpace::Generic).into(),
+                AnyTypeEnum::PointerType(pt) => pt.ptr_type(AddressSpace::Generic).into(),
+                AnyTypeEnum::StructType(st) => st.ptr_type(AddressSpace::Generic).into(),
+                AnyTypeEnum::VectorType(_) => unreachable!(),
+                AnyTypeEnum::VoidType(_) => self
+                    .context
+                    .i64_type()
+                    .ptr_type(AddressSpace::Generic)
+                    .into(),
+            },
+            ValueType::Struct(_) => todo!(),
+            _ => unreachable!("Building a struct of a forbidden type."),
+        }
+    }
+
+    pub fn get_struct_member_pointer_value(
+        &self,
+        member_access: &MemberAccess,
+    ) -> PointerValue<'a> {
+        // Note: Unwraping is safe here since the type checker already
+        // checked that our AST is correct.
+        let struct_value = self.variables.get(&member_access.object).unwrap();
+        let struct_type = self
+            .type_table
+            .find_struct_type(
+                &self
+                    .type_table
+                    .find_variable_type(&member_access.object)
+                    .unwrap()
+                    .into_struct_type(),
+            )
+            .unwrap();
+
+        let member_index = struct_type
+            .fields
+            .iter()
+            .position(|f| f.0 == member_access.member)
+            .unwrap();
+
+        self.builder
+            .build_struct_gep(
+                *struct_value,
+                member_index as u32,
+                "struct_member_access_gep",
+            )
+            .unwrap()
     }
 }
 
@@ -310,11 +391,17 @@ unsafe fn execute_jit_function<'a, T: Debug>(engine: &ExecutionEngine<'a>) {
     }
 }
 
-pub fn create_generator<'gen>(context: &'gen Context, name: &str) -> IRGenerator<'gen> {
+pub fn create_generator<'gen>(
+    context: &'gen Context,
+    name: &str,
+    type_table: &TypeTable,
+) -> IRGenerator<'gen> {
     IRGenerator {
         context: &context,
+        type_table: type_table.clone(),
         builder: context.create_builder(),
         module: context.create_module(name),
+        struct_types: HashMap::new(),
         current_fn: None,
         variables: HashMap::new(),
         loop_bb_stack: Vec::new(),

@@ -37,7 +37,6 @@ impl<'m> FileBuilder<'m> {
         let lexer = Token::lexer(content.as_str());
         let tokens = lexer.collect();
         let mut parser = Parser::new(tokens);
-        let mut generator = create_generator(self.context, path);
 
         if let Some(mut stmts) = parser.parse() {
             let mut type_checker = TypeChecker::new();
@@ -45,6 +44,8 @@ impl<'m> FileBuilder<'m> {
             let t_check = type_checker.check_ast_type(&stmts);
 
             if let Ok(_) = t_check {
+                let mut generator =
+                    create_generator(self.context, path, &type_checker.get_type_table());
                 generator.module = self
                     .context
                     .create_module(Path::new(path).file_name().unwrap().to_str().unwrap());

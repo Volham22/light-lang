@@ -1,7 +1,7 @@
 use crate::parser::visitors::{
     BlockStatement, Expression, ForStatement, FunctionStatement, IfStatement,
-    MutableStatementVisitor, ReturnStatement, Statement, VariableAssignment, VariableDeclaration,
-    WhileStatement,
+    MutableStatementVisitor, ReturnStatement, Statement, StructStatement, VariableAssignment,
+    VariableDeclaration, WhileStatement,
 };
 
 pub struct ForDesugar;
@@ -113,6 +113,10 @@ impl MutableStatementVisitor<()> for ForDesugar {
     }
 
     fn visit_break_statement(&mut self) {
+        unreachable!()
+    }
+
+    fn visit_struct_statement(&mut self, _stct: &StructStatement) -> () {
         unreachable!()
     }
 }

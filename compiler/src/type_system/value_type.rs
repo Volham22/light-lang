@@ -19,6 +19,7 @@ pub enum ValueType {
     String,
     Function,
     Pointer(Box<ValueType>),
+    Struct(String),
     Void,
     Null,
 }
@@ -49,6 +50,7 @@ impl PartialEq for ValueType {
             }
             (ValueType::Pointer(_), ValueType::Null) => true,
             (ValueType::Null, ValueType::Pointer(_)) => true,
+            (ValueType::Struct(lhs), ValueType::Struct(rhs)) => lhs == rhs,
             _ => false,
         }
     }
@@ -71,6 +73,7 @@ impl Display for ValueType {
                 f.write_fmt(format_args!(" size: {}", a.size))
             }
             ValueType::Pointer(ptr) => f.write_fmt(format_args!("Pointer of {}", ptr)),
+            ValueType::Struct(struct_stmt) => f.write_fmt(format_args!("Struct {}", struct_stmt)),
         }
     }
 }
@@ -92,6 +95,13 @@ impl ValueType {
             (ValueType::Array(lhs), rhs) => lhs.array_type.deref() == rhs,
             (lhs, ValueType::Array(rhs)) => lhs == rhs.array_type.deref(),
             _ => rtype == ltype,
+        }
+    }
+
+    pub fn into_struct_type(&self) -> String {
+        match self {
+            ValueType::Struct(s) => s.to_string(),
+            _ => panic!("into struct type but variant is {}", self),
         }
     }
 }

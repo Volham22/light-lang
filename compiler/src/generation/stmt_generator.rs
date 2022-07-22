@@ -10,7 +10,8 @@ use inkwell::{
 use crate::{
     parser::visitors::{
         BlockStatement, Expression, ForStatement, FunctionStatement, IfStatement, Literal,
-        ReturnStatement, StatementVisitor, VariableAssignment, VariableDeclaration, WhileStatement,
+        ReturnStatement, StatementVisitor, StructStatement, VariableAssignment,
+        VariableDeclaration, WhileStatement,
     },
     type_system::value_type::{StaticArray, ValueType},
 };
@@ -39,6 +40,7 @@ impl<'a> IRGenerator<'a> {
             ValueType::Void => unreachable!(),
             ValueType::Pointer(_) => todo!(),
             ValueType::Null => unreachable!(),
+            ValueType::Struct(_) => todo!(),
         }
     }
 
@@ -70,6 +72,7 @@ impl<'a> IRGenerator<'a> {
             ValueType::Function => todo!(),
             ValueType::Void => unreachable!("array type can't be void!"),
             ValueType::Null => unreachable!("Array type of null!"),
+            ValueType::Struct(_) => todo!(),
         }
     }
 
@@ -221,9 +224,18 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
             .insert(var_dec.identifier.to_string(), val_ptr);
 
         match init_expr {
-            AnyValueEnum::IntValue(v) => self.builder.build_store(val_ptr, v),
-            AnyValueEnum::FloatValue(v) => self.builder.build_store(val_ptr, v),
-            AnyValueEnum::PointerValue(v) => self.builder.build_store(val_ptr, v),
+            AnyValueEnum::IntValue(v) => {
+                self.builder.build_store(val_ptr, v);
+            }
+            AnyValueEnum::FloatValue(v) => {
+                self.builder.build_store(val_ptr, v);
+            }
+            AnyValueEnum::PointerValue(v) => {
+                self.builder.build_store(val_ptr, v);
+            }
+            AnyValueEnum::StructValue(v) => {
+                self.builder.build_store(val_ptr, v);
+            }
             _ => panic!(),
         };
 
@@ -255,6 +267,9 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                 } else {
                     ptr_val
                 }
+            }
+            Expression::MemberAccess(member_access) => {
+                self.get_struct_member_pointer_value(member_access)
             }
             _ => panic!("non lvalue type in generator!"),
         };
@@ -295,6 +310,7 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                                 self.get_ptr_type(&self.get_llvm_type(ptr)).into()
                             }
                             ValueType::Null => unreachable!("Parameter of type null!"),
+                            ValueType::Struct(_) => todo!(),
                         }
                     })
                     .collect::<Vec<BasicMetadataTypeEnum>>(),
@@ -350,6 +366,7 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                     false,
                 ),
             ValueType::Null => unreachable!("null return type!"),
+            ValueType::Struct(_) => todo!(),
         };
 
         let fn_val = self.module.add_function(
@@ -419,6 +436,23 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
         fn_val.verify(true);
 
         Some(AnyValueEnum::FunctionValue(fn_val))
+    }
+
+    fn visit_struct_statement(&mut self, stct: &StructStatement) -> Option<AnyValueEnum<'a>> {
+        let fields_type: Vec<BasicTypeEnum<'a>> = stct
+            .fields
+            .iter()
+            .map(|f| self.get_llvm_basic_type(&f.1))
+            .collect();
+
+        let llvm_struct_ty = self
+            .context
+            .struct_type(fields_type.as_slice(), /* packed: */ false);
+
+        self.struct_types
+            .insert(stct.type_name.to_string(), llvm_struct_ty);
+
+        None
     }
 
     fn visit_block_statement(&mut self, expr: &BlockStatement) -> Option<AnyValueEnum<'a>> {

@@ -10,6 +10,7 @@ pub enum Literal {
     Real(f64),
     Bool(bool),
     StringLiteral(String),
+    StructLiteral(StructLiteral),
     Identifier(String),
 }
 
@@ -21,8 +22,15 @@ impl Display for Literal {
             Literal::Bool(b) => f.write_fmt(format_args!("{}", b)),
             Literal::Identifier(s) => f.write_fmt(format_args!("{}", s)),
             Literal::StringLiteral(s) => f.write_fmt(format_args!("{}", s)),
+            Literal::StructLiteral(_) => f.write_str("Struct init expr {...}"),
         }
     }
+}
+
+#[derive(Clone)]
+pub struct StructLiteral {
+    pub type_name: String,
+    pub expressions: Vec<Expression>,
 }
 
 #[derive(Clone)]
@@ -80,6 +88,12 @@ pub struct DeReference {
 }
 
 #[derive(Clone)]
+pub struct MemberAccess {
+    pub object: String,
+    pub member: String,
+}
+
+#[derive(Clone)]
 pub enum Expression {
     Literal(Literal),
     Binary(Binary),
@@ -90,6 +104,7 @@ pub enum Expression {
     ArrayAccess(ArrayAccess),
     AddressOf(AddressOf),
     DeReference(DeReference),
+    MemberAccess(MemberAccess),
     Null,
 }
 
@@ -119,6 +134,15 @@ pub struct FunctionStatement {
     pub block: Option<BlockStatement>,
     pub return_type: ValueType,
     pub is_exported: bool,
+}
+
+pub type StructField = (String, ValueType);
+
+#[derive(Clone)]
+pub struct StructStatement {
+    pub type_name: String,
+    pub fields: Vec<StructField>,
+    pub exported: bool,
 }
 
 #[derive(Clone)]
@@ -153,6 +177,7 @@ pub enum Statement {
     VariableDeclaration(VariableDeclaration),
     VariableAssignment(VariableAssignment),
     Function(FunctionStatement),
+    Struct(StructStatement),
     Block(BlockStatement),
     Return(ReturnStatement),
     IfStatement(IfStatement),
@@ -166,6 +191,7 @@ pub trait StatementVisitor<T> {
     fn visit_declaration_statement(&mut self, expr: &VariableDeclaration) -> T;
     fn visit_assignment_statement(&mut self, expr: &VariableAssignment) -> T;
     fn visit_function_statement(&mut self, expr: &FunctionStatement) -> T;
+    fn visit_struct_statement(&mut self, stct: &StructStatement) -> T;
     fn visit_block_statement(&mut self, expr: &BlockStatement) -> T;
     fn visit_return_statement(&mut self, return_stmt: &ReturnStatement) -> T;
     fn visit_if_statement(&mut self, if_stmt: &IfStatement) -> T;
@@ -179,6 +205,7 @@ pub trait MutableStatementVisitor<T> {
     fn visit_declaration_statement(&mut self, expr: &mut VariableDeclaration) -> T;
     fn visit_assignment_statement(&mut self, expr: &mut VariableAssignment) -> T;
     fn visit_function_statement(&mut self, expr: &mut FunctionStatement) -> T;
+    fn visit_struct_statement(&mut self, stct: &StructStatement) -> T;
     fn visit_block_statement(&mut self, expr: &mut BlockStatement) -> T;
     fn visit_return_statement(&mut self, return_stmt: &mut ReturnStatement) -> T;
     fn visit_if_statement(&mut self, if_stmt: &mut IfStatement) -> T;
@@ -198,4 +225,6 @@ pub trait ExpressionVisitor<T> {
     fn visit_null_expression(&mut self) -> T;
     fn visit_address_of_expression(&mut self, address_of: &AddressOf) -> T;
     fn visit_dereference_expression(&mut self, dereference: &DeReference) -> T;
+    fn visit_struct_literal(&mut self, struct_literal: &StructLiteral) -> T;
+    fn visit_member_access(&mut self, member_access: &MemberAccess) -> T;
 }
