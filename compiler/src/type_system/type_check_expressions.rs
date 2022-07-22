@@ -25,7 +25,7 @@ impl ExpressionVisitor<Result<ValueType, String>> for TypeChecker {
                     ))
                 }
             }
-            Literal::StructLiteral(s) => self.check_valid_struct_literal(s),
+            Literal::StructLiteral(s) => self.visit_struct_literal(s),
         }
     }
 
@@ -170,7 +170,7 @@ impl ExpressionVisitor<Result<ValueType, String>> for TypeChecker {
         &mut self,
         struct_literal: &StructLiteral,
     ) -> Result<ValueType, String> {
-        todo!()
+        self.check_valid_struct_literal(struct_literal)
     }
 
     fn visit_member_access(&mut self, member_access: &MemberAccess) -> Result<ValueType, String> {

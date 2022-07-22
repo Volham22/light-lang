@@ -1,5 +1,5 @@
 use inkwell::types::{AnyType, BasicType};
-use inkwell::values::{AnyValue, AnyValueEnum};
+use inkwell::values::{AnyValue, AnyValueEnum, BasicValue, BasicValueEnum};
 use inkwell::{FloatPredicate, IntPredicate};
 
 use crate::generation::ir_generator::IRGenerator;
@@ -50,7 +50,26 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
                 .builder
                 .build_global_string_ptr(s.as_str(), "string_literal")
                 .as_any_value_enum(),
-            Literal::StructLiteral(_) => todo!(),
+            Literal::StructLiteral(s) => {
+                let struct_values: Vec<BasicValueEnum<'a>> = s
+                    .expressions
+                    .iter()
+                    .map(|expr| match self.visit_borrowed_expr(expr) {
+                        AnyValueEnum::ArrayValue(v) => v.as_basic_value_enum(),
+                        AnyValueEnum::IntValue(v) => v.as_basic_value_enum(),
+                        AnyValueEnum::FloatValue(v) => v.as_basic_value_enum(),
+                        AnyValueEnum::PhiValue(v) => v.as_basic_value(),
+                        AnyValueEnum::PointerValue(v) => v.as_basic_value_enum(),
+                        AnyValueEnum::StructValue(v) => v.as_basic_value_enum(),
+                        AnyValueEnum::VectorValue(v) => v.as_basic_value_enum(),
+                        _ => unreachable!("Garbage value in struct init!"),
+                    })
+                    .collect();
+
+                self.context
+                    .const_struct(struct_values.as_slice(), /* packed: */ false)
+                    .as_any_value_enum()
+            }
         }
     }
 
@@ -469,6 +488,13 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
     }
 
     fn visit_member_access(&mut self, member_access: &MemberAccess) -> AnyValueEnum<'a> {
+        // let struct_value = self.variables.get(&member_access.object).unwrap();
+        // let (struct_type, struct_statement) = self.struct_types.get(k)
+        // variable_value
+        //     .get_type()
+        //     .get_element_type()
+        //     .into_struct_type()
+        //     .field
         todo!()
     }
 }

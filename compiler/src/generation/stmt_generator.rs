@@ -224,9 +224,32 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
             .insert(var_dec.identifier.to_string(), val_ptr);
 
         match init_expr {
-            AnyValueEnum::IntValue(v) => self.builder.build_store(val_ptr, v),
-            AnyValueEnum::FloatValue(v) => self.builder.build_store(val_ptr, v),
-            AnyValueEnum::PointerValue(v) => self.builder.build_store(val_ptr, v),
+            AnyValueEnum::IntValue(v) => {
+                self.builder.build_store(val_ptr, v);
+            }
+            AnyValueEnum::FloatValue(v) => {
+                self.builder.build_store(val_ptr, v);
+            }
+            AnyValueEnum::PointerValue(v) => {
+                self.builder.build_store(val_ptr, v);
+            }
+            AnyValueEnum::StructValue(v) => {
+                self.builder
+                    .build_memcpy(
+                        val_ptr,
+                        4,
+                        self.builder
+                            .build_bitcast(
+                                v,
+                                v.get_type().ptr_type(AddressSpace::Generic),
+                                "const_struct_bitcast",
+                            )
+                            .into_pointer_value(),
+                        4,
+                        init_expr.get_type().size_of().unwrap(),
+                    )
+                    .unwrap();
+            }
             _ => panic!(),
         };
 
@@ -427,7 +450,20 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
     }
 
     fn visit_struct_statement(&mut self, stct: &StructStatement) -> Option<AnyValueEnum<'a>> {
-        todo!()
+        let fields_type: Vec<BasicTypeEnum<'a>> = stct
+            .fields
+            .iter()
+            .map(|f| self.get_llvm_basic_type(&f.1))
+            .collect();
+
+        let llvm_struct_ty = self
+            .context
+            .struct_type(fields_type.as_slice(), /* packed: */ false);
+
+        self.struct_types
+            .insert(stct.type_name.to_string(), llvm_struct_ty);
+
+        None
     }
 
     fn visit_block_statement(&mut self, expr: &BlockStatement) -> Option<AnyValueEnum<'a>> {

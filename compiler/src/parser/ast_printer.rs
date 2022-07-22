@@ -213,6 +213,10 @@ impl StatementVisitor<()> for AstPrinter {
         }
 
         print!(")\n");
+
+        if let Some(b) = &expr.block {
+            self.visit_block_statement(&b)
+        }
     }
 
     fn visit_block_statement(&mut self, expr: &BlockStatement) -> () {

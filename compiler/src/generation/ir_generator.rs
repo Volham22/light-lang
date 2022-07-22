@@ -2,7 +2,7 @@ use core::panic;
 use std::{collections::HashMap, fmt::Debug};
 
 use crate::{
-    parser::visitors::{Expression, ExpressionVisitor, Statement},
+    parser::visitors::{Expression, ExpressionVisitor, Statement, StructStatement},
     type_system::value_type::ValueType,
 };
 
@@ -14,7 +14,7 @@ use inkwell::{
     context::Context,
     execution_engine::ExecutionEngine,
     module::Module,
-    types::{AnyTypeEnum, BasicType, PointerType},
+    types::{AnyTypeEnum, BasicType, BasicTypeEnum, PointerType, StructType},
     values::{AnyValueEnum, FloatValue, FunctionValue, IntValue, PointerValue},
     AddressSpace,
 };
@@ -25,6 +25,7 @@ pub struct IRGenerator<'a> {
     pub module: Module<'a>,
     pub current_fn: Option<FunctionValue<'a>>,
     pub variables: HashMap<String, PointerValue<'a>>,
+    pub struct_types: HashMap<String, StructType<'a>>,
     pub loop_bb_stack: Vec<BasicBlock<'a>>,
     pub has_branched: bool,
 }
@@ -89,6 +90,9 @@ impl<'a> IRGenerator<'a> {
             match stmt {
                 Statement::Function(f) => {
                     self.visit_function_statement(f);
+                }
+                Statement::Struct(s) => {
+                    self.visit_struct_statement(s);
                 }
                 _ => {
                     return Some(self.generate_ir_anonymous(stmt));
@@ -199,6 +203,10 @@ impl<'a> IRGenerator<'a> {
             ValueType::Pointer(ptr_ty) => self
                 .builder
                 .build_alloca(self.get_ptr_type(&self.get_llvm_type(ptr_ty)), name),
+            ValueType::Struct(s) => self.builder.build_alloca(
+                self.struct_types.get(s).unwrap().as_basic_type_enum(),
+                "struct_alloca",
+            ),
             _ => todo!("type support"),
         }
     }
@@ -302,6 +310,37 @@ impl<'a> IRGenerator<'a> {
             ValueType::Struct(_) => todo!(),
         }
     }
+
+    pub fn get_llvm_basic_type(&self, value_type: &ValueType) -> BasicTypeEnum<'a> {
+        match value_type {
+            ValueType::Array(arr) => self.get_llvm_array_type(arr).into(),
+            ValueType::Number => self.context.i64_type().into(),
+            ValueType::Real => self.context.f64_type().into(),
+            ValueType::Bool => self.context.bool_type().into(),
+            ValueType::String => self
+                .context
+                .i8_type()
+                .ptr_type(AddressSpace::Generic)
+                .into(),
+            ValueType::Function => todo!("function pointer"),
+            ValueType::Pointer(ptr) => match self.get_llvm_type(ptr) {
+                AnyTypeEnum::ArrayType(arr) => arr.ptr_type(AddressSpace::Generic).into(),
+                AnyTypeEnum::FloatType(f) => f.ptr_type(AddressSpace::Generic).into(),
+                AnyTypeEnum::FunctionType(ft) => ft.ptr_type(AddressSpace::Generic).into(),
+                AnyTypeEnum::IntType(i) => i.ptr_type(AddressSpace::Generic).into(),
+                AnyTypeEnum::PointerType(pt) => pt.ptr_type(AddressSpace::Generic).into(),
+                AnyTypeEnum::StructType(st) => st.ptr_type(AddressSpace::Generic).into(),
+                AnyTypeEnum::VectorType(_) => unreachable!(),
+                AnyTypeEnum::VoidType(_) => self
+                    .context
+                    .i64_type()
+                    .ptr_type(AddressSpace::Generic)
+                    .into(),
+            },
+            ValueType::Struct(_) => todo!(),
+            _ => unreachable!("Building a struct of a forbidden type."),
+        }
+    }
 }
 
 unsafe fn execute_jit_function<'a, T: Debug>(engine: &ExecutionEngine<'a>) {
@@ -323,6 +362,7 @@ pub fn create_generator<'gen>(context: &'gen Context, name: &str) -> IRGenerator
         context: &context,
         builder: context.create_builder(),
         module: context.create_module(name),
+        struct_types: HashMap::new(),
         current_fn: None,
         variables: HashMap::new(),
         loop_bb_stack: Vec::new(),
