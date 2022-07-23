@@ -128,26 +128,31 @@ impl MutableExpressionVisitor<Result<ValueType, String>> for TypeChecker {
             }
         }
 
-        Ok(self
+        let call_type = self
             .function_table
             .get(&call_expr.name)
             .unwrap()
             .return_type
-            .clone())
+            .clone();
+
+        call_expr.set_type(call_type.clone());
+
+        Ok(call_type)
     }
 
-    fn visit_array_access(&mut self, call_expr: &mut ArrayAccess) -> TypeCheckerReturn {
-        if let Some(id) = self.find_variable(&call_expr.identifier) {
+    fn visit_array_access(&mut self, array_access: &mut ArrayAccess) -> TypeCheckerReturn {
+        if let Some(id) = self.find_variable(&array_access.identifier) {
+            array_access.set_type(id.clone());
             match id {
                 ValueType::Array(arr_ty) => Ok(*arr_ty.array_type),
                 ValueType::Pointer(ptr_ty) => Ok(*ptr_ty),
                 _ => Err(format!(
                     "'{}' is not a subscriptable type.",
-                    &call_expr.identifier
+                    &array_access.identifier
                 )),
             }
         } else {
-            Err(format!("Undeclared array '{}'", call_expr.identifier))
+            Err(format!("Undeclared array '{}'", array_access.identifier))
         }
     }
 
@@ -157,6 +162,7 @@ impl MutableExpressionVisitor<Result<ValueType, String>> for TypeChecker {
 
     fn visit_address_of_expression(&mut self, address_of: &mut AddressOf) -> TypeCheckerReturn {
         if let Some(ty) = self.find_variable_type(&address_of.identifier) {
+            address_of.set_type(ty.clone());
             Ok(ValueType::Pointer(Box::new(ty.clone())))
         } else {
             Err(format!("Undeclared variable '{}'", &address_of.identifier))
@@ -165,6 +171,7 @@ impl MutableExpressionVisitor<Result<ValueType, String>> for TypeChecker {
 
     fn visit_dereference_expression(&mut self, dereference: &mut DeReference) -> TypeCheckerReturn {
         if let Some(ValueType::Pointer(ptr_ty)) = self.find_variable_type(&dereference.identifier) {
+            dereference.set_type(*ptr_ty.clone());
             Ok(*ptr_ty.clone())
         } else {
             Err(format!(
@@ -178,7 +185,10 @@ impl MutableExpressionVisitor<Result<ValueType, String>> for TypeChecker {
         &mut self,
         struct_literal: &mut StructLiteral,
     ) -> Result<ValueType, String> {
-        self.check_valid_struct_literal(struct_literal)
+        let ty = self.check_valid_struct_literal(struct_literal)?;
+        struct_literal.set_type(ty.clone());
+
+        Ok(ty)
     }
 
     fn visit_member_access(

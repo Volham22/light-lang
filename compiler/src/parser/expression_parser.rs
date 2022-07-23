@@ -172,7 +172,7 @@ impl Parser {
                 return Err(());
             }
 
-            let name = match primary_expr {
+            let identifier = match primary_expr {
                 Expression::Literal(Literal::Identifier(n)) => n,
                 _ => {
                     println!("Error: Expected identifier before function call.");
@@ -181,7 +181,7 @@ impl Parser {
             };
 
             return Ok(Expression::Call(Call {
-                name: name.to_string(),
+                name: identifier.name,
                 ty: None,
                 args: if !args.is_empty() { Some(args) } else { None },
             }));
@@ -259,10 +259,9 @@ impl Parser {
                                 ty: None,
                                 object: name,
                                 // TODO: In the future we may need to do things like obj.1
-                                member: if let Expression::Literal(Literal::Identifier(name)) =
-                                    member
+                                member: if let Expression::Literal(Literal::Identifier(id)) = member
                                 {
-                                    name.to_string()
+                                    id.name
                                 } else {
                                     println!("Error: Expected identifier after '.'.");
                                     return Err(());
