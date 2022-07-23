@@ -187,6 +187,21 @@ impl Parser {
             }));
         }
 
+        if self.match_expr(&[Token::Dot]) {
+            let rhs = if let Expression::Literal(Literal::Identifier(id)) = self.or()? {
+                id.name
+            } else {
+                println!("Expected identifier after Dot member access.");
+                return Err(());
+            };
+
+            return Ok(Expression::MemberAccess(MemberAccess {
+                object: Box::new(primary_expr),
+                member: rhs.to_string(),
+                ty: None,
+            }));
+        }
+
         Ok(primary_expr)
     }
 
@@ -233,7 +248,7 @@ impl Parser {
             Some(Token::Identifier(value)) => {
                 let name = value.clone(); // Copy the literal's name to avoid borrow checker errors
 
-                if self.match_expr(&[Token::LeftBracket, Token::Dot]) {
+                if self.match_expr(&[Token::LeftBracket]) {
                     let matched_token = self.previous().unwrap();
 
                     match matched_token {
@@ -250,22 +265,6 @@ impl Parser {
                                 ty: None,
                                 identifier: name,
                                 index: Box::new(index.clone()),
-                            }))
-                        }
-                        Token::Dot => {
-                            let member = self.or()?;
-
-                            Ok(Expression::MemberAccess(MemberAccess {
-                                ty: None,
-                                object: name,
-                                // TODO: In the future we may need to do things like obj.1
-                                member: if let Expression::Literal(Literal::Identifier(id)) = member
-                                {
-                                    id.name
-                                } else {
-                                    println!("Error: Expected identifier after '.'.");
-                                    return Err(());
-                                },
                             }))
                         }
                         _ => unreachable!(),

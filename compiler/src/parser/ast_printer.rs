@@ -179,10 +179,9 @@ impl ExpressionVisitor<()> for AstPrinter {
     }
 
     fn visit_member_access(&mut self, member_access: &MemberAccess) -> () {
-        print!(
-            " Access [{}.{}]",
-            member_access.object, member_access.member
-        );
+        print!(" Access [");
+        self.visit_expr(&member_access.object);
+        print!(", {}] ", member_access.member);
     }
 }
 

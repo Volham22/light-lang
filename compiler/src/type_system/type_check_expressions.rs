@@ -195,23 +195,22 @@ impl MutableExpressionVisitor<Result<ValueType, String>> for TypeChecker {
         &mut self,
         member_access: &mut MemberAccess,
     ) -> Result<ValueType, String> {
-        let declaration_type = match self.find_variable(&member_access.object) {
-            Some(var) => {
-                if let ValueType::Struct(struct_name) = var {
-                    if let Some(ty) = self.structs_table.get(&struct_name) {
-                        ty
-                    } else {
-                        unreachable!("Struct declared with an undeclared type!??")
-                    }
-                } else {
-                    return Err(format!(
-                        "Variable '{}' is not a struct, the dot operator can't be applied on it.",
-                        &member_access.object
-                    ));
-                }
+        let declaration_type = match &self.visit_boxed_expr(&mut member_access.object)? {
+            ValueType::Struct(s) => {
+                member_access.set_type(ValueType::Struct(s.to_string()));
+                self.structs_table.get(s).unwrap()
             }
-            None => {
-                return Err(format!("Undeclared variable '{}'", member_access.object));
+            ValueType::Pointer(ty) => match ty.as_ref() {
+                ValueType::Struct(s) => {
+                    member_access.set_type(ValueType::Struct(s.to_string()));
+                    self.structs_table.get(s).unwrap()
+                }
+                _ => {
+                    return Err(format!("Member access on a non-struct type"));
+                }
+            },
+            _ => {
+                return Err(format!("Member access on a non-struct type"));
             }
         };
 
@@ -223,8 +222,8 @@ impl MutableExpressionVisitor<Result<ValueType, String>> for TypeChecker {
             Ok(field.1.clone())
         } else {
             Err(format!(
-                "Type '{}' (accessed from variable '{}') has no field '{}'",
-                declaration_type.type_name, member_access.object, member_access.member
+                "Type '{}' has no field '{}'",
+                declaration_type.type_name, member_access.member
             ))
         }
     }

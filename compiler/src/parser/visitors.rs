@@ -106,7 +106,7 @@ pub struct DeReference {
 
 #[derive(Clone)]
 pub struct MemberAccess {
-    pub object: String,
+    pub object: Box<Expression>,
     pub member: String,
     pub ty: Option<ValueType>,
 }
