@@ -310,7 +310,12 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                                 self.get_ptr_type(&self.get_llvm_type(ptr)).into()
                             }
                             ValueType::Null => unreachable!("Parameter of type null!"),
-                            ValueType::Struct(_) => todo!(),
+                            ValueType::Struct(strct) => self
+                                .struct_types
+                                .get(strct)
+                                .unwrap()
+                                .as_basic_type_enum()
+                                .into(),
                         }
                     })
                     .collect::<Vec<BasicMetadataTypeEnum>>(),
@@ -411,6 +416,13 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                         self.variables.insert(arg_name.to_string(), alloca);
                     }
                     BasicValueEnum::PointerValue(v) => {
+                        let (arg_name, arg_type) = expr.args.as_ref().unwrap().get(i).unwrap();
+                        v.set_name(&arg_name);
+                        let alloca = self.create_entry_block_alloca(arg_name, arg_type);
+                        self.builder.build_store(alloca, v);
+                        self.variables.insert(arg_name.to_string(), alloca);
+                    }
+                    BasicValueEnum::StructValue(v) => {
                         let (arg_name, arg_type) = expr.args.as_ref().unwrap().get(i).unwrap();
                         v.set_name(&arg_name);
                         let alloca = self.create_entry_block_alloca(arg_name, arg_type);

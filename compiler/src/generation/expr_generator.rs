@@ -380,6 +380,7 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
                             "arg_array_ptr_cast",
                         )
                         .into(),
+                    AnyValueEnum::StructValue(v) => v.into(),
                     _ => panic!(),
                 });
             }
