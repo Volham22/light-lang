@@ -11,7 +11,7 @@ fn simple_struct_declaration() {
 
     let ast_opt = parser.parse();
     assert!(ast_opt.is_some());
-    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
     assert!(tc_result.is_ok(), "Type error: {}", tc_result.unwrap_err());
 }
 
@@ -25,7 +25,7 @@ fn simple_struct_init() {
 
     let ast_opt = parser.parse();
     assert!(ast_opt.is_some());
-    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
     assert!(tc_result.is_ok(), "Type error: {}", tc_result.unwrap_err());
 }
 
@@ -39,7 +39,7 @@ fn struct_init_undeclared_type() {
 
     let ast_opt = parser.parse();
     assert!(ast_opt.is_some());
-    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
     assert!(tc_result.is_err(), "Type check should fail!");
 }
 
@@ -53,7 +53,7 @@ fn struct_init_bad_type() {
 
     let ast_opt = parser.parse();
     assert!(ast_opt.is_some());
-    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
     assert!(tc_result.is_err(), "Type check should fail!");
 }
 
@@ -67,7 +67,7 @@ fn struct_init_no_init_exps() {
 
     let ast_opt = parser.parse();
     assert!(ast_opt.is_some());
-    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
     assert!(tc_result.is_err(), "Type check should fail!");
 }
 
@@ -81,7 +81,7 @@ fn struct_init_bad_type_init_exp() {
 
     let ast_opt = parser.parse();
     assert!(ast_opt.is_some());
-    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
     assert!(tc_result.is_err(), "Type check should fail!");
 }
 
@@ -96,7 +96,7 @@ fn struct_init_too_much_exps() {
 
     let ast_opt = parser.parse();
     assert!(ast_opt.is_some());
-    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
     assert!(tc_result.is_err(), "Type check should fail!");
 }
 
@@ -111,7 +111,7 @@ fn valid_struct_member_access() {
 
     let ast_opt = parser.parse();
     assert!(ast_opt.is_some());
-    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
     assert!(tc_result.is_ok(), "Type error: {}", tc_result.unwrap_err());
 }
 
@@ -126,7 +126,7 @@ fn struct_member_access_wrong_field() {
 
     let ast_opt = parser.parse();
     assert!(ast_opt.is_some());
-    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
     assert!(tc_result.is_err(), "Type check should fail!");
 }
 
@@ -152,6 +152,6 @@ fn struct_member_assign() {
 
     let ast_opt = parser.parse();
     assert!(ast_opt.is_some());
-    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
     assert!(tc_result.is_ok(), "Type error: {}", tc_result.unwrap_err());
 }

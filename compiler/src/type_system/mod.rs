@@ -1,4 +1,5 @@
 pub mod type_check;
+pub mod typed;
 pub mod types_table;
 pub mod value_type;
 

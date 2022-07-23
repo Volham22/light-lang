@@ -27,7 +27,7 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
                 .const_int(if *val { 1 } else { 0 }, false)
                 .as_any_value_enum(),
             Literal::Identifier(name) => {
-                let val_ptr = self.variables.get(name).unwrap();
+                let val_ptr = self.variables.get(&name.name).unwrap();
 
                 if val_ptr.get_type().get_element_type().is_array_type() {
                     let ty = val_ptr
@@ -42,7 +42,7 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
                         .as_any_value_enum()
                 } else {
                     self.builder
-                        .build_load(*val_ptr, name.as_str())
+                        .build_load(*val_ptr, name.name.as_str())
                         .as_any_value_enum()
                 }
             }

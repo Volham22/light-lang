@@ -3,8 +3,8 @@ use crate::lexer::Token;
 use super::{
     parser::Parser,
     visitors::{
-        AddressOf, ArrayAccess, Binary, BinaryLogic, Call, DeReference, Expression, Group, Literal,
-        MemberAccess, StructLiteral, Unary,
+        AddressOf, ArrayAccess, Binary, BinaryLogic, Call, DeReference, Expression, Group,
+        Identifier, Literal, MemberAccess, StructLiteral, Unary,
     },
 };
 
@@ -181,7 +181,8 @@ impl Parser {
             };
 
             return Ok(Expression::Call(Call {
-                name,
+                name: name.to_string(),
+                ty: None,
                 args: if !args.is_empty() { Some(args) } else { None },
             }));
         }
@@ -211,6 +212,7 @@ impl Parser {
 
                 Ok(Expression::AddressOf(AddressOf {
                     identifier: identifier.to_string(),
+                    ty: None,
                 }))
             }
             Some(Token::Dereference) => {
@@ -225,6 +227,7 @@ impl Parser {
 
                 Ok(Expression::DeReference(DeReference {
                     identifier: identifier.to_string(),
+                    ty: None,
                 }))
             }
             Some(Token::Identifier(value)) => {
@@ -244,6 +247,7 @@ impl Parser {
                             }
 
                             Ok(Expression::ArrayAccess(ArrayAccess {
+                                ty: None,
                                 identifier: name,
                                 index: Box::new(index.clone()),
                             }))
@@ -252,6 +256,7 @@ impl Parser {
                             let member = self.or()?;
 
                             Ok(Expression::MemberAccess(MemberAccess {
+                                ty: None,
                                 object: name,
                                 // TODO: In the future we may need to do things like obj.1
                                 member: if let Expression::Literal(Literal::Identifier(name)) =
@@ -267,7 +272,10 @@ impl Parser {
                         _ => unreachable!(),
                     }
                 } else {
-                    Ok(Expression::Literal(Literal::Identifier(name)))
+                    Ok(Expression::Literal(Literal::Identifier(Identifier {
+                        name,
+                        ty: None,
+                    })))
                 }
             }
             Some(Token::LeftParenthesis) => {
@@ -319,6 +327,7 @@ impl Parser {
                 }
 
                 Ok(Expression::Literal(Literal::StructLiteral(StructLiteral {
+                    literal_type: None,
                     type_name,
                     expressions,
                 })))

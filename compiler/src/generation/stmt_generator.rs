@@ -198,8 +198,8 @@ impl<'a> IRGenerator<'a> {
 impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
     fn visit_expression_statement(&mut self, expr: &Expression) -> Option<AnyValueEnum<'a>> {
         if let Expression::Literal(Literal::Identifier(name)) = expr {
-            match self.variables.get(name) {
-                Some(val) => self.builder.build_load(*val, name.as_str()),
+            match self.variables.get(&name.name) {
+                Some(val) => self.builder.build_load(*val, name.name.as_str()),
                 None => panic!("{} doest not exists in IR generation abort.", name),
             };
         }
@@ -248,7 +248,9 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
     ) -> Option<AnyValueEnum<'a>> {
         let new_expr = self.visit_borrowed_expr(&var_ass.new_value);
         let val_ptr = match &var_ass.identifier {
-            Expression::Literal(Literal::Identifier(id)) => self.variables.get(id).unwrap().clone(),
+            Expression::Literal(Literal::Identifier(id)) => {
+                self.variables.get(&id.name).unwrap().clone()
+            }
             Expression::ArrayAccess(access) => {
                 let ptr_val = self.variables.get(&access.identifier).unwrap().clone();
 

@@ -1,7 +1,7 @@
 use crate::{
     parser::visitors::{
-        ArrayAccess, Expression, ExpressionVisitor, Statement, StatementVisitor, StructLiteral,
-        StructStatement,
+        ArrayAccess, Expression, MutableExpressionVisitor, MutableStatementVisitor, Statement,
+        StructLiteral, StructStatement,
     },
     type_system::value_type::ValueType,
 };
@@ -45,9 +45,9 @@ impl TypeChecker {
         self.type_table.clone()
     }
 
-    pub fn check_ast_type(&mut self, stmts: &Vec<Statement>) -> TypeCheckerReturn {
-        for stmt in stmts {
-            self.visit_statement(stmt)?;
+    pub fn check_ast_type(&mut self, stmts: &mut Vec<Statement>) -> TypeCheckerReturn {
+        for mut stmt in stmts {
+            self.visit_statement(&mut stmt)?;
         }
 
         Ok(ValueType::Number)
@@ -63,7 +63,7 @@ impl TypeChecker {
         None
     }
 
-    pub fn visit_statement(&mut self, stmt: &Statement) -> TypeCheckerReturn {
+    pub fn visit_statement(&mut self, stmt: &mut Statement) -> TypeCheckerReturn {
         match stmt {
             Statement::Expression(expr) => self.visit_expression_statement(expr),
             Statement::VariableDeclaration(var_dec) => self.visit_declaration_statement(var_dec),
@@ -79,15 +79,15 @@ impl TypeChecker {
         }
     }
 
-    pub fn check_expr(&mut self, expr: &Expression) -> TypeCheckerReturn {
+    pub fn check_expr(&mut self, expr: &mut Expression) -> TypeCheckerReturn {
         match expr {
-            Expression::Literal(e) => self.visit_literal(&e),
-            Expression::Binary(e) => self.visit_binary(&e),
-            Expression::Group(e) => self.visit_group(&e),
-            Expression::BinaryLogic(e) => self.visit_binary_logic(&e),
-            Expression::Unary(e) => self.visit_unary(&e),
-            Expression::Call(e) => self.visit_call(&e),
-            Expression::ArrayAccess(a) => self.visit_array_access(&a),
+            Expression::Literal(e) => self.visit_literal(e),
+            Expression::Binary(e) => self.visit_binary(e),
+            Expression::Group(e) => self.visit_group(e),
+            Expression::BinaryLogic(e) => self.visit_binary_logic(e),
+            Expression::Unary(e) => self.visit_unary(e),
+            Expression::Call(e) => self.visit_call(e),
+            Expression::ArrayAccess(a) => self.visit_array_access(a),
             Expression::Null => self.visit_null_expression(),
             Expression::AddressOf(address_of) => self.visit_address_of_expression(address_of),
             Expression::DeReference(deref) => self.visit_dereference_expression(deref),
@@ -95,15 +95,15 @@ impl TypeChecker {
         }
     }
 
-    pub fn visit_boxed_expr(&mut self, expr: &Box<Expression>) -> TypeCheckerReturn {
-        match &**expr {
-            Expression::Literal(e) => self.visit_literal(&e),
-            Expression::Binary(e) => self.visit_binary(&e),
-            Expression::Group(e) => self.visit_group(&e),
-            Expression::BinaryLogic(e) => self.visit_binary_logic(&e),
-            Expression::Unary(e) => self.visit_unary(&e),
-            Expression::Call(e) => self.visit_call(&e),
-            Expression::ArrayAccess(a) => self.visit_array_access(&a),
+    pub fn visit_boxed_expr(&mut self, expr: &mut Box<Expression>) -> TypeCheckerReturn {
+        match &mut **expr {
+            Expression::Literal(e) => self.visit_literal(e),
+            Expression::Binary(e) => self.visit_binary(e),
+            Expression::Group(e) => self.visit_group(e),
+            Expression::BinaryLogic(e) => self.visit_binary_logic(e),
+            Expression::Unary(e) => self.visit_unary(e),
+            Expression::Call(e) => self.visit_call(e),
+            Expression::ArrayAccess(a) => self.visit_array_access(a),
             Expression::Null => self.visit_null_expression(),
             Expression::AddressOf(address_of) => self.visit_address_of_expression(address_of),
             Expression::DeReference(deref) => self.visit_dereference_expression(deref),
@@ -113,16 +113,16 @@ impl TypeChecker {
 
     pub fn unpack_binary_type(
         &mut self,
-        lhs: &Box<Expression>,
-        rhs: &Box<Expression>,
+        lhs: &mut Box<Expression>,
+        rhs: &mut Box<Expression>,
     ) -> (TypeCheckerReturn, TypeCheckerReturn) {
         (self.visit_boxed_expr(lhs), self.visit_boxed_expr(rhs))
     }
 
     pub fn are_expressions_compatible(
         &mut self,
-        l: &Box<Expression>,
-        r: &Box<Expression>,
+        l: &mut Box<Expression>,
+        r: &mut Box<Expression>,
     ) -> TypeCheckerReturn {
         let (lhs_result, rhs_result) = self.unpack_binary_type(l, r);
 
@@ -167,7 +167,7 @@ impl TypeChecker {
     pub fn check_array_element_assignment(
         &mut self,
         access: &ArrayAccess,
-        rhs: &Expression,
+        rhs: &mut Expression,
     ) -> TypeCheckerReturn {
         if let Some(array_dec) = self.find_variable(&access.identifier) {
             let rhs_ty = self.check_expr(rhs)?;
@@ -203,7 +203,7 @@ impl TypeChecker {
     pub fn check_simple_assignment(
         &mut self,
         identifier: &String,
-        rhs: &Expression,
+        rhs: &mut Expression,
     ) -> TypeCheckerReturn {
         let expr_type = self.check_expr(rhs)?;
         let variable_type = if let Some(v) = self.find_variable_type(identifier) {
@@ -224,7 +224,7 @@ impl TypeChecker {
 
     pub fn check_valid_struct_literal(
         &mut self,
-        struct_literal: &StructLiteral,
+        struct_literal: &mut StructLiteral,
     ) -> TypeCheckerReturn {
         let struct_dec = if let Some(dec) = self.structs_table.get(&struct_literal.type_name) {
             dec.clone()
@@ -237,7 +237,7 @@ impl TypeChecker {
                                struct_literal.expressions.len(), struct_dec.fields.len()));
         }
 
-        for (i, expr) in struct_literal.expressions.iter().enumerate() {
+        for (i, expr) in struct_literal.expressions.iter_mut().enumerate() {
             let expr_type = self.check_expr(expr)?;
 
             if !ValueType::is_compatible_for_init(&struct_dec.fields[i].1, &expr_type) {

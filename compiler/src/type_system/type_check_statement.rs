@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use crate::parser::visitors::{
-    BlockStatement, Expression, ExpressionVisitor, ForStatement, FunctionStatement, IfStatement,
-    Literal, ReturnStatement, Statement, StatementVisitor, StructStatement, VariableAssignment,
-    VariableDeclaration, WhileStatement,
+    BlockStatement, Expression, ForStatement, FunctionStatement, IfStatement, Literal,
+    MutableExpressionVisitor, MutableStatementVisitor, ReturnStatement, Statement, StructStatement,
+    VariableAssignment, VariableDeclaration, WhileStatement,
 };
 
 use super::{
@@ -11,13 +11,13 @@ use super::{
     value_type::ValueType,
 };
 
-impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
-    fn visit_expression_statement(&mut self, expr: &Expression) -> TypeCheckerReturn {
+impl MutableStatementVisitor<TypeCheckerReturn> for TypeChecker {
+    fn visit_expression_statement(&mut self, expr: &mut Expression) -> TypeCheckerReturn {
         self.check_expr(expr)
     }
 
-    fn visit_declaration_statement(&mut self, expr: &VariableDeclaration) -> TypeCheckerReturn {
-        let init_type = self.check_expr(&expr.init_expr)?;
+    fn visit_declaration_statement(&mut self, expr: &mut VariableDeclaration) -> TypeCheckerReturn {
+        let init_type = self.check_expr(&mut expr.init_expr)?;
 
         if !ValueType::is_compatible_for_init(&expr.variable_type, &init_type) {
             let message = format!(
@@ -43,17 +43,17 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
         Ok(init_type)
     }
 
-    fn visit_assignment_statement(&mut self, expr: &VariableAssignment) -> TypeCheckerReturn {
-        match &expr.identifier {
+    fn visit_assignment_statement(&mut self, expr: &mut VariableAssignment) -> TypeCheckerReturn {
+        match &mut expr.identifier {
             Expression::Literal(Literal::Identifier(identifier)) => {
-                self.check_simple_assignment(&identifier, &expr.new_value)
+                self.check_simple_assignment(&identifier.name, &mut expr.new_value)
             }
             Expression::ArrayAccess(access) => {
-                self.check_array_element_assignment(&access, &expr.new_value)
+                self.check_array_element_assignment(&access, &mut expr.new_value)
             }
             Expression::DeReference(deref) => {
                 let deref_ty = self.visit_dereference_expression(deref)?;
-                let init_ty = self.check_expr(&expr.new_value)?;
+                let init_ty = self.check_expr(&mut expr.new_value)?;
 
                 if !ValueType::is_compatible(&deref_ty, &init_ty) {
                     return Err(format!(
@@ -66,7 +66,7 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
             }
             Expression::MemberAccess(member_access) => {
                 let member_ty = self.visit_member_access(member_access)?;
-                let init_ty = self.check_expr(&expr.new_value)?;
+                let init_ty = self.check_expr(&mut expr.new_value)?;
 
                 if !ValueType::is_compatible(&member_ty, &init_ty) {
                     return Err(format!(
@@ -81,7 +81,7 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
         }
     }
 
-    fn visit_function_statement(&mut self, expr: &FunctionStatement) -> TypeCheckerReturn {
+    fn visit_function_statement(&mut self, expr: &mut FunctionStatement) -> TypeCheckerReturn {
         if let Some(_) = self.in_function {
             return Err(format!("Nested function is not allowed."));
         }
@@ -119,8 +119,8 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
 
         self.in_function = Some(expr.return_type.clone());
 
-        if let Some(b) = &expr.block {
-            self.visit_block_statement(&b)?;
+        if let Some(b) = &mut expr.block {
+            self.visit_block_statement(b)?;
 
             if expr.args.is_some() {
                 self.variables_table.pop(); // remove arguments scope if any
@@ -158,21 +158,21 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
         Ok(expr.return_type.clone())
     }
 
-    fn visit_block_statement(&mut self, expr: &BlockStatement) -> TypeCheckerReturn {
+    fn visit_block_statement(&mut self, expr: &mut BlockStatement) -> TypeCheckerReturn {
         self.variables_table.push(HashMap::new());
-        self.check_ast_type(&expr.statements)?;
+        self.check_ast_type(&mut expr.statements)?;
         self.variables_table.pop().unwrap();
 
         // A block has no return type
         Ok(ValueType::Void)
     }
 
-    fn visit_return_statement(&mut self, return_stmt: &ReturnStatement) -> TypeCheckerReturn {
+    fn visit_return_statement(&mut self, return_stmt: &mut ReturnStatement) -> TypeCheckerReturn {
         if self.in_function.is_none() {
             return Err(format!("Return statement is valid only in a function."));
         }
 
-        let expr_type = self.check_expr(&return_stmt.expr)?;
+        let expr_type = self.check_expr(&mut return_stmt.expr)?;
         let return_type = self.in_function.as_ref().unwrap();
 
         if !ValueType::is_compatible(&expr_type, &return_type) {
@@ -185,8 +185,8 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
         return Ok(expr_type);
     }
 
-    fn visit_if_statement(&mut self, if_stmt: &IfStatement) -> TypeCheckerReturn {
-        let condition_type = self.check_expr(&if_stmt.condition)?;
+    fn visit_if_statement(&mut self, if_stmt: &mut IfStatement) -> TypeCheckerReturn {
+        let condition_type = self.check_expr(&mut if_stmt.condition)?;
 
         if condition_type != ValueType::Bool {
             return Err(format!(
@@ -195,18 +195,18 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
             ));
         }
 
-        self.visit_block_statement(&if_stmt.then_branch)?;
+        self.visit_block_statement(&mut if_stmt.then_branch)?;
 
         if if_stmt.else_branch.is_some() {
-            self.visit_block_statement(&if_stmt.else_branch.as_ref().unwrap())?;
+            self.visit_block_statement(&mut if_stmt.else_branch.as_mut().unwrap())?;
         }
 
         // An if statement itself has void type
         Ok(ValueType::Void)
     }
 
-    fn visit_while_statement(&mut self, while_stmt: &WhileStatement) -> TypeCheckerReturn {
-        let condition_type = self.visit_expression_statement(&while_stmt.condition)?;
+    fn visit_while_statement(&mut self, while_stmt: &mut WhileStatement) -> TypeCheckerReturn {
+        let condition_type = self.visit_expression_statement(&mut while_stmt.condition)?;
         self.loop_count += 1;
 
         if condition_type != ValueType::Bool {
@@ -216,23 +216,23 @@ impl StatementVisitor<TypeCheckerReturn> for TypeChecker {
             ));
         }
 
-        self.visit_block_statement(&while_stmt.loop_block)?;
+        self.visit_block_statement(&mut while_stmt.loop_block)?;
         self.loop_count -= 1;
 
         // An while statement has void type
         Ok(ValueType::Void)
     }
 
-    fn visit_for_statement(&mut self, for_stmt: &ForStatement) -> TypeCheckerReturn {
+    fn visit_for_statement(&mut self, for_stmt: &mut ForStatement) -> TypeCheckerReturn {
         // A for loop declare a variable (ie. i) and this variable needs its
         // own scope to avoid false positive redifinitions
         self.variables_table.push(HashMap::new());
         self.loop_count += 1;
 
-        let init_type = self.visit_declaration_statement(&for_stmt.init_expr)?;
-        let loop_type = self.visit_expression_statement(&for_stmt.loop_condition)?;
-        self.visit_statement(&for_stmt.next_expr)?;
-        self.visit_block_statement(&for_stmt.block_stmt)?;
+        let init_type = self.visit_declaration_statement(&mut for_stmt.init_expr)?;
+        let loop_type = self.visit_expression_statement(&mut for_stmt.loop_condition)?;
+        self.visit_statement(&mut for_stmt.next_expr)?;
+        self.visit_block_statement(&mut for_stmt.block_stmt)?;
 
         // Pop the for's variable scope here it's not needed and can lead to
         // false positive variable redefinitions errors

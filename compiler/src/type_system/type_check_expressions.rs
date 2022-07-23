@@ -1,22 +1,24 @@
 use crate::parser::visitors::{
-    AddressOf, ArrayAccess, Binary, BinaryLogic, Call, DeReference, ExpressionVisitor, Group,
-    Literal, MemberAccess, StructLiteral, Unary,
+    AddressOf, ArrayAccess, Binary, BinaryLogic, Call, DeReference, Group, Literal, MemberAccess,
+    MutableExpressionVisitor, StructLiteral, Unary,
 };
 
 use super::{
     type_check::{TypeChecker, TypeCheckerReturn},
+    typed::Typed,
     value_type::ValueType,
 };
 
-impl ExpressionVisitor<Result<ValueType, String>> for TypeChecker {
-    fn visit_literal(&mut self, literal: &Literal) -> TypeCheckerReturn {
+impl MutableExpressionVisitor<Result<ValueType, String>> for TypeChecker {
+    fn visit_literal(&mut self, literal: &mut Literal) -> TypeCheckerReturn {
         match literal {
             Literal::Number(_) => Ok(ValueType::Number),
             Literal::Real(_) => Ok(ValueType::Real),
             Literal::Bool(_) => Ok(ValueType::Bool),
             Literal::StringLiteral(_) => Ok(ValueType::String),
             Literal::Identifier(identifier) => {
-                if let Some(var_type) = self.find_variable_type(identifier) {
+                if let Some(var_type) = self.find_variable_type(&identifier.name) {
+                    identifier.set_type(var_type.clone());
                     Ok(var_type.clone())
                 } else {
                     Err(format!(
@@ -29,7 +31,7 @@ impl ExpressionVisitor<Result<ValueType, String>> for TypeChecker {
         }
     }
 
-    fn visit_binary(&mut self, binary: &Binary) -> TypeCheckerReturn {
+    fn visit_binary(&mut self, binary: &mut Binary) -> TypeCheckerReturn {
         let is_compatible = match binary {
             Binary::Plus(l, r) => self.are_expressions_compatible(l, r),
             Binary::Minus(l, r) => self.are_expressions_compatible(l, r),
@@ -45,11 +47,11 @@ impl ExpressionVisitor<Result<ValueType, String>> for TypeChecker {
         }
     }
 
-    fn visit_group(&mut self, group: &Group) -> TypeCheckerReturn {
-        self.visit_boxed_expr(&group.inner_expression)
+    fn visit_group(&mut self, group: &mut Group) -> TypeCheckerReturn {
+        self.visit_boxed_expr(&mut group.inner_expression)
     }
 
-    fn visit_binary_logic(&mut self, binary: &BinaryLogic) -> TypeCheckerReturn {
+    fn visit_binary_logic(&mut self, binary: &mut BinaryLogic) -> TypeCheckerReturn {
         let is_compatible = match binary {
             BinaryLogic::And(l, r) => self.are_expressions_compatible(l, r),
             BinaryLogic::Or(l, r) => self.are_expressions_compatible(l, r),
@@ -68,14 +70,14 @@ impl ExpressionVisitor<Result<ValueType, String>> for TypeChecker {
         }
     }
 
-    fn visit_unary(&mut self, unary: &Unary) -> TypeCheckerReturn {
+    fn visit_unary(&mut self, unary: &mut Unary) -> TypeCheckerReturn {
         match unary {
             Unary::Not(e) => self.visit_boxed_expr(e),
             Unary::Negate(e) => self.visit_boxed_expr(e),
         }
     }
 
-    fn visit_call(&mut self, call_expr: &Call) -> TypeCheckerReturn {
+    fn visit_call(&mut self, call_expr: &mut Call) -> TypeCheckerReturn {
         if !self.function_table.contains_key(&call_expr.name) {
             return Err(format!(
                 "Function '{}' is not declared in this module.",
@@ -107,7 +109,13 @@ impl ExpressionVisitor<Result<ValueType, String>> for TypeChecker {
                 ));
             }
 
-            for (i, arg_expr) in call_expr.args.as_ref().unwrap().iter().enumerate() {
+            for (i, arg_expr) in call_expr
+                .args
+                .as_deref_mut()
+                .unwrap()
+                .iter_mut()
+                .enumerate()
+            {
                 let expr_type = self.check_expr(arg_expr)?;
                 let fn_args = &self.function_table.get(&call_expr.name).unwrap().args_type;
 
@@ -128,7 +136,7 @@ impl ExpressionVisitor<Result<ValueType, String>> for TypeChecker {
             .clone())
     }
 
-    fn visit_array_access(&mut self, call_expr: &ArrayAccess) -> TypeCheckerReturn {
+    fn visit_array_access(&mut self, call_expr: &mut ArrayAccess) -> TypeCheckerReturn {
         if let Some(id) = self.find_variable(&call_expr.identifier) {
             match id {
                 ValueType::Array(arr_ty) => Ok(*arr_ty.array_type),
@@ -147,7 +155,7 @@ impl ExpressionVisitor<Result<ValueType, String>> for TypeChecker {
         Ok(ValueType::Null)
     }
 
-    fn visit_address_of_expression(&mut self, address_of: &AddressOf) -> TypeCheckerReturn {
+    fn visit_address_of_expression(&mut self, address_of: &mut AddressOf) -> TypeCheckerReturn {
         if let Some(ty) = self.find_variable_type(&address_of.identifier) {
             Ok(ValueType::Pointer(Box::new(ty.clone())))
         } else {
@@ -155,7 +163,7 @@ impl ExpressionVisitor<Result<ValueType, String>> for TypeChecker {
         }
     }
 
-    fn visit_dereference_expression(&mut self, dereference: &DeReference) -> TypeCheckerReturn {
+    fn visit_dereference_expression(&mut self, dereference: &mut DeReference) -> TypeCheckerReturn {
         if let Some(ValueType::Pointer(ptr_ty)) = self.find_variable_type(&dereference.identifier) {
             Ok(*ptr_ty.clone())
         } else {
@@ -168,12 +176,15 @@ impl ExpressionVisitor<Result<ValueType, String>> for TypeChecker {
 
     fn visit_struct_literal(
         &mut self,
-        struct_literal: &StructLiteral,
+        struct_literal: &mut StructLiteral,
     ) -> Result<ValueType, String> {
         self.check_valid_struct_literal(struct_literal)
     }
 
-    fn visit_member_access(&mut self, member_access: &MemberAccess) -> Result<ValueType, String> {
+    fn visit_member_access(
+        &mut self,
+        member_access: &mut MemberAccess,
+    ) -> Result<ValueType, String> {
         let declaration_type = match self.find_variable(&member_access.object) {
             Some(var) => {
                 if let ValueType::Struct(struct_name) = var {

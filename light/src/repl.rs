@@ -31,7 +31,7 @@ pub fn repl_loop() {
             if let Some(mut stmts) = parser.parse() {
                 print_ast(&stmts);
 
-                if let Err(msg) = type_check.check_ast_type(&stmts) {
+                if let Err(msg) = type_check.check_ast_type(&mut stmts) {
                     println!("Error: {}", msg);
                 } else {
                     let mut generator =

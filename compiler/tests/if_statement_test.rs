@@ -9,9 +9,9 @@ fn minimal_valid_if() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -24,9 +24,9 @@ fn minimal_valid_if_else() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -45,9 +45,9 @@ fn return_if_function() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -68,9 +68,9 @@ fn return_if_else_function() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -91,9 +91,9 @@ fn valid_nested_if() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
