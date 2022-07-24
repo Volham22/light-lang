@@ -276,7 +276,9 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                 let value = self.visit_expr(&member_access.object);
                 self.get_struct_member_pointer_value(member_access, value.into_pointer_value())
             }
-            _ => panic!("non lvalue type in generator!"),
+            _ => self
+                .visit_borrowed_expr(&var_ass.identifier)
+                .into_pointer_value(),
         };
 
         match new_expr {

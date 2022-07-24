@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::parser::visitors::{
-    BlockStatement, Expression, ForStatement, FunctionStatement, IfStatement, Literal,
+    BlockStatement, Expression, ForStatement, FunctionStatement, IfStatement,
     MutableExpressionVisitor, MutableStatementVisitor, ReturnStatement, Statement, StructStatement,
     VariableAssignment, VariableDeclaration, WhileStatement,
 };
@@ -45,10 +45,6 @@ impl MutableStatementVisitor<TypeCheckerReturn> for TypeChecker {
 
     fn visit_assignment_statement(&mut self, expr: &mut VariableAssignment) -> TypeCheckerReturn {
         match &mut expr.identifier {
-            Expression::Literal(Literal::Identifier(identifier)) => {
-                identifier.is_lvalue = true;
-                self.check_simple_assignment(&identifier.name, &mut expr.new_value)
-            }
             Expression::ArrayAccess(access) => {
                 access.is_lvalue = true;
                 self.check_array_element_assignment(access, &mut expr.new_value)
@@ -82,7 +78,14 @@ impl MutableStatementVisitor<TypeCheckerReturn> for TypeChecker {
 
                 Ok(member_ty)
             }
-            _ => Err(format!("Assignment left hand side is not an lvalue.")),
+            _ => {
+                self.is_lvalue = true;
+                let result =
+                    self.check_simple_assignment(&mut expr.identifier, &mut expr.new_value);
+                self.is_lvalue = false;
+
+                result
+            }
         }
     }
 

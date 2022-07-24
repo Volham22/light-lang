@@ -201,20 +201,16 @@ impl TypeChecker {
 
     pub fn check_simple_assignment(
         &mut self,
-        identifier: &String,
+        identifier: &mut Expression,
         rhs: &mut Expression,
     ) -> TypeCheckerReturn {
         let expr_type = self.check_expr(rhs)?;
-        let variable_type = if let Some(v) = self.find_variable_type(identifier) {
-            v
-        } else {
-            return Err(format!("Undeclared variable '{}'", identifier));
-        };
+        let variable_type = self.check_expr(identifier)?;
 
-        if !ValueType::is_compatible(&expr_type, variable_type) {
+        if !ValueType::is_compatible(&expr_type, &variable_type) {
             return Err(format!(
-                "Cannot assign expression of type '{}' to variable '{}' of type '{}'.",
-                expr_type, identifier, variable_type
+                "Cannot assign expression of type '{}' of type '{}'.",
+                expr_type, variable_type
             ));
         }
 
