@@ -347,10 +347,10 @@ impl<'a> IRGenerator<'a> {
     pub fn get_struct_member_pointer_value(
         &mut self,
         member_access: &MemberAccess,
+        struct_value: PointerValue<'a>,
     ) -> PointerValue<'a> {
         // Note: Unwraping is safe here since the type checker already
         // checked that our AST is correct.
-        let struct_value = self.visit_expr(&member_access.object);
         let struct_type = self
             .type_table
             .find_struct_type(
@@ -371,7 +371,7 @@ impl<'a> IRGenerator<'a> {
 
         self.builder
             .build_struct_gep(
-                struct_value.into_pointer_value(),
+                struct_value,
                 member_index as u32,
                 "struct_member_access_gep",
             )

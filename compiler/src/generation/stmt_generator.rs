@@ -252,11 +252,13 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                 self.variables.get(&id.name).unwrap().clone()
             }
             Expression::ArrayAccess(access) => {
-                let ptr_val = self.variables.get(&access.identifier).unwrap().clone();
+                let ptr_val = self.visit_expr(&access.identifier);
 
                 // Array is an pointer
-                if ptr_val.get_type().get_element_type().is_pointer_type() {
-                    let array_ptr = self.builder.build_load(ptr_val, "load_array_ptr");
+                if ptr_val.get_type().is_pointer_type() {
+                    let array_ptr = self
+                        .builder
+                        .build_load(ptr_val.into_pointer_value(), "load_array_ptr");
                     let index_value = self.visit_expr(&access.index);
 
                     unsafe {
@@ -267,11 +269,12 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                         )
                     }
                 } else {
-                    ptr_val
+                    ptr_val.into_pointer_value()
                 }
             }
             Expression::MemberAccess(member_access) => {
-                self.get_struct_member_pointer_value(member_access)
+                let value = self.visit_expr(&member_access.object);
+                self.get_struct_member_pointer_value(member_access, value.into_pointer_value())
             }
             _ => panic!("non lvalue type in generator!"),
         };

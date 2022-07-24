@@ -1,11 +1,11 @@
 use inkwell::types::{AnyType, BasicType};
-use inkwell::values::{AnyValue, AnyValueEnum, BasicValue, BasicValueEnum};
-use inkwell::{FloatPredicate, IntPredicate};
+use inkwell::values::{AggregateValue, AnyValue, AnyValueEnum, BasicValue, BasicValueEnum};
+use inkwell::{AddressSpace, FloatPredicate, IntPredicate};
 
 use crate::generation::ir_generator::IRGenerator;
 use crate::parser::visitors::{
-    AddressOf, ArrayAccess, Binary, BinaryLogic, Call, DeReference, ExpressionVisitor, Group,
-    Literal, MemberAccess, StructLiteral, Unary,
+    AddressOf, ArrayAccess, Binary, BinaryLogic, Call, DeReference, Expression, ExpressionVisitor,
+    Group, Literal, MemberAccess, StructLiteral, Unary,
 };
 
 impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
@@ -402,34 +402,37 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
 
     fn visit_array_access(&mut self, call_expr: &ArrayAccess) -> AnyValueEnum<'a> {
         let expr = self.visit_expr(&call_expr.index);
-        let ptr = self.variables.get(&call_expr.identifier).unwrap();
+        let ptr = self.visit_expr(&call_expr.identifier);
         let value = self.get_int_value(expr);
 
         // If the array is passed as a function argument it is accessed as array ptr
-        if ptr.get_type().get_element_type().is_array_type() {
+        if ptr.get_type().is_array_type() {
             let ty = ptr
                 .get_type()
-                .get_element_type()
                 .into_array_type()
                 .get_element_type()
                 .ptr_type(inkwell::AddressSpace::Generic);
 
-            let array_ptr = self.builder.build_pointer_cast(*ptr, ty, "array_cast");
+            let array_ptr =
+                self.builder
+                    .build_pointer_cast(ptr.into_pointer_value(), ty, "array_cast");
 
             let offset_ptr = unsafe {
                 self.builder
-                    .build_gep(array_ptr, &[value], call_expr.identifier.as_str())
+                    .build_gep(array_ptr, &[value], "array_access_gep")
             };
 
             self.builder.build_load(offset_ptr, "load_array").into()
         } else {
-            let loaded_value = self.builder.build_load(*ptr, "pre_array_ptr_load");
+            let loaded_value = self
+                .builder
+                .build_load(ptr.into_pointer_value(), "pre_array_ptr_load");
 
             let offset_ptr = unsafe {
                 self.builder.build_gep(
                     loaded_value.into_pointer_value(),
                     &[value],
-                    call_expr.identifier.as_str(),
+                    "array_access_gep",
                 )
             };
 
@@ -446,23 +449,71 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
     }
 
     fn visit_address_of_expression(&mut self, address_of: &AddressOf) -> AnyValueEnum<'a> {
-        self.variables
-            .get(&address_of.identifier)
-            .unwrap()
-            .as_any_value_enum()
+        // self.variables
+        //     .get(&address_of.identifier)
+        //     .unwrap()
+        //     .as_any_value_enum()
+        match &*address_of.identifier {
+            Expression::Literal(l) => match l {
+                Literal::StringLiteral(sl) => self
+                    .builder
+                    .build_global_string_ptr(sl.as_str(), "addrof_string_literal")
+                    .as_any_value_enum(),
+                Literal::Identifier(id) => {
+                    self.variables.get(&id.name).unwrap().as_any_value_enum()
+                }
+                _ => unreachable!(),
+            },
+            Expression::Binary(b) => self.visit_binary(&b).as_any_value_enum(),
+            Expression::Group(g) => self.visit_group(&g).as_any_value_enum(),
+            Expression::BinaryLogic(bl) => self.visit_binary_logic(&bl),
+            Expression::Unary(u) => self.visit_unary(&u).as_any_value_enum(),
+            Expression::Call(c) => self.visit_call(&c).as_any_value_enum(),
+            Expression::ArrayAccess(_aa) => unreachable!(),
+            Expression::AddressOf(ao) => self.visit_address_of_expression(&ao),
+            Expression::DeReference(dr) => self.visit_expr(&dr.identifier),
+            Expression::MemberAccess(ma) => {
+                let struct_value = self.visit_expr(&ma.object);
+
+                let struct_type = self
+                    .type_table
+                    .find_struct_type(ma.ty.as_ref().unwrap().into_struct_type().as_str())
+                    .unwrap();
+
+                let member_index = struct_type
+                    .fields
+                    .iter()
+                    .position(|f| f.0 == ma.member)
+                    .unwrap();
+
+                self.builder
+                    .build_struct_gep(
+                        struct_value.into_pointer_value(),
+                        member_index as u32,
+                        "addrof_struct_member",
+                    )
+                    .unwrap()
+                    .as_any_value_enum()
+            }
+            Expression::Null => self
+                .context
+                .i64_type()
+                .ptr_type(AddressSpace::Generic)
+                .const_zero()
+                .as_any_value_enum(),
+        }
     }
 
     fn visit_dereference_expression(&mut self, dereference: &DeReference) -> AnyValueEnum<'a> {
-        let ptr = self.variables.get(&dereference.identifier).unwrap();
+        let ptr = self.visit_expr(&dereference.identifier);
 
-        let ptr_address = self
-            .builder
-            .build_load(*ptr, "load_ptr_address")
-            .into_pointer_value();
-
-        self.builder
-            .build_load(ptr_address, "deref_ptr_address")
-            .as_any_value_enum()
+        if dereference.is_lvalue {
+            ptr
+        } else {
+            self.builder
+                .build_load(ptr.into_pointer_value(), "deref_ptr_address")
+                .as_any_value_enum()
+        }
     }
 
     fn visit_struct_literal(&mut self, struct_literal: &StructLiteral) -> AnyValueEnum<'a> {
@@ -487,9 +538,39 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
     }
 
     fn visit_member_access(&mut self, member_access: &MemberAccess) -> AnyValueEnum<'a> {
-        let offset_ptr = self.get_struct_member_pointer_value(member_access);
-        self.builder
-            .build_load(offset_ptr, "load_member_access")
-            .as_any_value_enum()
+        let struct_value = self.visit_expr(&member_access.object);
+
+        // If the struct is loaded as pointer
+        if struct_value.is_pointer_value() {
+            let offset_ptr = self
+                .get_struct_member_pointer_value(member_access, struct_value.into_pointer_value());
+            self.builder
+                .build_load(offset_ptr, "load_member_access")
+                .as_any_value_enum()
+        } else {
+            // else use const extract value
+            let struct_type = self
+                .type_table
+                .find_struct_type(
+                    member_access
+                        .ty
+                        .as_ref()
+                        .unwrap()
+                        .into_struct_type()
+                        .as_str(),
+                )
+                .unwrap();
+
+            let member_index = struct_type
+                .fields
+                .iter()
+                .position(|f| f.0 == member_access.member)
+                .unwrap();
+
+            struct_value
+                .into_struct_value()
+                .const_extract_value(&mut [member_index as u32])
+                .as_any_value_enum()
+        }
     }
 }

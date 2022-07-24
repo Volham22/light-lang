@@ -31,6 +31,7 @@ impl Display for Literal {
 pub struct Identifier {
     pub name: String,
     pub(crate) ty: Option<ValueType>,
+    pub is_lvalue: bool,
 }
 
 impl Display for Identifier {
@@ -87,21 +88,23 @@ pub struct Call {
 
 #[derive(Clone)]
 pub struct ArrayAccess {
-    pub identifier: String,
+    pub identifier: Box<Expression>,
     pub index: Box<Expression>,
     pub ty: Option<ValueType>,
+    pub is_lvalue: bool,
 }
 
 #[derive(Clone)]
 pub struct AddressOf {
-    pub identifier: String,
+    pub identifier: Box<Expression>,
     pub ty: Option<ValueType>,
 }
 
 #[derive(Clone)]
 pub struct DeReference {
-    pub identifier: String,
+    pub identifier: Box<Expression>,
     pub ty: Option<ValueType>,
+    pub is_lvalue: bool,
 }
 
 #[derive(Clone)]

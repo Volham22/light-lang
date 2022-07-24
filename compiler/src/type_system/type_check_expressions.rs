@@ -18,6 +18,7 @@ impl MutableExpressionVisitor<Result<ValueType, String>> for TypeChecker {
             Literal::StringLiteral(_) => Ok(ValueType::String),
             Literal::Identifier(identifier) => {
                 if let Some(var_type) = self.find_variable_type(&identifier.name) {
+                    identifier.is_lvalue = self.is_lvalue;
                     identifier.set_type(var_type.clone());
                     Ok(var_type.clone())
                 } else {
@@ -141,18 +142,18 @@ impl MutableExpressionVisitor<Result<ValueType, String>> for TypeChecker {
     }
 
     fn visit_array_access(&mut self, array_access: &mut ArrayAccess) -> TypeCheckerReturn {
-        if let Some(id) = self.find_variable(&array_access.identifier) {
-            array_access.set_type(id.clone());
-            match id {
-                ValueType::Array(arr_ty) => Ok(*arr_ty.array_type),
-                ValueType::Pointer(ptr_ty) => Ok(*ptr_ty),
-                _ => Err(format!(
-                    "'{}' is not a subscriptable type.",
-                    &array_access.identifier
-                )),
+        let id_ty = self.check_expr(&mut array_access.identifier)?;
+
+        match id_ty {
+            ValueType::Array(arr_ty) => {
+                array_access.set_type(arr_ty.array_type.as_ref().clone());
+                Ok(*arr_ty.array_type)
             }
-        } else {
-            Err(format!("Undeclared array '{}'", array_access.identifier))
+            ValueType::Pointer(ptr_ty) => {
+                array_access.set_type(ptr_ty.as_ref().clone());
+                Ok(*ptr_ty)
+            }
+            _ => Err(format!("'{}' is not a subscriptable type.", id_ty)),
         }
     }
 
@@ -161,22 +162,33 @@ impl MutableExpressionVisitor<Result<ValueType, String>> for TypeChecker {
     }
 
     fn visit_address_of_expression(&mut self, address_of: &mut AddressOf) -> TypeCheckerReturn {
-        if let Some(ty) = self.find_variable_type(&address_of.identifier) {
-            address_of.set_type(ty.clone());
-            Ok(ValueType::Pointer(Box::new(ty.clone())))
-        } else {
-            Err(format!("Undeclared variable '{}'", &address_of.identifier))
+        let identifier_ty = self.check_expr(&mut address_of.identifier)?;
+
+        match identifier_ty {
+            ValueType::Array(a) => Ok(ValueType::Pointer(Box::new(ValueType::Array(a)))),
+            ValueType::Bool => Ok(ValueType::Pointer(Box::new(ValueType::Bool))),
+            ValueType::Number => Ok(ValueType::Pointer(Box::new(ValueType::Number))),
+            ValueType::Real => Ok(ValueType::Pointer(Box::new(ValueType::Real))),
+            ValueType::String => Ok(ValueType::Pointer(Box::new(ValueType::String))),
+            ValueType::Function => Err(format!("Function pointers are not supported yet.")),
+            ValueType::Pointer(ptr) => Ok(ValueType::Pointer(Box::new(ValueType::Pointer(ptr)))),
+            ValueType::Struct(strct) => Ok(ValueType::Pointer(Box::new(ValueType::Struct(strct)))),
+            ValueType::Void => Err(format!("Addrof cannot be applied to void types.")),
+            ValueType::Null => Err(format!("Addrof 'null' is forbidden.")),
         }
     }
 
     fn visit_dereference_expression(&mut self, dereference: &mut DeReference) -> TypeCheckerReturn {
-        if let Some(ValueType::Pointer(ptr_ty)) = self.find_variable_type(&dereference.identifier) {
-            dereference.set_type(*ptr_ty.clone());
-            Ok(*ptr_ty.clone())
+        let deref_ty = self.check_expr(&mut dereference.identifier)?;
+
+        if let ValueType::Pointer(ptr) = deref_ty {
+            dereference.set_type(*ptr.clone());
+            dereference.is_lvalue = self.is_lvalue;
+            Ok(*ptr.clone())
         } else {
             Err(format!(
-                "'{}' is either not a pointer or declared in this scope.",
-                &dereference.identifier
+                "'{}' Cannot be dereferenced as it's not a pointer type.",
+                deref_ty
             ))
         }
     }

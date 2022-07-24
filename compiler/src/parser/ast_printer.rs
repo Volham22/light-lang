@@ -150,7 +150,8 @@ impl ExpressionVisitor<()> for AstPrinter {
     }
 
     fn visit_array_access(&mut self, call_expr: &ArrayAccess) -> () {
-        print!("{}[", call_expr.identifier);
+        self.visit_expr(call_expr.identifier.as_ref());
+        print!(" [");
         self.visit_expr(call_expr.index.as_ref());
         print!("] ");
     }
@@ -160,11 +161,13 @@ impl ExpressionVisitor<()> for AstPrinter {
     }
 
     fn visit_address_of_expression(&mut self, address_of: &AddressOf) -> () {
-        print!("Address of {}", &address_of.identifier);
+        print!("Address of ");
+        self.visit_expr(&address_of.identifier)
     }
 
     fn visit_dereference_expression(&mut self, dereference: &DeReference) -> () {
-        print!("Dereference of {}", &dereference.identifier)
+        print!("Dereference of ");
+        self.visit_expr(&dereference.identifier);
     }
 
     fn visit_struct_literal(&mut self, struct_literal: &StructLiteral) -> () {

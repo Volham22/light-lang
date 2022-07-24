@@ -202,6 +202,30 @@ impl Parser {
             }));
         }
 
+        if self.match_expr(&[Token::LeftBracket]) {
+            let matched_token = self.previous().unwrap();
+
+            match matched_token {
+                Token::LeftBracket => {
+                    let index = self.or()?;
+
+                    if let None =
+                        self.consume(&Token::RightBracket, "Unclosed ']' in array access.")
+                    {
+                        return Err(());
+                    }
+
+                    return Ok(Expression::ArrayAccess(ArrayAccess {
+                        ty: None,
+                        identifier: Box::new(primary_expr),
+                        is_lvalue: false,
+                        index: Box::new(index.clone()),
+                    }));
+                }
+                _ => unreachable!(),
+            }
+        }
+
         Ok(primary_expr)
     }
 
@@ -216,65 +240,29 @@ impl Parser {
             Some(Token::Quote(s)) => Ok(Expression::Literal(Literal::StringLiteral(s.clone()))),
             Some(Token::Null) => Ok(Expression::Null),
             Some(Token::AddressOf) => {
-                let identifier = if let Some(Token::Identifier(id)) = self.consume(
-                    &Token::Identifier(String::new()),
-                    "Expected <identifier> after 'addrof' keyword",
-                ) {
-                    id
-                } else {
-                    return Err(());
-                };
-
+                let identifier = self.or()?;
                 Ok(Expression::AddressOf(AddressOf {
-                    identifier: identifier.to_string(),
+                    identifier: Box::new(identifier),
                     ty: None,
                 }))
             }
             Some(Token::Dereference) => {
-                let identifier = if let Some(Token::Identifier(id)) = self.consume(
-                    &Token::Identifier(String::new()),
-                    "Expected <identifier> after 'deref' keyword",
-                ) {
-                    id
-                } else {
-                    return Err(());
-                };
+                let identifier = self.or()?;
 
                 Ok(Expression::DeReference(DeReference {
-                    identifier: identifier.to_string(),
+                    identifier: Box::new(identifier),
+                    is_lvalue: false,
                     ty: None,
                 }))
             }
             Some(Token::Identifier(value)) => {
                 let name = value.clone(); // Copy the literal's name to avoid borrow checker errors
 
-                if self.match_expr(&[Token::LeftBracket]) {
-                    let matched_token = self.previous().unwrap();
-
-                    match matched_token {
-                        Token::LeftBracket => {
-                            let index = self.or()?;
-
-                            if let None =
-                                self.consume(&Token::RightBracket, "Unclosed ']' in array access.")
-                            {
-                                return Err(());
-                            }
-
-                            Ok(Expression::ArrayAccess(ArrayAccess {
-                                ty: None,
-                                identifier: name,
-                                index: Box::new(index.clone()),
-                            }))
-                        }
-                        _ => unreachable!(),
-                    }
-                } else {
-                    Ok(Expression::Literal(Literal::Identifier(Identifier {
-                        name,
-                        ty: None,
-                    })))
-                }
+                Ok(Expression::Literal(Literal::Identifier(Identifier {
+                    name,
+                    is_lvalue: false,
+                    ty: None,
+                })))
             }
             Some(Token::LeftParenthesis) => {
                 let inner_expr = self.or()?;

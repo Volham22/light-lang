@@ -22,6 +22,7 @@ pub struct TypeChecker {
     pub(super) in_function: Option<ValueType>,
     pub(super) loop_count: u32,
     pub(super) type_table: TypeTable,
+    pub(super) is_lvalue: bool,
 }
 
 pub type TypeCheckerReturn = Result<ValueType, String>;
@@ -35,6 +36,7 @@ impl TypeChecker {
             in_function: None,
             loop_count: 0,
             type_table: TypeTable::new(),
+            is_lvalue: false,
         };
 
         s.variables_table.push(HashMap::new()); // default global scope
@@ -166,37 +168,34 @@ impl TypeChecker {
 
     pub fn check_array_element_assignment(
         &mut self,
-        access: &ArrayAccess,
+        access: &mut ArrayAccess,
         rhs: &mut Expression,
     ) -> TypeCheckerReturn {
-        if let Some(array_dec) = self.find_variable(&access.identifier) {
-            let rhs_ty = self.check_expr(rhs)?;
+        let rhs_ty = self.check_expr(rhs)?;
 
-            match &array_dec {
-                ValueType::Array(arr) => {
-                    if ValueType::is_compatible(arr.array_type.deref(), &rhs_ty) {
-                        Ok(rhs_ty)
-                    } else {
-                        Err(format!(
-                            "Can't assign expression of type '{}' to array element of type '{}'",
-                            rhs_ty, array_dec
-                        ))
-                    }
+        match self.visit_boxed_expr(&mut access.identifier)? {
+            ValueType::Array(array) => {
+                if ValueType::is_compatible(array.array_type.deref(), &rhs_ty) {
+                    Ok(rhs_ty)
+                } else {
+                    Err(format!(
+                        "Can't assign expression of type '{}' to array element of type '{}'",
+                        rhs_ty, array.array_type
+                    ))
                 }
-                ValueType::Pointer(ptr_ty) => {
-                    if ValueType::is_compatible(ptr_ty, &rhs_ty) {
-                        Ok(rhs_ty)
-                    } else {
-                        Err(format!(
-                            "Can't assign expression of type '{}' to array element of type '{}'",
-                            rhs_ty, array_dec
-                        ))
-                    }
-                }
-                _ => Err(format!("Can't assign on a non-array type '{}'", &array_dec)),
             }
-        } else {
-            Err(format!("Array '{}' is not declared.", access.identifier))
+            ValueType::Pointer(ptr) => {
+                if ValueType::is_compatible(&ptr, &rhs_ty) {
+                    Ok(rhs_ty)
+                } else {
+                    Err(format!(
+                        "Can't assign expression of type '{}' to array element of type '{}'",
+                        rhs_ty,
+                        ValueType::Pointer(ptr)
+                    ))
+                }
+            }
+            _ => Err(format!("Array is not declared.")),
         }
     }
 

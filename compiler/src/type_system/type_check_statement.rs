@@ -46,12 +46,15 @@ impl MutableStatementVisitor<TypeCheckerReturn> for TypeChecker {
     fn visit_assignment_statement(&mut self, expr: &mut VariableAssignment) -> TypeCheckerReturn {
         match &mut expr.identifier {
             Expression::Literal(Literal::Identifier(identifier)) => {
+                identifier.is_lvalue = true;
                 self.check_simple_assignment(&identifier.name, &mut expr.new_value)
             }
             Expression::ArrayAccess(access) => {
-                self.check_array_element_assignment(&access, &mut expr.new_value)
+                access.is_lvalue = true;
+                self.check_array_element_assignment(access, &mut expr.new_value)
             }
             Expression::DeReference(deref) => {
+                deref.is_lvalue = true;
                 let deref_ty = self.visit_dereference_expression(deref)?;
                 let init_ty = self.check_expr(&mut expr.new_value)?;
 
@@ -65,8 +68,10 @@ impl MutableStatementVisitor<TypeCheckerReturn> for TypeChecker {
                 Ok(deref_ty)
             }
             Expression::MemberAccess(member_access) => {
+                self.is_lvalue = true;
                 let member_ty = self.visit_member_access(member_access)?;
                 let init_ty = self.check_expr(&mut expr.new_value)?;
+                self.is_lvalue = false;
 
                 if !ValueType::is_compatible(&member_ty, &init_ty) {
                     return Err(format!(
