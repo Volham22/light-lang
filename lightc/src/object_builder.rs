@@ -41,7 +41,7 @@ impl<'m> FileBuilder<'m> {
         if let Some(mut stmts) = parser.parse() {
             let mut type_checker = TypeChecker::new();
 
-            let t_check = type_checker.check_ast_type(&stmts);
+            let t_check = type_checker.check_ast_type(&mut stmts);
 
             if let Ok(_) = t_check {
                 let mut generator =

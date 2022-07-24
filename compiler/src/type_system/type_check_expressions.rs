@@ -1,22 +1,25 @@
 use crate::parser::visitors::{
-    AddressOf, ArrayAccess, Binary, BinaryLogic, Call, DeReference, ExpressionVisitor, Group,
-    Literal, MemberAccess, StructLiteral, Unary,
+    AddressOf, ArrayAccess, Binary, BinaryLogic, Call, DeReference, Group, Literal, MemberAccess,
+    MutableExpressionVisitor, StructLiteral, Unary,
 };
 
 use super::{
     type_check::{TypeChecker, TypeCheckerReturn},
+    typed::Typed,
     value_type::ValueType,
 };
 
-impl ExpressionVisitor<Result<ValueType, String>> for TypeChecker {
-    fn visit_literal(&mut self, literal: &Literal) -> TypeCheckerReturn {
+impl MutableExpressionVisitor<Result<ValueType, String>> for TypeChecker {
+    fn visit_literal(&mut self, literal: &mut Literal) -> TypeCheckerReturn {
         match literal {
             Literal::Number(_) => Ok(ValueType::Number),
             Literal::Real(_) => Ok(ValueType::Real),
             Literal::Bool(_) => Ok(ValueType::Bool),
             Literal::StringLiteral(_) => Ok(ValueType::String),
             Literal::Identifier(identifier) => {
-                if let Some(var_type) = self.find_variable_type(identifier) {
+                if let Some(var_type) = self.find_variable_type(&identifier.name) {
+                    identifier.is_lvalue = self.is_lvalue;
+                    identifier.set_type(var_type.clone());
                     Ok(var_type.clone())
                 } else {
                     Err(format!(
@@ -29,7 +32,7 @@ impl ExpressionVisitor<Result<ValueType, String>> for TypeChecker {
         }
     }
 
-    fn visit_binary(&mut self, binary: &Binary) -> TypeCheckerReturn {
+    fn visit_binary(&mut self, binary: &mut Binary) -> TypeCheckerReturn {
         let is_compatible = match binary {
             Binary::Plus(l, r) => self.are_expressions_compatible(l, r),
             Binary::Minus(l, r) => self.are_expressions_compatible(l, r),
@@ -45,11 +48,11 @@ impl ExpressionVisitor<Result<ValueType, String>> for TypeChecker {
         }
     }
 
-    fn visit_group(&mut self, group: &Group) -> TypeCheckerReturn {
-        self.visit_boxed_expr(&group.inner_expression)
+    fn visit_group(&mut self, group: &mut Group) -> TypeCheckerReturn {
+        self.visit_boxed_expr(&mut group.inner_expression)
     }
 
-    fn visit_binary_logic(&mut self, binary: &BinaryLogic) -> TypeCheckerReturn {
+    fn visit_binary_logic(&mut self, binary: &mut BinaryLogic) -> TypeCheckerReturn {
         let is_compatible = match binary {
             BinaryLogic::And(l, r) => self.are_expressions_compatible(l, r),
             BinaryLogic::Or(l, r) => self.are_expressions_compatible(l, r),
@@ -68,14 +71,14 @@ impl ExpressionVisitor<Result<ValueType, String>> for TypeChecker {
         }
     }
 
-    fn visit_unary(&mut self, unary: &Unary) -> TypeCheckerReturn {
+    fn visit_unary(&mut self, unary: &mut Unary) -> TypeCheckerReturn {
         match unary {
             Unary::Not(e) => self.visit_boxed_expr(e),
             Unary::Negate(e) => self.visit_boxed_expr(e),
         }
     }
 
-    fn visit_call(&mut self, call_expr: &Call) -> TypeCheckerReturn {
+    fn visit_call(&mut self, call_expr: &mut Call) -> TypeCheckerReturn {
         if !self.function_table.contains_key(&call_expr.name) {
             return Err(format!(
                 "Function '{}' is not declared in this module.",
@@ -107,7 +110,13 @@ impl ExpressionVisitor<Result<ValueType, String>> for TypeChecker {
                 ));
             }
 
-            for (i, arg_expr) in call_expr.args.as_ref().unwrap().iter().enumerate() {
+            for (i, arg_expr) in call_expr
+                .args
+                .as_deref_mut()
+                .unwrap()
+                .iter_mut()
+                .enumerate()
+            {
                 let expr_type = self.check_expr(arg_expr)?;
                 let fn_args = &self.function_table.get(&call_expr.name).unwrap().args_type;
 
@@ -120,26 +129,31 @@ impl ExpressionVisitor<Result<ValueType, String>> for TypeChecker {
             }
         }
 
-        Ok(self
+        let call_type = self
             .function_table
             .get(&call_expr.name)
             .unwrap()
             .return_type
-            .clone())
+            .clone();
+
+        call_expr.set_type(call_type.clone());
+
+        Ok(call_type)
     }
 
-    fn visit_array_access(&mut self, call_expr: &ArrayAccess) -> TypeCheckerReturn {
-        if let Some(id) = self.find_variable(&call_expr.identifier) {
-            match id {
-                ValueType::Array(arr_ty) => Ok(*arr_ty.array_type),
-                ValueType::Pointer(ptr_ty) => Ok(*ptr_ty),
-                _ => Err(format!(
-                    "'{}' is not a subscriptable type.",
-                    &call_expr.identifier
-                )),
+    fn visit_array_access(&mut self, array_access: &mut ArrayAccess) -> TypeCheckerReturn {
+        let id_ty = self.check_expr(&mut array_access.identifier)?;
+
+        match id_ty {
+            ValueType::Array(arr_ty) => {
+                array_access.set_type(arr_ty.array_type.as_ref().clone());
+                Ok(*arr_ty.array_type)
             }
-        } else {
-            Err(format!("Undeclared array '{}'", call_expr.identifier))
+            ValueType::Pointer(ptr_ty) => {
+                array_access.set_type(ptr_ty.as_ref().clone());
+                Ok(*ptr_ty)
+            }
+            _ => Err(format!("'{}' is not a subscriptable type.", id_ty)),
         }
     }
 
@@ -147,50 +161,68 @@ impl ExpressionVisitor<Result<ValueType, String>> for TypeChecker {
         Ok(ValueType::Null)
     }
 
-    fn visit_address_of_expression(&mut self, address_of: &AddressOf) -> TypeCheckerReturn {
-        if let Some(ty) = self.find_variable_type(&address_of.identifier) {
-            Ok(ValueType::Pointer(Box::new(ty.clone())))
-        } else {
-            Err(format!("Undeclared variable '{}'", &address_of.identifier))
+    fn visit_address_of_expression(&mut self, address_of: &mut AddressOf) -> TypeCheckerReturn {
+        let identifier_ty = self.check_expr(&mut address_of.identifier)?;
+
+        match identifier_ty {
+            ValueType::Array(a) => Ok(ValueType::Pointer(Box::new(ValueType::Array(a)))),
+            ValueType::Bool => Ok(ValueType::Pointer(Box::new(ValueType::Bool))),
+            ValueType::Number => Ok(ValueType::Pointer(Box::new(ValueType::Number))),
+            ValueType::Real => Ok(ValueType::Pointer(Box::new(ValueType::Real))),
+            ValueType::String => Ok(ValueType::Pointer(Box::new(ValueType::String))),
+            ValueType::Function => Err(format!("Function pointers are not supported yet.")),
+            ValueType::Pointer(ptr) => Ok(ValueType::Pointer(Box::new(ValueType::Pointer(ptr)))),
+            ValueType::Struct(strct) => Ok(ValueType::Pointer(Box::new(ValueType::Struct(strct)))),
+            ValueType::Void => Err(format!("Addrof cannot be applied to void types.")),
+            ValueType::Null => Err(format!("Addrof 'null' is forbidden.")),
         }
     }
 
-    fn visit_dereference_expression(&mut self, dereference: &DeReference) -> TypeCheckerReturn {
-        if let Some(ValueType::Pointer(ptr_ty)) = self.find_variable_type(&dereference.identifier) {
-            Ok(*ptr_ty.clone())
+    fn visit_dereference_expression(&mut self, dereference: &mut DeReference) -> TypeCheckerReturn {
+        let deref_ty = self.check_expr(&mut dereference.identifier)?;
+
+        if let ValueType::Pointer(ptr) = deref_ty {
+            dereference.set_type(*ptr.clone());
+            dereference.is_lvalue = self.is_lvalue;
+            Ok(*ptr.clone())
         } else {
             Err(format!(
-                "'{}' is either not a pointer or declared in this scope.",
-                &dereference.identifier
+                "'{}' Cannot be dereferenced as it's not a pointer type.",
+                deref_ty
             ))
         }
     }
 
     fn visit_struct_literal(
         &mut self,
-        struct_literal: &StructLiteral,
+        struct_literal: &mut StructLiteral,
     ) -> Result<ValueType, String> {
-        self.check_valid_struct_literal(struct_literal)
+        let ty = self.check_valid_struct_literal(struct_literal)?;
+        struct_literal.set_type(ty.clone());
+
+        Ok(ty)
     }
 
-    fn visit_member_access(&mut self, member_access: &MemberAccess) -> Result<ValueType, String> {
-        let declaration_type = match self.find_variable(&member_access.object) {
-            Some(var) => {
-                if let ValueType::Struct(struct_name) = var {
-                    if let Some(ty) = self.structs_table.get(&struct_name) {
-                        ty
-                    } else {
-                        unreachable!("Struct declared with an undeclared type!??")
-                    }
-                } else {
-                    return Err(format!(
-                        "Variable '{}' is not a struct, the dot operator can't be applied on it.",
-                        &member_access.object
-                    ));
-                }
+    fn visit_member_access(
+        &mut self,
+        member_access: &mut MemberAccess,
+    ) -> Result<ValueType, String> {
+        let declaration_type = match &self.visit_boxed_expr(&mut member_access.object)? {
+            ValueType::Struct(s) => {
+                member_access.set_type(ValueType::Struct(s.to_string()));
+                self.structs_table.get(s).unwrap()
             }
-            None => {
-                return Err(format!("Undeclared variable '{}'", member_access.object));
+            ValueType::Pointer(ty) => match ty.as_ref() {
+                ValueType::Struct(s) => {
+                    member_access.set_type(ValueType::Struct(s.to_string()));
+                    self.structs_table.get(s).unwrap()
+                }
+                _ => {
+                    return Err(format!("Member access on a non-struct type"));
+                }
+            },
+            _ => {
+                return Err(format!("Member access on a non-struct type"));
             }
         };
 
@@ -202,8 +234,8 @@ impl ExpressionVisitor<Result<ValueType, String>> for TypeChecker {
             Ok(field.1.clone())
         } else {
             Err(format!(
-                "Type '{}' (accessed from variable '{}') has no field '{}'",
-                declaration_type.type_name, member_access.object, member_access.member
+                "Type '{}' has no field '{}'",
+                declaration_type.type_name, member_access.member
             ))
         }
     }

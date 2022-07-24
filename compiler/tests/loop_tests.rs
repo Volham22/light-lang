@@ -14,9 +14,9 @@ fn minimal_while() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -33,9 +33,9 @@ fn while_10_iteration() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -71,9 +71,9 @@ fn while_condition_type_mismatch() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_err());
+        assert!(type_check.check_ast_type(&mut ast).is_err());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -91,9 +91,9 @@ fn nested_while_10_iteration() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -107,9 +107,9 @@ fn simple_for_loop() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -123,9 +123,9 @@ fn simple_for_loop_with_body() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -141,10 +141,10 @@ fn for_desugar_with_body() {
 
     if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
         desugar_ast(&mut ast);
 
-        if let Statement::ForStatement(_) = &ast[0] {
+        if let Statement::ForStatement(_) = &mut ast[0] {
             assert!(false);
         }
     } else {
@@ -162,10 +162,10 @@ fn for_desugar_no_body() {
 
     if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
         desugar_ast(&mut ast);
 
-        if let Statement::ForStatement(_) = &ast[0] {
+        if let Statement::ForStatement(_) = &mut ast[0] {
             assert!(false);
         }
     } else {
@@ -218,7 +218,7 @@ fn two_for_statement() {
     let stmts = parser.parse();
 
     assert!(stmts.is_some());
-    assert!(checker.check_ast_type(&stmts.unwrap()).is_ok());
+    assert!(checker.check_ast_type(&mut stmts.unwrap()).is_ok());
 }
 
 #[test]
@@ -232,7 +232,7 @@ fn parse_loop_statement() {
     let stmts = parser.parse();
 
     assert!(stmts.is_some());
-    assert!(checker.check_ast_type(&stmts.unwrap()).is_ok());
+    assert!(checker.check_ast_type(&mut stmts.unwrap()).is_ok());
 }
 
 #[test]
@@ -246,7 +246,7 @@ fn parse_loop_statement_with_break() {
     let stmts = parser.parse();
 
     assert!(stmts.is_some());
-    assert!(checker.check_ast_type(&stmts.unwrap()).is_ok());
+    assert!(checker.check_ast_type(&mut stmts.unwrap()).is_ok());
 }
 
 #[test]
@@ -260,5 +260,5 @@ fn parse_break_outside_loop() {
     let stmts = parser.parse();
 
     assert!(stmts.is_some());
-    assert!(checker.check_ast_type(&stmts.unwrap()).is_err());
+    assert!(checker.check_ast_type(&mut stmts.unwrap()).is_err());
 }

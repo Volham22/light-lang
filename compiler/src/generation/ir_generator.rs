@@ -14,7 +14,7 @@ use inkwell::{
     context::Context,
     execution_engine::ExecutionEngine,
     module::Module,
-    types::{AnyTypeEnum, BasicType, BasicTypeEnum, PointerType, StructType},
+    types::{AnyType, AnyTypeEnum, BasicType, BasicTypeEnum, PointerType, StructType},
     values::{AnyValueEnum, FloatValue, FunctionValue, IntValue, PointerValue},
     AddressSpace,
 };
@@ -263,6 +263,7 @@ impl<'a> IRGenerator<'a> {
             AnyTypeEnum::FunctionType(t) => t.ptr_type(AddressSpace::Generic),
             AnyTypeEnum::PointerType(t) => t.ptr_type(AddressSpace::Generic),
             AnyTypeEnum::VoidType(_) => self.context.i64_type().ptr_type(AddressSpace::Generic),
+            AnyTypeEnum::StructType(t) => t.ptr_type(AddressSpace::Generic),
             _ => panic!("{:?}", val),
         }
     }
@@ -308,7 +309,7 @@ impl<'a> IRGenerator<'a> {
                 .i64_type()
                 .ptr_type(AddressSpace::Generic)
                 .into(),
-            ValueType::Struct(_) => todo!(),
+            ValueType::Struct(s) => self.struct_types.get(s).unwrap().as_any_type_enum(),
         }
     }
 
@@ -344,20 +345,21 @@ impl<'a> IRGenerator<'a> {
     }
 
     pub fn get_struct_member_pointer_value(
-        &self,
+        &mut self,
         member_access: &MemberAccess,
+        struct_value: PointerValue<'a>,
     ) -> PointerValue<'a> {
         // Note: Unwraping is safe here since the type checker already
         // checked that our AST is correct.
-        let struct_value = self.variables.get(&member_access.object).unwrap();
         let struct_type = self
             .type_table
             .find_struct_type(
-                &self
-                    .type_table
-                    .find_variable_type(&member_access.object)
+                member_access
+                    .ty
+                    .as_ref()
                     .unwrap()
-                    .into_struct_type(),
+                    .into_struct_type()
+                    .as_str(),
             )
             .unwrap();
 
@@ -369,7 +371,7 @@ impl<'a> IRGenerator<'a> {
 
         self.builder
             .build_struct_gep(
-                *struct_value,
+                struct_value,
                 member_index as u32,
                 "struct_member_access_gep",
             )

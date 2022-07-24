@@ -3,8 +3,8 @@ use crate::lexer::Token;
 use super::{
     parser::Parser,
     visitors::{
-        AddressOf, ArrayAccess, Binary, BinaryLogic, Call, DeReference, Expression, Group, Literal,
-        MemberAccess, StructLiteral, Unary,
+        AddressOf, ArrayAccess, Binary, BinaryLogic, Call, DeReference, Expression, Group,
+        Identifier, Literal, MemberAccess, StructLiteral, Unary,
     },
 };
 
@@ -172,7 +172,7 @@ impl Parser {
                 return Err(());
             }
 
-            let name = match primary_expr {
+            let identifier = match primary_expr {
                 Expression::Literal(Literal::Identifier(n)) => n,
                 _ => {
                     println!("Error: Expected identifier before function call.");
@@ -181,9 +181,49 @@ impl Parser {
             };
 
             return Ok(Expression::Call(Call {
-                name,
+                name: identifier.name,
+                ty: None,
                 args: if !args.is_empty() { Some(args) } else { None },
             }));
+        }
+
+        if self.match_expr(&[Token::Dot]) {
+            let rhs = if let Expression::Literal(Literal::Identifier(id)) = self.or()? {
+                id.name
+            } else {
+                println!("Expected identifier after Dot member access.");
+                return Err(());
+            };
+
+            return Ok(Expression::MemberAccess(MemberAccess {
+                object: Box::new(primary_expr),
+                member: rhs.to_string(),
+                ty: None,
+            }));
+        }
+
+        if self.match_expr(&[Token::LeftBracket]) {
+            let matched_token = self.previous().unwrap();
+
+            match matched_token {
+                Token::LeftBracket => {
+                    let index = self.or()?;
+
+                    if let None =
+                        self.consume(&Token::RightBracket, "Unclosed ']' in array access.")
+                    {
+                        return Err(());
+                    }
+
+                    return Ok(Expression::ArrayAccess(ArrayAccess {
+                        ty: None,
+                        identifier: Box::new(primary_expr),
+                        is_lvalue: false,
+                        index: Box::new(index.clone()),
+                    }));
+                }
+                _ => unreachable!(),
+            }
         }
 
         Ok(primary_expr)
@@ -200,75 +240,29 @@ impl Parser {
             Some(Token::Quote(s)) => Ok(Expression::Literal(Literal::StringLiteral(s.clone()))),
             Some(Token::Null) => Ok(Expression::Null),
             Some(Token::AddressOf) => {
-                let identifier = if let Some(Token::Identifier(id)) = self.consume(
-                    &Token::Identifier(String::new()),
-                    "Expected <identifier> after 'addrof' keyword",
-                ) {
-                    id
-                } else {
-                    return Err(());
-                };
-
+                let identifier = self.or()?;
                 Ok(Expression::AddressOf(AddressOf {
-                    identifier: identifier.to_string(),
+                    identifier: Box::new(identifier),
+                    ty: None,
                 }))
             }
             Some(Token::Dereference) => {
-                let identifier = if let Some(Token::Identifier(id)) = self.consume(
-                    &Token::Identifier(String::new()),
-                    "Expected <identifier> after 'deref' keyword",
-                ) {
-                    id
-                } else {
-                    return Err(());
-                };
+                let identifier = self.or()?;
 
                 Ok(Expression::DeReference(DeReference {
-                    identifier: identifier.to_string(),
+                    identifier: Box::new(identifier),
+                    is_lvalue: false,
+                    ty: None,
                 }))
             }
             Some(Token::Identifier(value)) => {
                 let name = value.clone(); // Copy the literal's name to avoid borrow checker errors
 
-                if self.match_expr(&[Token::LeftBracket, Token::Dot]) {
-                    let matched_token = self.previous().unwrap();
-
-                    match matched_token {
-                        Token::LeftBracket => {
-                            let index = self.or()?;
-
-                            if let None =
-                                self.consume(&Token::RightBracket, "Unclosed ']' in array access.")
-                            {
-                                return Err(());
-                            }
-
-                            Ok(Expression::ArrayAccess(ArrayAccess {
-                                identifier: name,
-                                index: Box::new(index.clone()),
-                            }))
-                        }
-                        Token::Dot => {
-                            let member = self.or()?;
-
-                            Ok(Expression::MemberAccess(MemberAccess {
-                                object: name,
-                                // TODO: In the future we may need to do things like obj.1
-                                member: if let Expression::Literal(Literal::Identifier(name)) =
-                                    member
-                                {
-                                    name.to_string()
-                                } else {
-                                    println!("Error: Expected identifier after '.'.");
-                                    return Err(());
-                                },
-                            }))
-                        }
-                        _ => unreachable!(),
-                    }
-                } else {
-                    Ok(Expression::Literal(Literal::Identifier(name)))
-                }
+                Ok(Expression::Literal(Literal::Identifier(Identifier {
+                    name,
+                    is_lvalue: false,
+                    ty: None,
+                })))
             }
             Some(Token::LeftParenthesis) => {
                 let inner_expr = self.or()?;
@@ -319,6 +313,7 @@ impl Parser {
                 }
 
                 Ok(Expression::Literal(Literal::StructLiteral(StructLiteral {
+                    literal_type: None,
                     type_name,
                     expressions,
                 })))

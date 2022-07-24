@@ -11,7 +11,7 @@ fn simple_pointer_declaration() {
 
     let ast_opt = parser.parse();
     assert!(ast_opt.is_some());
-    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
     assert!(tc_result.is_ok(), "Type error: {}", tc_result.unwrap_err());
 }
 
@@ -25,7 +25,7 @@ fn simple_pointer_addrof() {
 
     let ast_opt = parser.parse();
     assert!(ast_opt.is_some());
-    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
     assert!(tc_result.is_ok(), "Type error: {}", tc_result.unwrap_err());
 }
 
@@ -39,7 +39,7 @@ fn wrong_pointer_addrof() {
 
     let ast_opt = parser.parse();
     assert!(ast_opt.is_some());
-    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
     assert!(tc_result.is_err(), "Type check should fail.");
 }
 
@@ -53,7 +53,7 @@ fn addrof_of_non_pointer_type() {
 
     let ast_opt = parser.parse();
     assert!(ast_opt.is_some());
-    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
     assert!(tc_result.is_err(), "Type check should fail.");
 }
 
@@ -68,7 +68,7 @@ fn pointer_dereference_assignment() {
 
     let ast_opt = parser.parse();
     assert!(ast_opt.is_some());
-    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
     assert!(tc_result.is_ok(), "Type error: {}", tc_result.unwrap_err());
 }
 
@@ -83,7 +83,7 @@ fn wrong_type_pointer_dereference_assignment() {
 
     let ast_opt = parser.parse();
     assert!(ast_opt.is_some());
-    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
     assert!(tc_result.is_err(), "Type checking should fail.");
 }
 
@@ -100,7 +100,7 @@ fn pointer_array_subscript() {
 
     let ast_opt = parser.parse();
     assert!(ast_opt.is_some());
-    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
     assert!(tc_result.is_ok(), "Type error: {}", tc_result.unwrap_err());
 }
 
@@ -114,7 +114,7 @@ fn void_pointer_init() {
 
     let ast_opt = parser.parse();
     assert!(ast_opt.is_some());
-    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
     assert!(tc_result.is_ok(), "Type error: {}", tc_result.unwrap_err());
 }
 
@@ -128,7 +128,7 @@ fn pointer_init_from_void() {
 
     let ast_opt = parser.parse();
     assert!(ast_opt.is_some());
-    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
     assert!(tc_result.is_ok(), "Type error: {}", tc_result.unwrap_err());
 }
 
@@ -142,6 +142,20 @@ fn malloc_array_and_assign() {
 
     let ast_opt = parser.parse();
     assert!(ast_opt.is_some());
-    let tc_result = type_check.check_ast_type(&ast_opt.unwrap());
+    let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
+    assert!(tc_result.is_ok(), "Type error: {}", tc_result.unwrap_err());
+}
+
+#[test]
+fn valid_deref_lvalue_number() {
+    let source = "let a: number = 3; let ptr_a: ptr number = addrof a; (deref ptr_a) = 42;";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens);
+    let mut type_check = TypeChecker::new();
+
+    let ast_opt = parser.parse();
+    assert!(ast_opt.is_some());
+    let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
     assert!(tc_result.is_ok(), "Type error: {}", tc_result.unwrap_err());
 }

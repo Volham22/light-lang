@@ -9,9 +9,9 @@ fn empty_void_function() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -24,9 +24,9 @@ fn number_return_function() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -39,9 +39,9 @@ fn bool_return_function() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -54,9 +54,9 @@ fn real_return_function() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -69,9 +69,9 @@ fn void_one_arg_function() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -84,9 +84,9 @@ fn void_multi_args_function() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -99,9 +99,9 @@ fn return_number_arg_function() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -114,9 +114,9 @@ fn return_real_arg_function() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -129,9 +129,9 @@ fn return_bool_arg_function() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -144,9 +144,9 @@ fn wrong_return_type() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_err());
+        assert!(type_check.check_ast_type(&mut ast).is_err());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -159,9 +159,9 @@ fn wrong_arg_type() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_err());
+        assert!(type_check.check_ast_type(&mut ast).is_err());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -174,9 +174,9 @@ fn main_function() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -190,9 +190,9 @@ fn simple_program_with_args() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -205,9 +205,9 @@ fn simple_program_without_args() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -220,9 +220,9 @@ fn function_declaration_no_args() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -235,9 +235,9 @@ fn function_declaration_with_args() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -250,9 +250,9 @@ fn exported_function_no_args() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -265,9 +265,9 @@ fn exported_function_with_args() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -280,9 +280,9 @@ fn exported_function_missing_body() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_err());
+        assert!(type_check.check_ast_type(&mut ast).is_err());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -295,9 +295,9 @@ fn pass_array_as_parameter() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -310,9 +310,9 @@ fn pass_array_as_parameter_wrong_size() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_err());
+        assert!(type_check.check_ast_type(&mut ast).is_err());
     } else {
         assert!(false, "Parser failed!");
     }
@@ -325,9 +325,9 @@ fn pass_array_element_as_parameter() {
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens);
 
-    if let Some(ast) = parser.parse() {
+    if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&ast).is_ok());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }

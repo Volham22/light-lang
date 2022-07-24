@@ -11,7 +11,7 @@ pub enum Literal {
     Bool(bool),
     StringLiteral(String),
     StructLiteral(StructLiteral),
-    Identifier(String),
+    Identifier(Identifier),
 }
 
 impl Display for Literal {
@@ -28,9 +28,23 @@ impl Display for Literal {
 }
 
 #[derive(Clone)]
+pub struct Identifier {
+    pub name: String,
+    pub(crate) ty: Option<ValueType>,
+    pub is_lvalue: bool,
+}
+
+impl Display for Identifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("Identifier; {}", self.name))
+    }
+}
+
+#[derive(Clone)]
 pub struct StructLiteral {
     pub type_name: String,
     pub expressions: Vec<Expression>,
+    pub literal_type: Option<ValueType>,
 }
 
 #[derive(Clone)]
@@ -69,28 +83,35 @@ pub enum Unary {
 pub struct Call {
     pub name: String,
     pub args: Option<Vec<Expression>>,
+    pub ty: Option<ValueType>,
 }
 
 #[derive(Clone)]
 pub struct ArrayAccess {
-    pub identifier: String,
+    pub identifier: Box<Expression>,
     pub index: Box<Expression>,
+    pub ty: Option<ValueType>,
+    pub is_lvalue: bool,
 }
 
 #[derive(Clone)]
 pub struct AddressOf {
-    pub identifier: String,
+    pub identifier: Box<Expression>,
+    pub ty: Option<ValueType>,
 }
 
 #[derive(Clone)]
 pub struct DeReference {
-    pub identifier: String,
+    pub identifier: Box<Expression>,
+    pub ty: Option<ValueType>,
+    pub is_lvalue: bool,
 }
 
 #[derive(Clone)]
 pub struct MemberAccess {
-    pub object: String,
+    pub object: Box<Expression>,
     pub member: String,
+    pub ty: Option<ValueType>,
 }
 
 #[derive(Clone)]
@@ -227,4 +248,19 @@ pub trait ExpressionVisitor<T> {
     fn visit_dereference_expression(&mut self, dereference: &DeReference) -> T;
     fn visit_struct_literal(&mut self, struct_literal: &StructLiteral) -> T;
     fn visit_member_access(&mut self, member_access: &MemberAccess) -> T;
+}
+
+pub trait MutableExpressionVisitor<T> {
+    fn visit_literal(&mut self, literal: &mut Literal) -> T;
+    fn visit_binary(&mut self, binary: &mut Binary) -> T;
+    fn visit_group(&mut self, group: &mut Group) -> T;
+    fn visit_binary_logic(&mut self, literal: &mut BinaryLogic) -> T;
+    fn visit_unary(&mut self, unary: &mut Unary) -> T;
+    fn visit_call(&mut self, call_expr: &mut Call) -> T;
+    fn visit_array_access(&mut self, call_expr: &mut ArrayAccess) -> T;
+    fn visit_null_expression(&mut self) -> T;
+    fn visit_address_of_expression(&mut self, address_of: &mut AddressOf) -> T;
+    fn visit_dereference_expression(&mut self, dereference: &mut DeReference) -> T;
+    fn visit_struct_literal(&mut self, struct_literal: &mut StructLiteral) -> T;
+    fn visit_member_access(&mut self, member_access: &mut MemberAccess) -> T;
 }
