@@ -155,11 +155,6 @@ impl MutableStatementVisitor<TypeCheckerReturn> for TypeChecker {
             }
         } else {
             self.in_function = None;
-
-            // A function must have a block definition if exported
-            if expr.is_exported {
-                return Err(format!("Error: exported function must have a body."));
-            }
         }
 
         self.in_function = None;
