@@ -3,6 +3,7 @@ use crate::parser::visitors::Statement;
 use self::for_desugar::ForDesugar;
 
 mod for_desugar;
+pub mod import_resolver;
 
 fn desugar_for_loops(stmts: &mut Vec<Statement>) {
     let mut for_desugar = ForDesugar {};

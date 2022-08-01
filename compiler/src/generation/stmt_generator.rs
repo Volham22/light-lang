@@ -9,8 +9,8 @@ use inkwell::{
 
 use crate::{
     parser::visitors::{
-        BlockStatement, Expression, ForStatement, FunctionStatement, IfStatement, Literal,
-        ReturnStatement, StatementVisitor, StructStatement, VariableAssignment,
+        BlockStatement, Expression, ForStatement, FunctionStatement, IfStatement, ImportStatement,
+        Literal, ReturnStatement, StatementVisitor, StructStatement, VariableAssignment,
         VariableDeclaration, WhileStatement,
     },
     type_system::value_type::{StaticArray, ValueType},
@@ -610,5 +610,12 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
         self.has_branched = true;
 
         None
+    }
+
+    fn visit_import_statement(
+        &mut self,
+        _import_stmt: &ImportStatement,
+    ) -> Option<AnyValueEnum<'a>> {
+        unreachable!()
     }
 }
