@@ -118,6 +118,8 @@ pub enum Token {
     Semicolon,
     #[token(":")]
     Colon,
+    #[token("::")]
+    DoubleColon,
     #[token("true")]
     True,
     #[token("false")]
@@ -163,6 +165,7 @@ impl PartialEq for Token {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Token::If, Token::If) => true,
+            (Token::DoubleColon, Token::DoubleColon) => true,
             (Token::Else, Token::Else) => true,
             (Token::While, Token::While) => true,
             (Token::For, Token::For) => true,
@@ -688,5 +691,24 @@ mod tests {
         });
 
         assert_eq!(lexer.next().unwrap(), Token::Semicolon);
+    }
+
+    #[test]
+    fn double_colon_test() {
+        let mut lexer = Token::lexer("module::function()");
+
+        assert!(if let Token::Identifier(id) = lexer.next().unwrap() {
+            id == "module"
+        } else {
+            false
+        });
+        assert_eq!(lexer.next().unwrap(), Token::DoubleColon);
+        assert!(if let Token::Identifier(id) = lexer.next().unwrap() {
+            id == "function"
+        } else {
+            false
+        });
+        assert_eq!(lexer.next().unwrap(), Token::LeftParenthesis);
+        assert_eq!(lexer.next().unwrap(), Token::RightParenthesis);
     }
 }

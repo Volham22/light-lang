@@ -115,6 +115,12 @@ pub struct MemberAccess {
 }
 
 #[derive(Clone)]
+pub struct ModuleAccess {
+    pub left: Box<Expression>,
+    pub right: Box<Expression>,
+}
+
+#[derive(Clone)]
 pub enum Expression {
     Literal(Literal),
     Binary(Binary),
@@ -126,6 +132,7 @@ pub enum Expression {
     AddressOf(AddressOf),
     DeReference(DeReference),
     MemberAccess(MemberAccess),
+    ModuleAccess(ModuleAccess),
     Null,
 }
 

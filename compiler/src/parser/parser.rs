@@ -9,6 +9,12 @@ pub struct Parser {
 }
 
 impl Parser {
+    /// # Arguments
+    /// - lexer: vec of Token (usually collected from the lexer)
+    /// - module_path: String path of the current module
+    ///
+    /// The module path arguments is used by the parser for import statements
+    /// nodes of the AST.
     pub fn new(lexer: Vec<Token>, module_path: &str) -> Self {
         Self {
             lexer,

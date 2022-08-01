@@ -4,7 +4,7 @@ use super::{
     parser::Parser,
     visitors::{
         AddressOf, ArrayAccess, Binary, BinaryLogic, Call, DeReference, Expression, Group,
-        Identifier, Literal, MemberAccess, StructLiteral, Unary,
+        Identifier, Literal, MemberAccess, ModuleAccess, StructLiteral, Unary,
     },
 };
 
@@ -224,6 +224,15 @@ impl Parser {
                 }
                 _ => unreachable!(),
             }
+        }
+
+        if self.match_expr(&[Token::DoubleColon]) {
+            let rhs = self.or()?;
+
+            return Ok(Expression::ModuleAccess(ModuleAccess {
+                left: Box::new(primary_expr),
+                right: Box::new(rhs),
+            }));
         }
 
         Ok(primary_expr)
