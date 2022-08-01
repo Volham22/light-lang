@@ -11,3 +11,25 @@ fn import_statement_parser() {
     let ast_opt = parser.parse();
     assert!(ast_opt.is_some());
 }
+
+#[test]
+fn import_statement_parser_missing_quote() {
+    let source = "import module;";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens, "./module.lht");
+
+    let ast_opt = parser.parse();
+    assert!(ast_opt.is_none());
+}
+
+#[test]
+fn import_statement_parser_missing_semicolon() {
+    let source = "import \"module\"";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens, "./module.lht");
+
+    let ast_opt = parser.parse();
+    assert!(ast_opt.is_none());
+}
