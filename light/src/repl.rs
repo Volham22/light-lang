@@ -26,7 +26,7 @@ pub fn repl_loop() {
         if let Ok(str) = line {
             let lexer = Token::lexer(str.as_str());
             let tokens = lexer.collect();
-            let mut parser = Parser::new(tokens);
+            let mut parser = Parser::new(tokens, "./module.lht");
 
             if let Some(mut stmts) = parser.parse() {
                 print_ast(&stmts);

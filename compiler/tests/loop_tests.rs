@@ -12,7 +12,7 @@ fn minimal_while() {
     let source = "while false {}";
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
 
     if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
@@ -31,7 +31,7 @@ fn while_10_iteration() {
 
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
 
     if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
@@ -47,7 +47,7 @@ fn while_no_condition() {
 
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
 
     assert!(parser.parse().is_none());
 }
@@ -58,7 +58,7 @@ fn while_no_body() {
 
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
 
     assert!(parser.parse().is_none());
 }
@@ -69,7 +69,7 @@ fn while_condition_type_mismatch() {
 
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
 
     if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
@@ -89,7 +89,7 @@ fn nested_while_10_iteration() {
 
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
 
     if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
@@ -105,7 +105,7 @@ fn simple_for_loop() {
 
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
 
     if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
@@ -121,7 +121,7 @@ fn simple_for_loop_with_body() {
 
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
 
     if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
@@ -137,7 +137,7 @@ fn for_desugar_with_body() {
 
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
 
     if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
@@ -158,7 +158,7 @@ fn for_desugar_no_body() {
 
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
 
     if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
@@ -179,7 +179,7 @@ fn for_missing_semicolon() {
 
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
 
     assert!(parser.parse().is_none());
 }
@@ -190,7 +190,7 @@ fn for_no_loop_condition() {
 
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
 
     assert!(parser.parse().is_none());
 }
@@ -201,7 +201,7 @@ fn for_no_next_statement() {
 
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
 
     assert!(parser.parse().is_none());
 }
@@ -213,7 +213,7 @@ fn two_for_statement() {
 
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
     let mut checker = TypeChecker::new();
     let stmts = parser.parse();
 
@@ -227,7 +227,7 @@ fn parse_loop_statement() {
 
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
     let mut checker = TypeChecker::new();
     let stmts = parser.parse();
 
@@ -241,7 +241,7 @@ fn parse_loop_statement_with_break() {
 
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
     let mut checker = TypeChecker::new();
     let stmts = parser.parse();
 
@@ -255,7 +255,7 @@ fn parse_break_outside_loop() {
 
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
     let mut checker = TypeChecker::new();
     let stmts = parser.parse();
 

@@ -673,4 +673,20 @@ mod tests {
             Token::Identifier(String::from("member"))
         );
     }
+
+    #[test]
+    fn import_module_test() {
+        let mut lexer = Token::lexer("import \"module\";");
+        assert_eq!(lexer.next().unwrap(), Token::Import);
+        let str_literal = lexer.next().unwrap();
+        assert_eq!(str_literal, Token::Quote(String::new()));
+
+        assert!(if let Token::Quote(content) = str_literal {
+            content == "module"
+        } else {
+            false
+        });
+
+        assert_eq!(lexer.next().unwrap(), Token::Semicolon);
+    }
 }

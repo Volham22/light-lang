@@ -27,6 +27,7 @@ impl<'m> FileBuilder<'m> {
             modules: Vec::new(),
         }
     }
+
     pub fn generate_module_ir(&mut self, path: &str, print_ir_code: bool) -> bool {
         let content = if let Ok(c) = Self::read_file_content(path) {
             c
@@ -36,7 +37,7 @@ impl<'m> FileBuilder<'m> {
 
         let lexer = Token::lexer(content.as_str());
         let tokens = lexer.collect();
-        let mut parser = Parser::new(tokens);
+        let mut parser = Parser::new(tokens, Self::extract_module_directory(path));
 
         if let Some(mut stmts) = parser.parse() {
             let mut type_checker = TypeChecker::new();
@@ -139,5 +140,9 @@ impl<'m> FileBuilder<'m> {
             .iter()
             .map(|t| t.0.to_string() + ".o")
             .collect()
+    }
+
+    fn extract_module_directory(path: &str) -> &str {
+        Path::new(path).parent().unwrap().to_str().unwrap()
     }
 }

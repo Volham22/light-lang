@@ -6,7 +6,7 @@ fn simple_pointer_declaration() {
     let source = "let my_ptr: ptr number = null;";
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -20,7 +20,7 @@ fn simple_pointer_addrof() {
     let source = "let answer: number = 42; let ans_ptr: ptr number = addrof answer;";
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -34,7 +34,7 @@ fn wrong_pointer_addrof() {
     let source = "let answer: number = 42; let ans_ptr: ptr real = addrof answer;";
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -48,7 +48,7 @@ fn addrof_of_non_pointer_type() {
     let source = "let answer: number = 42; let ans_ptr: number = addrof answer;";
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -63,7 +63,7 @@ fn pointer_dereference_assignment() {
         "let answer: number = 42; let ans_ptr: ptr number = addrof answer; deref ans_ptr = 32;";
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -78,7 +78,7 @@ fn wrong_type_pointer_dereference_assignment() {
         "let answer: number = 42; let ans_ptr: ptr bool = addrof answer; deref ans_ptr = 32;";
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -95,7 +95,7 @@ fn pointer_array_subscript() {
     let source = "let ans_ptr: ptr number = null; ans_ptr[1];";
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -109,7 +109,7 @@ fn void_pointer_init() {
     let source = "let answer: number = 42; let ans_ptr: ptr void = addrof answer;";
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -123,7 +123,7 @@ fn pointer_init_from_void() {
     let source = "fn malloc(size: number): ptr void; let dyn_arr: ptr number = malloc(8 * 3);";
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -137,7 +137,7 @@ fn malloc_array_and_assign() {
     let source = "fn malloc(size: number): ptr void; let dyn_arr: ptr number = malloc(8 * 3); dyn_arr[0] = 2;";
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -151,7 +151,7 @@ fn valid_deref_lvalue_number() {
     let source = "let a: number = 3; let ptr_a: ptr number = addrof a; (deref ptr_a) = 42;";
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();

@@ -193,6 +193,12 @@ pub struct ForStatement {
 }
 
 #[derive(Clone)]
+pub struct ImportStatement {
+    pub file_path: String,
+    pub module_path: String,
+}
+
+#[derive(Clone)]
 pub enum Statement {
     Expression(Expression),
     VariableDeclaration(VariableDeclaration),
@@ -204,6 +210,7 @@ pub enum Statement {
     IfStatement(IfStatement),
     WhileStatement(WhileStatement),
     ForStatement(ForStatement),
+    Import(ImportStatement),
     BreakStatement,
 }
 
