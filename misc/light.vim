@@ -9,7 +9,7 @@ syn keyword     lightStatement      import let struct
 syn keyword     lightKeyword        break continue export ptr fn return
 syn keyword     lightRepeat         for while loop
 syn keyword     lightType           number real bool void string
-syn keyword     lightOperator       addrof deref + - * / % ::
+syn keyword     lightOperator       addrof deref and or not + - * / % ::
 syn keyword     lightBoolean        true false null
 syn keyword     lightTodo           TODO FIXME XXX
 

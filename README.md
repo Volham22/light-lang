@@ -57,6 +57,18 @@ $ ./program
 
 More options and their descriptions are described with the `-h` flag.
 
+## TODO
+
+Here a short list of features to implements
+
+- A `byte` type for dynamic strings
+- Each module should have its own namespace to avoid name collision.
+- Implement `struct` member functions
+- Implement casts (the compiler should check that casts are valid)
+- Better error reporting with a proper error location (e.g rustc, gcc)
+- Debug randoms errors because there's a lot of bugs
+- Smarter checks to make sure a function returns in every paths.
+
 ## Credits
 
 - [Logos](https://docs.rs/logos/latest/logos/)
