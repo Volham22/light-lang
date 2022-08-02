@@ -95,7 +95,6 @@ impl TypeChecker {
             Expression::AddressOf(address_of) => self.visit_address_of_expression(address_of),
             Expression::DeReference(deref) => self.visit_dereference_expression(deref),
             Expression::MemberAccess(member_access) => self.visit_member_access(member_access),
-            Expression::ModuleAccess(_) => todo!(),
         }
     }
 
@@ -112,7 +111,6 @@ impl TypeChecker {
             Expression::AddressOf(address_of) => self.visit_address_of_expression(address_of),
             Expression::DeReference(deref) => self.visit_dereference_expression(deref),
             Expression::MemberAccess(member_access) => self.visit_member_access(member_access),
-            Expression::ModuleAccess(_) => todo!(),
         }
     }
 

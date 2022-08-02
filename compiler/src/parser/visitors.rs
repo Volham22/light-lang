@@ -114,11 +114,12 @@ pub struct MemberAccess {
     pub ty: Option<ValueType>,
 }
 
-#[derive(Clone)]
-pub struct ModuleAccess {
-    pub left: Box<Expression>,
-    pub right: Box<Expression>,
-}
+// TODO: Namespace support
+// #[derive(Clone)]
+// pub struct ModuleAccess {
+//     pub left: Box<Expression>,
+//     pub right: Box<Expression>,
+// }
 
 #[derive(Clone)]
 pub enum Expression {
@@ -132,7 +133,7 @@ pub enum Expression {
     AddressOf(AddressOf),
     DeReference(DeReference),
     MemberAccess(MemberAccess),
-    ModuleAccess(ModuleAccess),
+    // ModuleAccess(ModuleAccess), // TODO: Namespace support
     Null,
 }
 

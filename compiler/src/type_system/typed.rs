@@ -1,6 +1,6 @@
 use crate::parser::visitors::{
     AddressOf, ArrayAccess, Binary, BinaryLogic, Call, DeReference, Expression, Group, Identifier,
-    Literal, MemberAccess, ModuleAccess, StructLiteral, Unary,
+    Literal, MemberAccess, StructLiteral, Unary,
 };
 
 use super::value_type::ValueType;
@@ -195,17 +195,18 @@ impl Typed for MemberAccess {
     }
 }
 
-impl Typed for ModuleAccess {
-    // In a module type access we usually want to return the type of the expression's right hand side
-    // since they're supposed to be struct types or functions
-    fn get_type(&self) -> ValueType {
-        self.right.get_type()
-    }
-
-    fn set_type(&mut self, _new_type: ValueType) {
-        unreachable!()
-    }
-}
+// TODO: Namespace support
+// impl Typed for ModuleAccess {
+//     // In a module type access we usually want to return the type of the expression's right hand side
+//     // since they're supposed to be struct types or functions
+//     fn get_type(&self) -> ValueType {
+//         self.right.get_type()
+//     }
+//
+//     fn set_type(&mut self, _new_type: ValueType) {
+//         unreachable!()
+//     }
+// }
 
 impl Typed for Expression {
     fn get_type(&self) -> ValueType {
@@ -220,7 +221,7 @@ impl Typed for Expression {
             Expression::AddressOf(ao) => ao.get_type(),
             Expression::DeReference(dr) => dr.get_type(),
             Expression::MemberAccess(ma) => ma.get_type(),
-            Expression::ModuleAccess(ma) => ma.get_type(),
+            // Expression::ModuleAccess(ma) => ma.get_type(), // TODO Namespace support
             Expression::Null => ValueType::Null,
         }
     }
