@@ -66,8 +66,6 @@ pub enum Token {
     Return,
     #[token("import")]
     Import,
-    #[token("print")]
-    Print,
     #[token("=")]
     Equal,
     #[token("+")]
@@ -177,7 +175,6 @@ impl PartialEq for Token {
             (Token::Export, Token::Export) => true,
             (Token::Return, Token::Return) => true,
             (Token::Import, Token::Import) => true,
-            (Token::Print, Token::Print) => true,
             (Token::Equal, Token::Equal) => true,
             (Token::Plus, Token::Plus) => true,
             (Token::Minus, Token::Minus) => true,
@@ -340,15 +337,6 @@ mod tests {
             lexer.next(),
             Some(Token::Identifier("my_module".to_string()))
         );
-        assert_eq!(lexer.next(), Some(Token::Semicolon));
-    }
-
-    #[test]
-    fn print_test() {
-        let mut lexer = Token::lexer("print hey;");
-
-        assert_eq!(lexer.next(), Some(Token::Print));
-        assert_eq!(lexer.next(), Some(Token::Identifier("hey".to_string())));
         assert_eq!(lexer.next(), Some(Token::Semicolon));
     }
 
