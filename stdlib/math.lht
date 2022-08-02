@@ -1,0 +1,23 @@
+fn sqrt(x: real): real;
+
+export fn abs(n: number): number {
+    let result: number = n;
+    if n < 0 {
+        result = -n;
+    }
+
+    return result;
+}
+
+export fn pow(x: number, n: number): number {
+    if n == 0 {
+        return 1;
+    }
+
+    let result: number = x;
+    for let i: number = 1; i < n; i = i + 1; {
+        result = result * x;
+    }
+
+    return result;
+}

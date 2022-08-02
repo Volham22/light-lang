@@ -1,0 +1,4 @@
+// C functions to manage memory
+export fn malloc(size: number): ptr void;
+export fn realloc(pointer: ptr void, new_size: number): ptr void;
+export fn free(pointer: ptr void): void;

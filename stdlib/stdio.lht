@@ -1,0 +1,15 @@
+import "memory";
+
+fn puts(msg: string): number;
+fn printf(msg: string, n: number): number;
+
+export fn itoa(value: number, buffer: ptr void, base: number): void;
+
+export fn println(msg: string): void {
+    puts(msg);
+}
+
+export fn print_number(n: number): void {
+    printf("%d", n);
+    puts("");
+}
