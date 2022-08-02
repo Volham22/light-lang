@@ -501,6 +501,7 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
                 .ptr_type(AddressSpace::Generic)
                 .const_zero()
                 .as_any_value_enum(),
+            // Expression::ModuleAccess(_) => todo!(),
         }
     }
 

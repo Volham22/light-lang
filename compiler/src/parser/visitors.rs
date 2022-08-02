@@ -114,6 +114,13 @@ pub struct MemberAccess {
     pub ty: Option<ValueType>,
 }
 
+// TODO: Namespace support
+// #[derive(Clone)]
+// pub struct ModuleAccess {
+//     pub left: Box<Expression>,
+//     pub right: Box<Expression>,
+// }
+
 #[derive(Clone)]
 pub enum Expression {
     Literal(Literal),
@@ -126,6 +133,7 @@ pub enum Expression {
     AddressOf(AddressOf),
     DeReference(DeReference),
     MemberAccess(MemberAccess),
+    // ModuleAccess(ModuleAccess), // TODO: Namespace support
     Null,
 }
 
@@ -193,6 +201,12 @@ pub struct ForStatement {
 }
 
 #[derive(Clone)]
+pub struct ImportStatement {
+    pub file_path: String,
+    pub module_path: String,
+}
+
+#[derive(Clone)]
 pub enum Statement {
     Expression(Expression),
     VariableDeclaration(VariableDeclaration),
@@ -204,6 +218,7 @@ pub enum Statement {
     IfStatement(IfStatement),
     WhileStatement(WhileStatement),
     ForStatement(ForStatement),
+    Import(ImportStatement),
     BreakStatement,
 }
 
@@ -219,6 +234,7 @@ pub trait StatementVisitor<T> {
     fn visit_while_statement(&mut self, while_stmt: &WhileStatement) -> T;
     fn visit_for_statement(&mut self, for_stmt: &ForStatement) -> T;
     fn visit_break_statement(&mut self) -> T;
+    fn visit_import_statement(&mut self, import_stmt: &ImportStatement) -> T;
 }
 
 pub trait MutableStatementVisitor<T> {
@@ -233,6 +249,7 @@ pub trait MutableStatementVisitor<T> {
     fn visit_while_statement(&mut self, while_stmt: &mut WhileStatement) -> T;
     fn visit_for_statement(&mut self, for_stmt: &mut ForStatement) -> T;
     fn visit_break_statement(&mut self) -> T;
+    fn visit_import_statement(&mut self, import_stmt: &mut ImportStatement) -> T;
 }
 
 pub trait ExpressionVisitor<T> {

@@ -1,6 +1,7 @@
 use std::io::{self, BufRead, Write};
 
 use compiler::desugar::desugar_ast;
+use compiler::desugar::import_resolver::ImportResolver;
 use inkwell::context::Context;
 use inkwell::OptimizationLevel;
 use logos::Logos;
@@ -26,10 +27,18 @@ pub fn repl_loop() {
         if let Ok(str) = line {
             let lexer = Token::lexer(str.as_str());
             let tokens = lexer.collect();
-            let mut parser = Parser::new(tokens);
+            let mut parser = Parser::new(tokens, "./module.lht");
+            let mut import_resolver = ImportResolver::new();
 
             if let Some(mut stmts) = parser.parse() {
                 print_ast(&stmts);
+                match import_resolver.resolve_imports(&mut stmts) {
+                    Ok(r) => stmts = r,
+                    Err(msg) => {
+                        eprintln!("{}", msg);
+                        continue;
+                    }
+                }
 
                 if let Err(msg) = type_check.check_ast_type(&mut stmts) {
                     println!("Error: {}", msg);

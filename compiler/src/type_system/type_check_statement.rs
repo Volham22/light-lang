@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::parser::visitors::{
-    BlockStatement, Expression, ForStatement, FunctionStatement, IfStatement,
+    BlockStatement, Expression, ForStatement, FunctionStatement, IfStatement, ImportStatement,
     MutableExpressionVisitor, MutableStatementVisitor, ReturnStatement, Statement, StructStatement,
     VariableAssignment, VariableDeclaration, WhileStatement,
 };
@@ -155,11 +155,6 @@ impl MutableStatementVisitor<TypeCheckerReturn> for TypeChecker {
             }
         } else {
             self.in_function = None;
-
-            // A function must have a block definition if exported
-            if expr.is_exported {
-                return Err(format!("Error: exported function must have a body."));
-            }
         }
 
         self.in_function = None;
@@ -282,5 +277,9 @@ impl MutableStatementVisitor<TypeCheckerReturn> for TypeChecker {
         self.type_table.add_struct_type(stct);
 
         Ok(ValueType::Struct(stct.type_name.clone()))
+    }
+
+    fn visit_import_statement(&mut self, _import_stmt: &mut ImportStatement) -> TypeCheckerReturn {
+        unreachable!("Import statememts presents in type check stage!");
     }
 }

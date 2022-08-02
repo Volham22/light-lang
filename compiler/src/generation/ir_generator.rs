@@ -68,6 +68,7 @@ impl<'a> IRGenerator<'a> {
             Statement::Struct(struct_stmt) => {
                 self.visit_struct_statement(struct_stmt);
             }
+            Statement::Import(_) => todo!(),
         };
 
         match body {
@@ -243,6 +244,7 @@ impl<'a> IRGenerator<'a> {
             Statement::ForStatement(_) => unreachable!(),
             Statement::BreakStatement => self.visit_break_statement(),
             Statement::Struct(struct_stmt) => self.visit_struct_statement(struct_stmt),
+            Statement::Import(_) => todo!(),
         }
     }
 

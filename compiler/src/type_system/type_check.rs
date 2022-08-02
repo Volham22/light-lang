@@ -78,6 +78,7 @@ impl TypeChecker {
             Statement::ForStatement(for_stmt) => self.visit_for_statement(for_stmt),
             Statement::BreakStatement => self.visit_break_statement(),
             Statement::Struct(struct_stmt) => self.visit_struct_statement(struct_stmt),
+            Statement::Import(_) => todo!(),
         }
     }
 

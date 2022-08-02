@@ -226,6 +226,16 @@ impl Parser {
             }
         }
 
+        // TODO: Support namespace
+        // if self.match_expr(&[Token::DoubleColon]) {
+        //     let rhs = self.or()?;
+
+        //     return Ok(Expression::ModuleAccess(ModuleAccess {
+        //         left: Box::new(primary_expr),
+        //         right: Box::new(rhs),
+        //     }));
+        // }
+
         Ok(primary_expr)
     }
 

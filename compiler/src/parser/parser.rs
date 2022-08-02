@@ -4,13 +4,21 @@ use super::visitors::Statement;
 
 pub struct Parser {
     pub lexer: Vec<Token>,
+    pub(crate) module_path: String,
     current_token: usize,
 }
 
 impl Parser {
-    pub fn new(lexer: Vec<Token>) -> Self {
+    /// # Arguments
+    /// - lexer: vec of Token (usually collected from the lexer)
+    /// - module_path: String path of the current module
+    ///
+    /// The module path arguments is used by the parser for import statements
+    /// nodes of the AST.
+    pub fn new(lexer: Vec<Token>, module_path: &str) -> Self {
         Self {
             lexer,
+            module_path: module_path.to_string(),
             current_token: 0,
         }
     }
@@ -19,7 +27,7 @@ impl Parser {
         let mut stmts: Vec<Statement> = Vec::new();
 
         while !self.is_at_the_end() {
-            if let Ok(ret) = self.parse_function_statement() {
+            if let Ok(ret) = self.parse_import_statement() {
                 stmts.push(ret);
             } else {
                 return None;

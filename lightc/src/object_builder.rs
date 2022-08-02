@@ -1,7 +1,7 @@
 use std::{fs, path::Path, process::Command, str::FromStr};
 
 use compiler::{
-    desugar::desugar_ast,
+    desugar::{desugar_ast, import_resolver::ImportResolver},
     generation::ir_generator::{create_generator, IRGenerator},
     lexer::Token,
     parser::parser::Parser,
@@ -27,6 +27,7 @@ impl<'m> FileBuilder<'m> {
             modules: Vec::new(),
         }
     }
+
     pub fn generate_module_ir(&mut self, path: &str, print_ir_code: bool) -> bool {
         let content = if let Ok(c) = Self::read_file_content(path) {
             c
@@ -36,13 +37,22 @@ impl<'m> FileBuilder<'m> {
 
         let lexer = Token::lexer(content.as_str());
         let tokens = lexer.collect();
-        let mut parser = Parser::new(tokens);
+        let module_dir = Self::extract_module_directory(path);
+        let mut parser = Parser::new(tokens, &module_dir);
+        let mut import_resolve = ImportResolver::new();
 
         if let Some(mut stmts) = parser.parse() {
+            match import_resolve.resolve_imports(&stmts) {
+                Ok(s) => stmts = s,
+                Err(msg) => {
+                    eprintln!("{}", msg);
+                    return false;
+                }
+            }
+
             let mut type_checker = TypeChecker::new();
 
             let t_check = type_checker.check_ast_type(&mut stmts);
-
             if let Ok(_) = t_check {
                 let mut generator =
                     create_generator(self.context, path, &type_checker.get_type_table());
@@ -54,9 +64,7 @@ impl<'m> FileBuilder<'m> {
                 generator.generate_ir(&stmts);
 
                 if print_ir_code {
-                    // println!("=== {}: IR Code ===", path);
                     generator.print_code();
-                    // println!("===================");
                 }
                 self.modules
                     .push((String::from_str(path).unwrap(), generator));
@@ -139,5 +147,12 @@ impl<'m> FileBuilder<'m> {
             .iter()
             .map(|t| t.0.to_string() + ".o")
             .collect()
+    }
+
+    fn extract_module_directory(path: &str) -> String {
+        let p = Path::new(path);
+        let full_path = fs::canonicalize(p).unwrap();
+
+        String::from(full_path.parent().unwrap().to_str().unwrap())
     }
 }

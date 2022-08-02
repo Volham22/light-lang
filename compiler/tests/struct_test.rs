@@ -6,7 +6,7 @@ fn simple_struct_declaration() {
     let source = "struct S { count: number; }";
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -20,7 +20,7 @@ fn simple_struct_init() {
     let source = "struct S { count: number; } fn main(): void { let s: S = struct S { 0 }; }";
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -34,7 +34,7 @@ fn struct_init_undeclared_type() {
     let source = "struct S { count: number; } fn main(): void { let s: S = struct Client { 0 }; }";
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -48,7 +48,7 @@ fn struct_init_bad_type() {
     let source = "struct S { count: number; } fn main(): void { let s: S = false; }";
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -62,7 +62,7 @@ fn struct_init_no_init_exps() {
     let source = "struct S { count: number; } fn main(): void { let s: S = struct S {}; }";
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -76,7 +76,7 @@ fn struct_init_bad_type_init_exp() {
     let source = "struct S { count: number; } fn main(): void { let s: S = struct S { false }; }";
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -91,7 +91,7 @@ fn struct_init_too_much_exps() {
         "struct S { count: number; } fn main(): void { let s: S = struct S { false, 17 }; }";
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -106,7 +106,7 @@ fn valid_struct_member_access() {
         "struct S { count: number; } fn main(): void { let s: S = struct S { 0 }; s.count; }";
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -121,7 +121,7 @@ fn struct_member_access_wrong_field() {
         "struct S { count: number; } fn main(): void { let s: S = struct S { 0 }; s.age; }";
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -135,7 +135,7 @@ fn struct_member_access_wrong_type() {
     let source = "struct S { count: number; } fn main(): void { let s: S = struct S { 0 }; s.42; }";
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
 
     let ast_opt = parser.parse();
     assert!(ast_opt.is_none());
@@ -147,7 +147,7 @@ fn struct_member_assign() {
         "struct S { count: number; } fn main(): void { let s: S = struct S { 0 }; s.count = 3; }";
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();

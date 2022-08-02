@@ -7,7 +7,7 @@ fn minimal_valid_if() {
     let source = "if true {}";
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
 
     if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
@@ -22,7 +22,7 @@ fn minimal_valid_if_else() {
     let source = "if true {} else {}";
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
 
     if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
@@ -43,7 +43,7 @@ fn return_if_function() {
 
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
 
     if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
@@ -66,7 +66,7 @@ fn return_if_else_function() {
 
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
 
     if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
@@ -89,7 +89,7 @@ fn valid_nested_if() {
 
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
 
     if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
@@ -105,7 +105,7 @@ fn no_condition_if() {
 
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
 
     assert!(parser.parse().is_none());
 }
@@ -116,7 +116,7 @@ fn no_body_then_if() {
 
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
 
     assert!(parser.parse().is_none());
 }
@@ -127,7 +127,7 @@ fn no_body_else_if() {
 
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, "");
 
     assert!(parser.parse().is_none());
 }

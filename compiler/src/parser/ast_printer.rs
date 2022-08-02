@@ -1,8 +1,8 @@
 use super::visitors::{
     AddressOf, ArrayAccess, Binary, BinaryLogic, BlockStatement, Call, DeReference, Expression,
-    ExpressionVisitor, ForStatement, FunctionStatement, Group, IfStatement, Literal, MemberAccess,
-    ReturnStatement, Statement, StatementVisitor, StructLiteral, StructStatement, Unary,
-    VariableAssignment, VariableDeclaration, WhileStatement,
+    ExpressionVisitor, ForStatement, FunctionStatement, Group, IfStatement, ImportStatement,
+    Literal, MemberAccess, ReturnStatement, Statement, StatementVisitor, StructLiteral,
+    StructStatement, Unary, VariableAssignment, VariableDeclaration, WhileStatement,
 };
 
 struct AstPrinter;
@@ -21,6 +21,7 @@ impl AstPrinter {
             Statement::ForStatement(for_stmt) => self.visit_for_statement(for_stmt),
             Statement::BreakStatement => self.visit_break_statement(),
             Statement::Struct(struct_stmt) => self.visit_struct_statement(struct_stmt),
+            Statement::Import(_) => todo!(),
         }
     }
 
@@ -285,6 +286,13 @@ impl StatementVisitor<()> for AstPrinter {
         for (field_name, field_type) in &stct.fields {
             println!("\t{}: {};", field_name, field_type);
         }
+    }
+
+    fn visit_import_statement(&mut self, import_stmt: &ImportStatement) -> () {
+        println!(
+            "Import {} from '{}'",
+            import_stmt.module_path, import_stmt.file_path
+        );
     }
 }
 

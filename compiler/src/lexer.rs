@@ -118,6 +118,8 @@ pub enum Token {
     Semicolon,
     #[token(":")]
     Colon,
+    #[token("::")]
+    DoubleColon,
     #[token("true")]
     True,
     #[token("false")]
@@ -163,6 +165,7 @@ impl PartialEq for Token {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Token::If, Token::If) => true,
+            (Token::DoubleColon, Token::DoubleColon) => true,
             (Token::Else, Token::Else) => true,
             (Token::While, Token::While) => true,
             (Token::For, Token::For) => true,
@@ -672,5 +675,40 @@ mod tests {
             lexer.next().unwrap(),
             Token::Identifier(String::from("member"))
         );
+    }
+
+    #[test]
+    fn import_module_test() {
+        let mut lexer = Token::lexer("import \"module\";");
+        assert_eq!(lexer.next().unwrap(), Token::Import);
+        let str_literal = lexer.next().unwrap();
+        assert_eq!(str_literal, Token::Quote(String::new()));
+
+        assert!(if let Token::Quote(content) = str_literal {
+            content == "module"
+        } else {
+            false
+        });
+
+        assert_eq!(lexer.next().unwrap(), Token::Semicolon);
+    }
+
+    #[test]
+    fn double_colon_test() {
+        let mut lexer = Token::lexer("module::function()");
+
+        assert!(if let Token::Identifier(id) = lexer.next().unwrap() {
+            id == "module"
+        } else {
+            false
+        });
+        assert_eq!(lexer.next().unwrap(), Token::DoubleColon);
+        assert!(if let Token::Identifier(id) = lexer.next().unwrap() {
+            id == "function"
+        } else {
+            false
+        });
+        assert_eq!(lexer.next().unwrap(), Token::LeftParenthesis);
+        assert_eq!(lexer.next().unwrap(), Token::RightParenthesis);
     }
 }

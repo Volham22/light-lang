@@ -4,8 +4,8 @@ use super::{
     parser::Parser,
     visitors::{
         Argument, BlockStatement, Expression, ForStatement, FunctionStatement, IfStatement,
-        Literal, ReturnStatement, Statement, StructField, StructStatement, VariableAssignment,
-        VariableDeclaration, WhileStatement,
+        ImportStatement, Literal, ReturnStatement, Statement, StructField, StructStatement,
+        VariableAssignment, VariableDeclaration, WhileStatement,
     },
 };
 
@@ -103,7 +103,34 @@ impl Parser {
         }
     }
 
-    pub fn parse_function_statement(&mut self) -> Result<Statement, ()> {
+    pub fn parse_import_statement(&mut self) -> Result<Statement, ()> {
+        if self.match_expr(&[Token::Import]) {
+            let name = if let Some(Token::Quote(name)) = self.consume(
+                &Token::Quote(String::new()),
+                "Expected a string literal after 'import' keyword.",
+            ) {
+                name.clone()
+            } else {
+                return Err(());
+            };
+
+            if self
+                .consume(&Token::Semicolon, "Expected ';' after import statement.")
+                .is_some()
+            {
+                Ok(Statement::Import(ImportStatement {
+                    file_path: self.module_path.clone(),
+                    module_path: name,
+                }))
+            } else {
+                Err(())
+            }
+        } else {
+            self.parse_function_statement()
+        }
+    }
+
+    fn parse_function_statement(&mut self) -> Result<Statement, ()> {
         let exported = self.match_expr(&[Token::Export]);
         self.parse_function(exported)
     }
