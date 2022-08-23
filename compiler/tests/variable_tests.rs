@@ -335,3 +335,18 @@ fn string_declaration_valid() {
         assert!(false, "Parser failed!");
     }
 }
+
+#[test]
+fn char_declaration_valid() {
+    let source = "let c: char = 'a';";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens, "");
+
+    if let Some(mut ast) = parser.parse() {
+        let mut type_check = TypeChecker::new();
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
+    } else {
+        assert!(false, "Parser failed!");
+    }
+}

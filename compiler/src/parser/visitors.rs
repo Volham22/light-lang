@@ -9,6 +9,7 @@ pub enum Literal {
     Number(i64),
     Real(f64),
     Bool(bool),
+    Char(char),
     StringLiteral(String),
     StructLiteral(StructLiteral),
     Identifier(Identifier),
@@ -18,6 +19,7 @@ impl Display for Literal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &*self {
             Literal::Number(n) => f.write_fmt(format_args!("{}", n)),
+            Literal::Char(c) => f.write_fmt(format_args!("{}", c)),
             Literal::Real(r) => f.write_fmt(format_args!("{}", r)),
             Literal::Bool(b) => f.write_fmt(format_args!("{}", b)),
             Literal::Identifier(s) => f.write_fmt(format_args!("{}", s)),

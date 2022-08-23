@@ -99,6 +99,8 @@ impl MutableStatementVisitor<TypeCheckerReturn> for TypeChecker {
             .unwrap()
             .insert(expr.callee.to_string(), expr.return_type.clone());
 
+        self.type_table.add_function_type(expr);
+
         // TODO: Function pointer support
         self.type_table
             .add_variable(&expr.callee, &ValueType::Function);

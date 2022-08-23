@@ -23,6 +23,25 @@ fn handle_quote(lex: &mut Lexer<Token>) -> Result<String, ()> {
     Err(())
 }
 
+fn handle_single_quote(lex: &mut Lexer<Token>) -> Result<char, ()> {
+    let mut remainder_string = lex.remainder().chars();
+
+    if let Some(content) = remainder_string.next() {
+        if let Some(end_quote) = remainder_string.next() {
+            if end_quote == '\'' {
+                lex.bump(2);
+                Ok(content)
+            } else {
+                Err(())
+            }
+        } else {
+            Err(())
+        }
+    } else {
+        Err(())
+    }
+}
+
 fn handle_comment(lex: &mut Lexer<Token>) -> Skip {
     let mut chars_to_bump: usize = 0;
 
@@ -66,8 +85,6 @@ pub enum Token {
     Return,
     #[token("import")]
     Import,
-    #[token("print")]
-    Print,
     #[token("=")]
     Equal,
     #[token("+")]
@@ -126,6 +143,8 @@ pub enum Token {
     False,
     #[token("\"", handle_quote)]
     Quote(String),
+    #[token("'", handle_single_quote)]
+    CharLiteral(char),
 
     // Pointer keywords
     #[token("ptr")]
@@ -138,7 +157,7 @@ pub enum Token {
     Null,
 
     // Light types
-    #[regex("(number)|(real)|(bool)|(string)|(void)", |lex| lex.slice().parse())]
+    #[regex("(number)|(real)|(bool)|(string)|(void)|(char)", |lex| lex.slice().parse())]
     Type(ValueType),
 
     #[regex(r"[0-9]+", |lex| lex.slice().parse())]
@@ -177,7 +196,6 @@ impl PartialEq for Token {
             (Token::Export, Token::Export) => true,
             (Token::Return, Token::Return) => true,
             (Token::Import, Token::Import) => true,
-            (Token::Print, Token::Print) => true,
             (Token::Equal, Token::Equal) => true,
             (Token::Plus, Token::Plus) => true,
             (Token::Minus, Token::Minus) => true,
@@ -209,6 +227,7 @@ impl PartialEq for Token {
             (Token::Real(_), Token::Real(_)) => true,
             (Token::Identifier(_), Token::Identifier(_)) => true,
             (Token::Quote(_), Token::Quote(_)) => true,
+            (Token::CharLiteral(_), Token::CharLiteral(_)) => true,
             (Token::EndOfFile, Token::EndOfFile) => true,
             (Token::Pointer, Token::Pointer) => true,
             (Token::AddressOf, Token::AddressOf) => true,
@@ -340,15 +359,6 @@ mod tests {
             lexer.next(),
             Some(Token::Identifier("my_module".to_string()))
         );
-        assert_eq!(lexer.next(), Some(Token::Semicolon));
-    }
-
-    #[test]
-    fn print_test() {
-        let mut lexer = Token::lexer("print hey;");
-
-        assert_eq!(lexer.next(), Some(Token::Print));
-        assert_eq!(lexer.next(), Some(Token::Identifier("hey".to_string())));
         assert_eq!(lexer.next(), Some(Token::Semicolon));
     }
 
@@ -710,5 +720,56 @@ mod tests {
         });
         assert_eq!(lexer.next().unwrap(), Token::LeftParenthesis);
         assert_eq!(lexer.next().unwrap(), Token::RightParenthesis);
+    }
+
+    #[test]
+    fn char_type_test() {
+        let mut lexer = Token::lexer("var: char");
+
+        assert!(if let Token::Identifier(id) = lexer.next().unwrap() {
+            id == "var"
+        } else {
+            false
+        });
+        assert_eq!(lexer.next().unwrap(), Token::Colon);
+        assert!(
+            if let Token::Type(ValueType::Char) = lexer.next().unwrap() {
+                true
+            } else {
+                false
+            }
+        );
+    }
+
+    #[test]
+    fn char_literal_test() {
+        let mut lexer = Token::lexer("'a'");
+
+        let tk = lexer.next().unwrap();
+        assert!(
+            if let Token::CharLiteral(id) = tk {
+                id == 'a'
+            } else {
+                false
+            },
+            "Got {:?}",
+            tk
+        );
+    }
+
+    #[test]
+    fn unclosed_char_literal_test() {
+        let mut lexer = Token::lexer("'a");
+
+        let tk = lexer.next().unwrap();
+        assert_eq!(tk, Token::Error);
+    }
+
+    #[test]
+    fn too_much_char_literal_test() {
+        let mut lexer = Token::lexer("'abc'");
+
+        let tk = lexer.next().unwrap();
+        assert_eq!(tk, Token::Error);
     }
 }

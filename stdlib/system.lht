@@ -1,0 +1,20 @@
+export fn exit(return_code: number): void;
+export fn abort(): void;
+
+export fn assert_true(condition: bool): void {
+    if not condition {
+        abort();
+    }
+}
+
+export fn assert_false(condition: bool): void {
+    if condition {
+        abort();
+    }
+}
+
+export fn assert_number_eq(x: number, y: number): void {
+    if x != y {
+        abort();
+    }
+}

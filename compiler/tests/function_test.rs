@@ -282,7 +282,7 @@ fn exported_function_missing_body() {
 
     if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
-        assert!(type_check.check_ast_type(&mut ast).is_err());
+        assert!(type_check.check_ast_type(&mut ast).is_ok());
     } else {
         assert!(false, "Parser failed!");
     }

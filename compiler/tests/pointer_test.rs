@@ -159,3 +159,48 @@ fn valid_deref_lvalue_number() {
     let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
     assert!(tc_result.is_ok(), "Type error: {}", tc_result.unwrap_err());
 }
+
+#[test]
+fn dynamic_string_allocation() {
+    let source =
+        "fn malloc(size: number): ptr void; fn main(): void { let str: string = malloc(100); }";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens, "");
+    let mut type_check = TypeChecker::new();
+
+    let ast_opt = parser.parse();
+    assert!(ast_opt.is_some());
+    let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
+    assert!(tc_result.is_ok(), "Type error: {}", tc_result.unwrap_err());
+}
+
+#[test]
+fn dynamic_string_array_access() {
+    let source =
+        "fn malloc(size: number): ptr void; fn main(): void { let str: string = malloc(100); str[0]; }";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens, "");
+    let mut type_check = TypeChecker::new();
+
+    let ast_opt = parser.parse();
+    assert!(ast_opt.is_some());
+    let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
+    assert!(tc_result.is_ok(), "Type error: {}", tc_result.unwrap_err());
+}
+
+#[test]
+fn dynamic_string_free() {
+    let source =
+        "fn free(p: ptr void): void; fn main(): void { let str: string = \"\"; free(str); }";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens, "");
+    let mut type_check = TypeChecker::new();
+
+    let ast_opt = parser.parse();
+    assert!(ast_opt.is_some());
+    let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
+    assert!(tc_result.is_ok(), "Type error: {}", tc_result.unwrap_err());
+}

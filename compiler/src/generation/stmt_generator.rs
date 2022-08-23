@@ -13,7 +13,10 @@ use crate::{
         Literal, ReturnStatement, StatementVisitor, StructStatement, VariableAssignment,
         VariableDeclaration, WhileStatement,
     },
-    type_system::value_type::{StaticArray, ValueType},
+    type_system::{
+        typed::Typed,
+        value_type::{StaticArray, ValueType},
+    },
 };
 
 use super::ir_generator::IRGenerator;
@@ -31,6 +34,7 @@ impl<'a> IRGenerator<'a> {
             ValueType::Number => self.context.i64_type().array_type(array_type.size as u32),
             ValueType::Real => self.context.f64_type().array_type(array_type.size as u32),
             ValueType::Bool => self.context.bool_type().array_type(array_type.size as u32),
+            ValueType::Char => self.context.i8_type().array_type(array_type.size as u32),
             ValueType::String => self
                 .context
                 .i8_type()
@@ -55,6 +59,11 @@ impl<'a> IRGenerator<'a> {
             ValueType::Real => self
                 .context
                 .f64_type()
+                .ptr_type(AddressSpace::Generic)
+                .into(),
+            ValueType::Char => self
+                .context
+                .i8_type()
                 .ptr_type(AddressSpace::Generic)
                 .into(),
             ValueType::Bool => self
@@ -231,7 +240,21 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                 self.builder.build_store(val_ptr, v);
             }
             AnyValueEnum::PointerValue(v) => {
-                self.builder.build_store(val_ptr, v);
+                // Implicit cast to i8* if the variable has type string and the init_expression has type ptr void
+                // to statisfy the llvm's type system.
+                if var_dec.variable_type == ValueType::String
+                    && var_dec.init_expr.get_type() == ValueType::Pointer(Box::new(ValueType::Void))
+                {
+                    let i8_cast = self.builder.build_bitcast(
+                        v,
+                        self.context.i8_type().ptr_type(AddressSpace::Generic),
+                        "ptr_void_to_string_init_cast",
+                    );
+
+                    self.builder.build_store(val_ptr, i8_cast);
+                } else {
+                    self.builder.build_store(val_ptr, v);
+                }
             }
             AnyValueEnum::StructValue(v) => {
                 self.builder.build_store(val_ptr, v);
@@ -256,17 +279,26 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
 
                 // Array is an pointer
                 if ptr_val.get_type().is_pointer_type() {
-                    let array_ptr = self
-                        .builder
-                        .build_load(ptr_val.into_pointer_value(), "load_array_ptr");
+                    let pointed = ptr_val.into_pointer_value();
+                    let array_ptr = self.builder.build_load(pointed, "load_array_ptr");
                     let index_value = self.visit_expr(&access.index);
 
-                    unsafe {
-                        self.builder.build_gep(
-                            array_ptr.into_pointer_value(),
-                            &[index_value.into_int_value()],
-                            "array_ptr_gep",
-                        )
+                    if pointed.get_type().get_element_type().is_pointer_type() {
+                        unsafe {
+                            self.builder.build_gep(
+                                array_ptr.into_pointer_value(),
+                                &[index_value.into_int_value()],
+                                "array_ptr_gep",
+                            )
+                        }
+                    } else {
+                        unsafe {
+                            self.builder.build_gep(
+                                pointed,
+                                &[index_value.into_int_value()],
+                                "array_ptr_gep",
+                            )
+                        }
                     }
                 } else {
                     ptr_val.into_pointer_value()
@@ -305,6 +337,7 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                             ValueType::Number => self.context.i64_type().into(),
                             ValueType::Real => self.context.f64_type().into(),
                             ValueType::Bool => self.context.bool_type().into(),
+                            ValueType::Char => self.context.i8_type().into(),
                             ValueType::String => self
                                 .context
                                 .i8_type()
@@ -364,8 +397,27 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                 },
                 false,
             ),
+            ValueType::Char => self.context.i8_type().fn_type(
+                if args_type.is_some() {
+                    args_type.as_ref().unwrap().as_slice()
+                } else {
+                    &[]
+                },
+                false,
+            ),
             ValueType::Function => todo!(),
-            ValueType::String => todo!(),
+            ValueType::String => self
+                .context
+                .i8_type()
+                .ptr_type(AddressSpace::Generic)
+                .fn_type(
+                    if args_type.is_some() {
+                        args_type.as_ref().unwrap().as_slice()
+                    } else {
+                        &[]
+                    },
+                    false,
+                ),
             ValueType::Array(_) => todo!(),
             ValueType::Pointer(ptr) => self
                 .get_ptr_type(&self.get_llvm_type(ptr.borrow()))
