@@ -13,7 +13,10 @@ use crate::{
         Literal, ReturnStatement, StatementVisitor, StructStatement, VariableAssignment,
         VariableDeclaration, WhileStatement,
     },
-    type_system::value_type::{StaticArray, ValueType},
+    type_system::{
+        typed::Typed,
+        value_type::{StaticArray, ValueType},
+    },
 };
 
 use super::ir_generator::IRGenerator;
@@ -231,7 +234,21 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                 self.builder.build_store(val_ptr, v);
             }
             AnyValueEnum::PointerValue(v) => {
-                self.builder.build_store(val_ptr, v);
+                // Implicit cast to i8* if the variable has type string and the init_expression has type ptr void
+                // to statisfy the llvm's type system.
+                if var_dec.variable_type == ValueType::String
+                    && var_dec.init_expr.get_type() == ValueType::Pointer(Box::new(ValueType::Void))
+                {
+                    let i8_cast = self.builder.build_bitcast(
+                        v,
+                        self.context.i8_type().ptr_type(AddressSpace::Generic),
+                        "ptr_void_to_string_init_cast",
+                    );
+
+                    self.builder.build_store(val_ptr, i8_cast);
+                } else {
+                    self.builder.build_store(val_ptr, v);
+                }
             }
             AnyValueEnum::StructValue(v) => {
                 self.builder.build_store(val_ptr, v);
