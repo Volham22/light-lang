@@ -4,6 +4,7 @@ fn puts(msg: string): number;
 fn printf(msg: string, n: number): number;
 
 export fn itoa(value: number, buffer: ptr void, base: number): void;
+export fn putchar(c: char): number;
 
 export fn println(msg: string): void {
     puts(msg);
