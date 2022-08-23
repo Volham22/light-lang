@@ -31,6 +31,7 @@ impl PartialEq for ValueType {
             (ValueType::Real, ValueType::Real) => true,
             (ValueType::Bool, ValueType::Bool) => true,
             (ValueType::String, ValueType::String) => true,
+            (ValueType::Pointer(ptr_ty), ValueType::String) => ptr_ty.deref() == &ValueType::Void,
             (ValueType::Function, ValueType::Function) => true, // TODO
             (ValueType::Void, ValueType::Void) => true,
             (ValueType::Array(lhs), ValueType::Array(rhs)) => {

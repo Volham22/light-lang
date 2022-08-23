@@ -174,3 +174,20 @@ fn dynamic_string_allocation() {
     let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
     assert!(tc_result.is_ok(), "Type error: {}", tc_result.unwrap_err());
 }
+
+#[test]
+fn dynamic_string_free() {
+    // This code is illegal in runtime but valid for the type checker
+    // TODO: Add some kind of static analysis to prevent free of non-malloc-ed strings
+    let source =
+        "fn free(pointer: ptr void): void; fn main(): void { let str: string = \"\"; free(str); }";
+    let lexer = Token::lexer(source);
+    let tokens = lexer.collect();
+    let mut parser = Parser::new(tokens, "");
+    let mut type_check = TypeChecker::new();
+
+    let ast_opt = parser.parse();
+    assert!(ast_opt.is_some());
+    let tc_result = type_check.check_ast_type(&mut ast_opt.unwrap());
+    assert!(tc_result.is_ok(), "Type error: {}", tc_result.unwrap_err());
+}
