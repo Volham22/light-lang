@@ -34,6 +34,7 @@ impl<'a> IRGenerator<'a> {
             ValueType::Number => self.context.i64_type().array_type(array_type.size as u32),
             ValueType::Real => self.context.f64_type().array_type(array_type.size as u32),
             ValueType::Bool => self.context.bool_type().array_type(array_type.size as u32),
+            ValueType::Char => self.context.i8_type().array_type(array_type.size as u32),
             ValueType::String => self
                 .context
                 .i8_type()
@@ -58,6 +59,11 @@ impl<'a> IRGenerator<'a> {
             ValueType::Real => self
                 .context
                 .f64_type()
+                .ptr_type(AddressSpace::Generic)
+                .into(),
+            ValueType::Char => self
+                .context
+                .i8_type()
                 .ptr_type(AddressSpace::Generic)
                 .into(),
             ValueType::Bool => self
@@ -322,6 +328,7 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                             ValueType::Number => self.context.i64_type().into(),
                             ValueType::Real => self.context.f64_type().into(),
                             ValueType::Bool => self.context.bool_type().into(),
+                            ValueType::Char => self.context.i8_type().into(),
                             ValueType::String => self
                                 .context
                                 .i8_type()
@@ -381,8 +388,27 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
                 },
                 false,
             ),
+            ValueType::Char => self.context.i8_type().fn_type(
+                if args_type.is_some() {
+                    args_type.as_ref().unwrap().as_slice()
+                } else {
+                    &[]
+                },
+                false,
+            ),
             ValueType::Function => todo!(),
-            ValueType::String => todo!(),
+            ValueType::String => self
+                .context
+                .i8_type()
+                .ptr_type(AddressSpace::Generic)
+                .fn_type(
+                    if args_type.is_some() {
+                        args_type.as_ref().unwrap().as_slice()
+                    } else {
+                        &[]
+                    },
+                    false,
+                ),
             ValueType::Array(_) => todo!(),
             ValueType::Pointer(ptr) => self
                 .get_ptr_type(&self.get_llvm_type(ptr.borrow()))

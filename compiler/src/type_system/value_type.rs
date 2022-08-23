@@ -20,6 +20,7 @@ pub enum ValueType {
     Function,
     Pointer(Box<ValueType>),
     Struct(String),
+    Char,
     Void,
     Null,
 }
@@ -30,6 +31,7 @@ impl PartialEq for ValueType {
             (ValueType::Number, ValueType::Number) => true,
             (ValueType::Real, ValueType::Real) => true,
             (ValueType::Bool, ValueType::Bool) => true,
+            (ValueType::Char, ValueType::Char) => true,
             (ValueType::String, ValueType::String) => true,
             (ValueType::Pointer(ptr_ty), ValueType::String) => ptr_ty.deref() == &ValueType::Void,
             (ValueType::Function, ValueType::Function) => true, // TODO
@@ -66,6 +68,7 @@ impl Display for ValueType {
             ValueType::String => f.write_str("String"),
             ValueType::Function => f.write_str("Function"),
             ValueType::Void => f.write_str("Void"),
+            ValueType::Char => f.write_str("Char"),
             ValueType::Null => f.write_str("Null"),
             ValueType::Array(a) => {
                 f.write_str("Array of ").unwrap();
@@ -115,6 +118,7 @@ impl FromStr for ValueType {
             "number" => Ok(ValueType::Number),
             "real" => Ok(ValueType::Real),
             "bool" => Ok(ValueType::Bool),
+            "char" => Ok(ValueType::Char),
             "string" => Ok(ValueType::String),
             "void" => Ok(ValueType::Void),
             _ => Err("Unkown type"),

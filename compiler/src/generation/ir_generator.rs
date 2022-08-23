@@ -196,6 +196,7 @@ impl<'a> IRGenerator<'a> {
                 ValueType::String => self
                     .builder
                     .build_alloca(self.context.i8_type().ptr_type(AddressSpace::Generic), name),
+                ValueType::Char => self.builder.build_alloca(self.context.i8_type(), name),
                 ValueType::Function => todo!(),
                 ValueType::Void => unreachable!(),
                 ValueType::Pointer(_) => todo!(),
@@ -285,6 +286,7 @@ impl<'a> IRGenerator<'a> {
             ValueType::Number => self.context.i64_type().into(),
             ValueType::Real => self.context.f64_type().into(),
             ValueType::Bool => self.context.bool_type().into(),
+            ValueType::Char => self.context.i8_type().into(),
             ValueType::String => self
                 .context
                 .i8_type()

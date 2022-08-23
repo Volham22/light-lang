@@ -136,7 +136,7 @@ pub enum Token {
     Null,
 
     // Light types
-    #[regex("(number)|(real)|(bool)|(string)|(void)", |lex| lex.slice().parse())]
+    #[regex("(number)|(real)|(bool)|(string)|(void)|(char)", |lex| lex.slice().parse())]
     Type(ValueType),
 
     #[regex(r"[0-9]+", |lex| lex.slice().parse())]
@@ -698,5 +698,24 @@ mod tests {
         });
         assert_eq!(lexer.next().unwrap(), Token::LeftParenthesis);
         assert_eq!(lexer.next().unwrap(), Token::RightParenthesis);
+    }
+
+    #[test]
+    fn char_type_test() {
+        let mut lexer = Token::lexer("var: char");
+
+        assert!(if let Token::Identifier(id) = lexer.next().unwrap() {
+            id == "var"
+        } else {
+            false
+        });
+        assert_eq!(lexer.next().unwrap(), Token::Colon);
+        assert!(
+            if let Token::Type(ValueType::Char) = lexer.next().unwrap() {
+                true
+            } else {
+                false
+            }
+        );
     }
 }

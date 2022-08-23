@@ -149,6 +149,10 @@ impl MutableExpressionVisitor<Result<ValueType, String>> for TypeChecker {
                 array_access.set_type(arr_ty.array_type.as_ref().clone());
                 Ok(*arr_ty.array_type)
             }
+            ValueType::String => {
+                array_access.set_type(ValueType::Char);
+                Ok(ValueType::Char)
+            }
             ValueType::Pointer(ptr_ty) => {
                 array_access.set_type(ptr_ty.as_ref().clone());
                 Ok(*ptr_ty)
@@ -170,6 +174,7 @@ impl MutableExpressionVisitor<Result<ValueType, String>> for TypeChecker {
             ValueType::Number => Ok(ValueType::Pointer(Box::new(ValueType::Number))),
             ValueType::Real => Ok(ValueType::Pointer(Box::new(ValueType::Real))),
             ValueType::String => Ok(ValueType::Pointer(Box::new(ValueType::String))),
+            ValueType::Char => Ok(ValueType::Pointer(Box::new(ValueType::Char))),
             ValueType::Function => Err(format!("Function pointers are not supported yet.")),
             ValueType::Pointer(ptr) => Ok(ValueType::Pointer(Box::new(ValueType::Pointer(ptr)))),
             ValueType::Struct(strct) => Ok(ValueType::Pointer(Box::new(ValueType::Struct(strct)))),
