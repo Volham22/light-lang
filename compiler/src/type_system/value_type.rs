@@ -94,6 +94,7 @@ impl ValueType {
         match (ltype, rtype) {
             (ValueType::Array(lhs), rhs) => lhs.array_type.deref() == rhs,
             (lhs, ValueType::Array(rhs)) => lhs == rhs.array_type.deref(),
+            (ValueType::String, ValueType::Pointer(ptr_ty)) => ptr_ty.deref() == &ValueType::Void,
             _ => rtype == ltype,
         }
     }
