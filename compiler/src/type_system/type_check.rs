@@ -196,6 +196,13 @@ impl TypeChecker {
                     ))
                 }
             }
+            ValueType::String => {
+                if rhs_ty != ValueType::Char {
+                    Err(format!("Can't assign expression of type '{}' to string element. Expression must be a 'char'", rhs_ty))
+                } else {
+                    Ok(rhs_ty)
+                }
+            }
             _ => Err(format!("Array is not declared.")),
         }
     }

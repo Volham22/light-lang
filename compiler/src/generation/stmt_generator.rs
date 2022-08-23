@@ -279,17 +279,26 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
 
                 // Array is an pointer
                 if ptr_val.get_type().is_pointer_type() {
-                    let array_ptr = self
-                        .builder
-                        .build_load(ptr_val.into_pointer_value(), "load_array_ptr");
+                    let pointed = ptr_val.into_pointer_value();
+                    let array_ptr = self.builder.build_load(pointed, "load_array_ptr");
                     let index_value = self.visit_expr(&access.index);
 
-                    unsafe {
-                        self.builder.build_gep(
-                            array_ptr.into_pointer_value(),
-                            &[index_value.into_int_value()],
-                            "array_ptr_gep",
-                        )
+                    if pointed.get_type().get_element_type().is_pointer_type() {
+                        unsafe {
+                            self.builder.build_gep(
+                                array_ptr.into_pointer_value(),
+                                &[index_value.into_int_value()],
+                                "array_ptr_gep",
+                            )
+                        }
+                    } else {
+                        unsafe {
+                            self.builder.build_gep(
+                                pointed,
+                                &[index_value.into_int_value()],
+                                "array_ptr_gep",
+                            )
+                        }
                     }
                 } else {
                     ptr_val.into_pointer_value()

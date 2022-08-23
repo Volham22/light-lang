@@ -40,6 +40,16 @@ impl Typed for bool {
     }
 }
 
+impl Typed for char {
+    fn get_type(&self) -> ValueType {
+        ValueType::Char
+    }
+
+    fn set_type(&mut self, _new_type: ValueType) {
+        unreachable!()
+    }
+}
+
 impl Typed for String {
     fn get_type(&self) -> ValueType {
         ValueType::String
@@ -76,6 +86,7 @@ impl Typed for Literal {
             Literal::Number(n) => n.get_type(),
             Literal::Real(r) => r.get_type(),
             Literal::Bool(b) => b.get_type(),
+            Literal::Char(c) => c.get_type(),
             Literal::StringLiteral(str_literal) => str_literal.get_type(),
             Literal::StructLiteral(struct_literal) => struct_literal.get_type(),
             Literal::Identifier(id) => id.get_type(),

@@ -59,6 +59,7 @@ impl ExpressionVisitor<()> for AstPrinter {
             Literal::Number(val) => print!("Literal: Number {}", val),
             Literal::Real(val) => print!("Literal: Real {}", val),
             Literal::Bool(val) => print!("Literal: Bool {}", val),
+            Literal::Char(val) => print!("Literal: Char {}", val),
             Literal::StringLiteral(val) => print!("Literal: String {}", val),
             Literal::Identifier(name) => print!("Literal: Identifier {}", name),
             Literal::StructLiteral(struct_literal) => {

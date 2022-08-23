@@ -246,6 +246,7 @@ impl Parser {
             Some(Token::True) => Ok(Expression::Literal(Literal::Bool(true))),
             Some(Token::False) => Ok(Expression::Literal(Literal::Bool(false))),
             Some(Token::Number(value)) => Ok(Expression::Literal(Literal::Number(*value))),
+            Some(Token::CharLiteral(value)) => Ok(Expression::Literal(Literal::Char(*value))),
             Some(Token::Real(value)) => Ok(Expression::Literal(Literal::Real(*value))),
             Some(Token::Quote(s)) => Ok(Expression::Literal(Literal::StringLiteral(s.clone()))),
             Some(Token::Null) => Ok(Expression::Null),

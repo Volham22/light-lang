@@ -23,6 +23,11 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
                 .f64_type()
                 .const_float(*val)
                 .as_any_value_enum(),
+            Literal::Char(c) => self
+                .context
+                .i8_type()
+                .const_int(*c as u64, false)
+                .as_any_value_enum(),
             Literal::Bool(val) => self
                 .context
                 .i8_type()
@@ -451,12 +456,19 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
                 .builder
                 .build_load(ptr.into_pointer_value(), "pre_array_ptr_load");
 
-            let offset_ptr = unsafe {
-                self.builder.build_gep(
-                    loaded_value.into_pointer_value(),
-                    &[value],
-                    "array_access_gep",
-                )
+            let offset_ptr = if loaded_value.is_pointer_value() {
+                unsafe {
+                    self.builder.build_gep(
+                        loaded_value.into_pointer_value(),
+                        &[value],
+                        "array_access_gep",
+                    )
+                }
+            } else {
+                unsafe {
+                    self.builder
+                        .build_gep(ptr.into_pointer_value(), &[value], "array_load_gep")
+                }
             };
 
             self.builder.build_load(offset_ptr, "load_array_ptr").into()
