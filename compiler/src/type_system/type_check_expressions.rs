@@ -122,7 +122,7 @@ impl MutableExpressionVisitor<Result<ValueType, String>> for TypeChecker {
 
                 if !ValueType::is_compatible(&expr_type, &fn_args[i]) {
                     return Err(format!(
-                        "Expression of type '{}' cannot be applied to function argument of type '{}' in call to '{}'",
+                        "Expression of type '{}' cannot be applied to function argument of type '{}' in the call to '{}'",
                         expr_type, fn_args[i], fn_name
                     ));
                 }

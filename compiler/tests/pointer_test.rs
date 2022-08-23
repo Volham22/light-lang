@@ -177,10 +177,8 @@ fn dynamic_string_allocation() {
 
 #[test]
 fn dynamic_string_free() {
-    // This code is illegal in runtime but valid for the type checker
-    // TODO: Add some kind of static analysis to prevent free of non-malloc-ed strings
     let source =
-        "fn free(pointer: ptr void): void; fn main(): void { let str: string = \"\"; free(str); }";
+        "fn free(p: ptr void): void; fn main(): void { let str: string = \"\"; free(str); }";
     let lexer = Token::lexer(source);
     let tokens = lexer.collect();
     let mut parser = Parser::new(tokens, "");

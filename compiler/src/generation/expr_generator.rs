@@ -7,6 +7,8 @@ use crate::parser::visitors::{
     AddressOf, ArrayAccess, Binary, BinaryLogic, Call, DeReference, Expression, ExpressionVisitor,
     Group, Literal, MemberAccess, StructLiteral, Unary,
 };
+use crate::type_system::typed::Typed;
+use crate::type_system::value_type::ValueType;
 
 impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
     fn visit_literal(&mut self, literal: &Literal) -> AnyValueEnum<'a> {
@@ -367,11 +369,32 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
         });
 
         if call_expr.args.is_some() {
-            for arg in call_expr.args.as_ref().unwrap() {
+            for (i, arg) in call_expr.args.as_ref().unwrap().iter().enumerate() {
                 args_values.push(match self.visit_borrowed_expr(arg) {
                     AnyValueEnum::IntValue(v) => v.into(),
                     AnyValueEnum::FloatValue(v) => v.into(),
-                    AnyValueEnum::PointerValue(v) => v.into(),
+                    AnyValueEnum::PointerValue(v) => {
+                        let call_ty = call_expr.args.as_ref().unwrap()[i].get_type();
+                        let fn_type = self.type_table.find_function_type(&call_expr.name).unwrap();
+
+                        // In case a string is being passed as a ptr void we need to cast the value
+                        // to i64* (type used to represent ptr void) because string are represented as i8*
+                        // in the llvm's type system.
+                        if fn_type.args.unwrap()[i].1
+                            == ValueType::Pointer(Box::new(ValueType::Void))
+                            && call_ty == ValueType::String
+                        {
+                            self.builder
+                                .build_bitcast(
+                                    v,
+                                    self.context.i64_type().ptr_type(AddressSpace::Generic),
+                                    "string_as_ptr_void_cast",
+                                )
+                                .into()
+                        } else {
+                            v.into()
+                        }
+                    }
                     AnyValueEnum::ArrayValue(v) => self
                         .builder
                         .build_bitcast(
