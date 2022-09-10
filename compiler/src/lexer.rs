@@ -108,7 +108,7 @@ impl Token {
         let mut result: Vec<Self> = Vec::new();
 
         while let Some(tk) = lexer.next() {
-            let line_number = lexer.extras.line_count;
+            let line_number = lexer.extras.line_count + 1;
             result.push(Self {
                 logos_tk: tk,
                 line_number,
