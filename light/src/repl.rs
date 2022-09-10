@@ -4,7 +4,6 @@ use compiler::desugar::desugar_ast;
 use compiler::desugar::import_resolver::ImportResolver;
 use inkwell::context::Context;
 use inkwell::OptimizationLevel;
-use logos::Logos;
 
 use compiler::generation::ir_generator::{create_generator, generate_ir_code_jit};
 use compiler::lexer::Token;
@@ -25,8 +24,7 @@ pub fn repl_loop() {
     let stdin = io::stdin();
     for line in stdin.lock().lines() {
         if let Ok(str) = line {
-            let lexer = Token::lexer(str.as_str());
-            let tokens = lexer.collect();
+            let tokens = Token::lex_string(&str);
             let mut parser = Parser::new(tokens, "./module.lht");
             let mut import_resolver = ImportResolver::new();
 

@@ -1,7 +1,5 @@
 use std::{fs, path::Path};
 
-use logos::Logos;
-
 use crate::parser::visitors::{FunctionStatement, ImportStatement, Statement, StructStatement};
 use crate::{lexer::Token, parser::parser::Parser};
 
@@ -67,11 +65,8 @@ impl ImportResolver {
             }
         };
 
-        let lexer = Token::lexer(file_content.as_str());
-        let mut parser = Parser::new(
-            lexer.collect(),
-            Path::new(path).parent().unwrap().to_str().unwrap(),
-        );
+        let tokens = Token::lex_string(file_content.as_str());
+        let mut parser = Parser::new(tokens, Path::new(path).parent().unwrap().to_str().unwrap());
 
         match parser.parse() {
             Some(stmts) => Ok(stmts),
