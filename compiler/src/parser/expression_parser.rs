@@ -1,4 +1,4 @@
-use crate::lexer::Token;
+use crate::lexer::LogosToken;
 
 use super::{
     parser::Parser,
@@ -12,7 +12,7 @@ impl Parser {
     pub fn or(&mut self) -> Result<Expression, ()> {
         let mut left = self.and()?;
 
-        while let Some(Token::Or) = self.expect(&Token::Or) {
+        while let Some(LogosToken::Or) = self.expect(&LogosToken::Or) {
             let right = self.and()?;
             left = Expression::BinaryLogic(BinaryLogic::Or(Box::new(left), Box::new(right)));
         }
@@ -23,7 +23,7 @@ impl Parser {
     fn and(&mut self) -> Result<Expression, ()> {
         let mut left = self.equality()?;
 
-        while let Some(Token::And) = self.expect(&Token::And) {
+        while let Some(LogosToken::And) = self.expect(&LogosToken::And) {
             let right = self.equality()?;
             left = Expression::BinaryLogic(BinaryLogic::And(Box::new(left), Box::new(right)));
         }
@@ -35,15 +35,15 @@ impl Parser {
         let mut left = self.comp()?;
 
         loop {
-            match self.expect_tokens(&[Token::Equality, Token::NegEquality]) {
-                Some(Token::Equality) => {
+            match self.expect_tokens(&[LogosToken::Equality, LogosToken::NegEquality]) {
+                Some(LogosToken::Equality) => {
                     let right = self.equality()?;
                     left = Expression::BinaryLogic(BinaryLogic::Equal(
                         Box::new(left),
                         Box::new(right),
                     ));
                 }
-                Some(Token::NegEquality) => {
+                Some(LogosToken::NegEquality) => {
                     let right = self.equality()?;
                     left = Expression::BinaryLogic(BinaryLogic::NotEqual(
                         Box::new(left),
@@ -62,29 +62,29 @@ impl Parser {
 
         loop {
             match self.expect_tokens(&[
-                Token::Less,
-                Token::More,
-                Token::LessEqual,
-                Token::MoreEqual,
+                LogosToken::Less,
+                LogosToken::More,
+                LogosToken::LessEqual,
+                LogosToken::MoreEqual,
             ]) {
-                Some(Token::Less) => {
+                Some(LogosToken::Less) => {
                     let right = self.term()?;
                     left =
                         Expression::BinaryLogic(BinaryLogic::Less(Box::new(left), Box::new(right)));
                 }
-                Some(Token::More) => {
+                Some(LogosToken::More) => {
                     let right = self.term()?;
                     left =
                         Expression::BinaryLogic(BinaryLogic::More(Box::new(left), Box::new(right)));
                 }
-                Some(Token::LessEqual) => {
+                Some(LogosToken::LessEqual) => {
                     let right = self.term()?;
                     left = Expression::BinaryLogic(BinaryLogic::LessEqual(
                         Box::new(left),
                         Box::new(right),
                     ));
                 }
-                Some(Token::MoreEqual) => {
+                Some(LogosToken::MoreEqual) => {
                     let right = self.term()?;
                     left = Expression::BinaryLogic(BinaryLogic::MoreEqual(
                         Box::new(left),
@@ -102,12 +102,12 @@ impl Parser {
         let mut left = self.factor()?;
 
         loop {
-            match self.expect_tokens(&[Token::Plus, Token::Minus]) {
-                Some(Token::Plus) => {
+            match self.expect_tokens(&[LogosToken::Plus, LogosToken::Minus]) {
+                Some(LogosToken::Plus) => {
                     let right = self.factor()?;
                     left = Expression::Binary(Binary::Plus(Box::new(left), Box::new(right)));
                 }
-                Some(Token::Minus) => {
+                Some(LogosToken::Minus) => {
                     let right = self.factor()?;
                     left = Expression::Binary(Binary::Minus(Box::new(left), Box::new(right)));
                 }
@@ -122,16 +122,20 @@ impl Parser {
         let mut left = self.unary()?;
 
         loop {
-            match self.expect_tokens(&[Token::Multiply, Token::Divide, Token::Modulo]) {
-                Some(Token::Multiply) => {
+            match self.expect_tokens(&[
+                LogosToken::Multiply,
+                LogosToken::Divide,
+                LogosToken::Modulo,
+            ]) {
+                Some(LogosToken::Multiply) => {
                     let right = self.unary()?;
                     left = Expression::Binary(Binary::Multiply(Box::new(left), Box::new(right)));
                 }
-                Some(Token::Divide) => {
+                Some(LogosToken::Divide) => {
                     let right = self.unary()?;
                     left = Expression::Binary(Binary::Divide(Box::new(left), Box::new(right)));
                 }
-                Some(Token::Modulo) => {
+                Some(LogosToken::Modulo) => {
                     let right = self.unary()?;
                     left = Expression::Binary(Binary::Modulo(Box::new(left), Box::new(right)));
                 }
@@ -143,9 +147,9 @@ impl Parser {
     }
 
     fn unary(&mut self) -> Result<Expression, ()> {
-        match self.expect_tokens(&[Token::Minus, Token::Not]) {
-            Some(Token::Minus) => Ok(Expression::Unary(Unary::Negate(Box::new(self.call()?)))),
-            Some(Token::Not) => Ok(Expression::Unary(Unary::Not(Box::new(self.call()?)))),
+        match self.expect_tokens(&[LogosToken::Minus, LogosToken::Not]) {
+            Some(LogosToken::Minus) => Ok(Expression::Unary(Unary::Negate(Box::new(self.call()?)))),
+            Some(LogosToken::Not) => Ok(Expression::Unary(Unary::Not(Box::new(self.call()?)))),
             _ => Ok(self.call()?),
         }
     }
@@ -153,29 +157,34 @@ impl Parser {
     fn call(&mut self) -> Result<Expression, ()> {
         let primary_expr = self.primary()?;
 
-        if self.match_expr(&[Token::LeftParenthesis]) {
+        if self.match_expr(&[LogosToken::LeftParenthesis]) {
             let mut args: Vec<Expression> = Vec::new();
 
             loop {
-                if self.check(&Token::RightParenthesis) {
+                if self.check(&LogosToken::RightParenthesis) {
                     break;
                 }
 
                 args.push(self.or()?);
 
-                if !self.match_expr(&[Token::Comma]) {
+                if !self.match_expr(&[LogosToken::Comma]) {
                     break;
                 }
             }
 
-            if let None = self.consume(&Token::RightParenthesis, "Unclosed '(' in function call.") {
+            if let None = self.consume(
+                &LogosToken::RightParenthesis,
+                "Unclosed '(' in function call.",
+            ) {
                 return Err(());
             }
 
             let identifier = match primary_expr {
                 Expression::Literal(Literal::Identifier(n)) => n,
                 _ => {
-                    println!("Error: Expected identifier before function call.");
+                    self.put_error_at_current_token(
+                        "Error: Expected identifier before function call.",
+                    );
                     return Err(());
                 }
             };
@@ -187,11 +196,11 @@ impl Parser {
             }));
         }
 
-        if self.match_expr(&[Token::Dot]) {
+        if self.match_expr(&[LogosToken::Dot]) {
             let rhs = if let Expression::Literal(Literal::Identifier(id)) = self.or()? {
                 id.name
             } else {
-                println!("Expected identifier after Dot member access.");
+                self.put_error_at_current_token("Expected identifier after Dot member access.");
                 return Err(());
             };
 
@@ -202,15 +211,15 @@ impl Parser {
             }));
         }
 
-        if self.match_expr(&[Token::LeftBracket]) {
+        if self.match_expr(&[LogosToken::LeftBracket]) {
             let matched_token = self.previous().unwrap();
 
             match matched_token {
-                Token::LeftBracket => {
+                LogosToken::LeftBracket => {
                     let index = self.or()?;
 
                     if let None =
-                        self.consume(&Token::RightBracket, "Unclosed ']' in array access.")
+                        self.consume(&LogosToken::RightBracket, "Unclosed ']' in array access.")
                     {
                         return Err(());
                     }
@@ -227,7 +236,7 @@ impl Parser {
         }
 
         // TODO: Support namespace
-        // if self.match_expr(&[Token::DoubleColon]) {
+        // if self.match_expr(&[LogosToken::DoubleColon]) {
         //     let rhs = self.or()?;
 
         //     return Ok(Expression::ModuleAccess(ModuleAccess {
@@ -243,21 +252,23 @@ impl Parser {
         let token = self.advance();
 
         match token {
-            Some(Token::True) => Ok(Expression::Literal(Literal::Bool(true))),
-            Some(Token::False) => Ok(Expression::Literal(Literal::Bool(false))),
-            Some(Token::Number(value)) => Ok(Expression::Literal(Literal::Number(*value))),
-            Some(Token::CharLiteral(value)) => Ok(Expression::Literal(Literal::Char(*value))),
-            Some(Token::Real(value)) => Ok(Expression::Literal(Literal::Real(*value))),
-            Some(Token::Quote(s)) => Ok(Expression::Literal(Literal::StringLiteral(s.clone()))),
-            Some(Token::Null) => Ok(Expression::Null),
-            Some(Token::AddressOf) => {
+            Some(LogosToken::True) => Ok(Expression::Literal(Literal::Bool(true))),
+            Some(LogosToken::False) => Ok(Expression::Literal(Literal::Bool(false))),
+            Some(LogosToken::Number(value)) => Ok(Expression::Literal(Literal::Number(*value))),
+            Some(LogosToken::CharLiteral(value)) => Ok(Expression::Literal(Literal::Char(*value))),
+            Some(LogosToken::Real(value)) => Ok(Expression::Literal(Literal::Real(*value))),
+            Some(LogosToken::Quote(s)) => {
+                Ok(Expression::Literal(Literal::StringLiteral(s.clone())))
+            }
+            Some(LogosToken::Null) => Ok(Expression::Null),
+            Some(LogosToken::AddressOf) => {
                 let identifier = self.or()?;
                 Ok(Expression::AddressOf(AddressOf {
                     identifier: Box::new(identifier),
                     ty: None,
                 }))
             }
-            Some(Token::Dereference) => {
+            Some(LogosToken::Dereference) => {
                 let identifier = self.or()?;
 
                 Ok(Expression::DeReference(DeReference {
@@ -266,7 +277,7 @@ impl Parser {
                     ty: None,
                 }))
             }
-            Some(Token::Identifier(value)) => {
+            Some(LogosToken::Identifier(value)) => {
                 let name = value.clone(); // Copy the literal's name to avoid borrow checker errors
 
                 Ok(Expression::Literal(Literal::Identifier(Identifier {
@@ -275,10 +286,10 @@ impl Parser {
                     ty: None,
                 })))
             }
-            Some(Token::LeftParenthesis) => {
+            Some(LogosToken::LeftParenthesis) => {
                 let inner_expr = self.or()?;
 
-                if let None = self.consume(&Token::RightParenthesis, "Unclosed parenthesis.") {
+                if let None = self.consume(&LogosToken::RightParenthesis, "Unclosed parenthesis.") {
                     return Err(());
                 }
 
@@ -286,9 +297,9 @@ impl Parser {
                     inner_expression: Box::new(inner_expr),
                 }))
             }
-            Some(Token::Struct) => {
-                let type_name = if let Some(Token::Identifier(name)) = self.consume(
-                    &Token::Identifier(String::new()),
+            Some(LogosToken::Struct) => {
+                let type_name = if let Some(LogosToken::Identifier(name)) = self.consume(
+                    &LogosToken::Identifier(String::new()),
                     "Expected type name after 'struct' keyword in expression",
                 ) {
                     name.to_string()
@@ -296,30 +307,32 @@ impl Parser {
                     return Err(());
                 };
 
-                if let None =
-                    self.consume(&Token::LeftBrace, "Expected '{' in struct initialization")
-                {
+                if let None = self.consume(
+                    &LogosToken::LeftBrace,
+                    "Expected '{' in struct initialization",
+                ) {
                     return Err(());
                 }
 
                 let mut expressions: Vec<Expression> = Vec::new();
                 loop {
                     // A right brace mark the end of the expression list.
-                    if self.check(&Token::RightBrace) {
+                    if self.check(&LogosToken::RightBrace) {
                         break;
                     }
                     expressions.push(self.or()?);
 
                     // Expect a comma
 
-                    if !self.match_expr(&[Token::Comma]) {
+                    if !self.match_expr(&[LogosToken::Comma]) {
                         break;
                     }
                 }
 
-                if let None =
-                    self.consume(&&Token::RightBrace, "Unclosed '}' in struct initialization")
-                {
+                if let None = self.consume(
+                    &&LogosToken::RightBrace,
+                    "Unclosed '}' in struct initialization",
+                ) {
                     return Err(());
                 }
 
@@ -330,10 +343,11 @@ impl Parser {
                 })))
             }
             _ => {
-                if let Some(t) = token {
-                    println!("Error: Unexpected {:?}", t);
+                if let Some(bad_tk) = token {
+                    let msg = format!("Error: Unexpected {:?}", bad_tk);
+                    self.put_error_at_current_token(&msg);
                 } else {
-                    println!("Error: Unexpected EOF");
+                    self.put_error_at_current_token("Error: Unexpected EOF");
                 }
 
                 Err(())

@@ -1,4 +1,4 @@
-use crate::lexer::Token;
+use crate::lexer::{LogosToken, Token};
 
 use super::visitors::Statement;
 
@@ -10,7 +10,7 @@ pub struct Parser {
 
 impl Parser {
     /// # Arguments
-    /// - lexer: vec of Token (usually collected from the lexer)
+    /// - lexer: vec of LogosToken (usually collected from the lexer)
     /// - module_path: String path of the current module
     ///
     /// The module path arguments is used by the parser for import statements
@@ -37,15 +37,15 @@ impl Parser {
         Some(stmts)
     }
 
-    pub fn peek(&self) -> Option<&Token> {
+    pub fn peek(&self) -> Option<&LogosToken> {
         if self.is_at_the_end() {
             return None;
         }
 
-        Some(&self.lexer[self.current_token])
+        Some(&self.lexer[self.current_token].logos_tk)
     }
 
-    pub fn expect(&mut self, token: &Token) -> Option<&Token> {
+    pub fn expect(&mut self, token: &LogosToken) -> Option<&LogosToken> {
         if self.is_at_the_end() {
             return None;
         }
@@ -57,7 +57,7 @@ impl Parser {
         }
     }
 
-    pub fn expect_tokens(&mut self, tokens: &[Token]) -> Option<&Token> {
+    pub fn expect_tokens(&mut self, tokens: &[LogosToken]) -> Option<&LogosToken> {
         if self.is_at_the_end() {
             return None;
         }
@@ -72,10 +72,11 @@ impl Parser {
     }
 
     pub fn is_at_the_end(&self) -> bool {
-        self.current_token >= self.lexer.len() || self.lexer[self.current_token] == Token::EndOfFile
+        self.current_token >= self.lexer.len()
+            || self.lexer[self.current_token].logos_tk == LogosToken::EndOfFile
     }
 
-    pub fn advance(&mut self) -> Option<&Token> {
+    pub fn advance(&mut self) -> Option<&LogosToken> {
         if !self.is_at_the_end() {
             self.current_token += 1;
         }
@@ -83,20 +84,42 @@ impl Parser {
         self.previous()
     }
 
-    pub fn previous(&self) -> Option<&Token> {
-        Some(&self.lexer[self.current_token - 1])
+    pub fn previous(&self) -> Option<&LogosToken> {
+        Some(&self.lexer[self.current_token - 1].logos_tk)
     }
 
-    pub fn consume(&mut self, token: &Token, error_message: &str) -> Option<&Token> {
+    pub fn consume(&mut self, token: &LogosToken, error_message: &str) -> Option<&LogosToken> {
         if !self.check(token) {
-            println!("Error: {}", error_message);
+            if !self.is_at_the_end() {
+                let current_tk = &self.lexer[self.current_token];
+                println!(
+                    "{}:{} Error: {}",
+                    current_tk.line_number, current_tk.column_number, error_message
+                );
+            } else {
+                println!("Error: {}", error_message);
+            }
+
             return None;
         }
 
         self.advance()
     }
 
-    pub fn match_expr(&mut self, token_types: &[Token]) -> bool {
+    pub fn put_error_at_current_token(&self, error_message: &str) {
+        let current_tk = if !self.is_at_the_end() {
+            &self.lexer[self.current_token]
+        } else {
+            &self.lexer[self.current_token - 1]
+        };
+
+        println!(
+            "{}:{} Error: {}",
+            current_tk.line_number, current_tk.column_number, error_message
+        );
+    }
+
+    pub fn match_expr(&mut self, token_types: &[LogosToken]) -> bool {
         for t in token_types {
             if self.check(t) {
                 self.advance();
@@ -107,7 +130,7 @@ impl Parser {
         false
     }
 
-    pub fn check(&self, token: &Token) -> bool {
-        !self.is_at_the_end() && self.lexer[self.current_token] == *token
+    pub fn check(&self, token: &LogosToken) -> bool {
+        !self.is_at_the_end() && self.lexer[self.current_token].logos_tk == *token
     }
 }

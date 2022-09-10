@@ -1,4 +1,4 @@
-use crate::lexer::Token;
+use crate::lexer::LogosToken;
 
 use super::{
     parser::Parser,
@@ -11,19 +11,19 @@ use super::{
 
 impl Parser {
     fn parse_function(&mut self, exported: bool) -> Result<Statement, ()> {
-        if self.match_expr(&[Token::Function]) {
+        if self.match_expr(&[LogosToken::Function]) {
             let callee = match self.consume(
-                &Token::Identifier(String::new()),
+                &LogosToken::Identifier(String::new()),
                 "Expected identifier after fn.",
             ) {
-                Some(Token::Identifier(id)) => id.to_string(),
+                Some(LogosToken::Identifier(id)) => id.to_string(),
                 _ => {
                     return Err(());
                 }
             };
 
             if let None = self.consume(
-                &Token::LeftParenthesis,
+                &LogosToken::LeftParenthesis,
                 "Expected '(' after function identifier",
             ) {
                 return Err(());
@@ -31,32 +31,34 @@ impl Parser {
 
             let mut args: Vec<Argument> = Vec::new();
             loop {
-                let id = match self.expect(&Token::Identifier(String::new())) {
-                    Some(Token::Identifier(val)) => val.to_string(),
+                let id = match self.expect(&LogosToken::Identifier(String::new())) {
+                    Some(LogosToken::Identifier(val)) => val.to_string(),
                     _ => {
                         break;
                     }
                 };
 
-                if let None = self.consume(&Token::Colon, "Expected ':' after argument identifier.")
-                {
+                if let None = self.consume(
+                    &LogosToken::Colon,
+                    "Expected ':' after argument identifier.",
+                ) {
                     return Err(());
                 }
 
                 let arg_type = self.parse_type()?;
                 args.push((id.clone(), arg_type.clone()));
 
-                if !self.match_expr(&[Token::Comma]) {
+                if !self.match_expr(&[LogosToken::Comma]) {
                     break;
                 }
             }
 
-            if let None = self.consume(&Token::RightParenthesis, "Expected ')' after args.") {
+            if let None = self.consume(&LogosToken::RightParenthesis, "Expected ')' after args.") {
                 return Err(());
             }
 
             if let None = self.consume(
-                &Token::Colon,
+                &LogosToken::Colon,
                 "Expected ':' after ')', function return type must be declared.",
             ) {
                 return Err(());
@@ -64,10 +66,11 @@ impl Parser {
 
             let return_type = self.parse_type()?;
 
-            if !self.match_expr(&[Token::LeftBrace]) {
-                if let None =
-                    self.consume(&Token::Semicolon, "Expected ';' after function declaration")
-                {
+            if !self.match_expr(&[LogosToken::LeftBrace]) {
+                if let None = self.consume(
+                    &LogosToken::Semicolon,
+                    "Expected ';' after function declaration",
+                ) {
                     return Err(());
                 }
 
@@ -91,11 +94,11 @@ impl Parser {
             }));
         }
 
-        if self.match_expr(&[Token::Struct]) {
+        if self.match_expr(&[LogosToken::Struct]) {
             self.parse_struct_statement(exported)
         } else {
             if exported {
-                println!("Expected 'fn' keyword after 'export'.");
+                self.put_error_at_current_token("Expected 'fn' keyword after 'export'.");
                 return Err(());
             }
 
@@ -104,9 +107,9 @@ impl Parser {
     }
 
     pub fn parse_import_statement(&mut self) -> Result<Statement, ()> {
-        if self.match_expr(&[Token::Import]) {
-            let name = if let Some(Token::Quote(name)) = self.consume(
-                &Token::Quote(String::new()),
+        if self.match_expr(&[LogosToken::Import]) {
+            let name = if let Some(LogosToken::Quote(name)) = self.consume(
+                &LogosToken::Quote(String::new()),
                 "Expected a string literal after 'import' keyword.",
             ) {
                 name.clone()
@@ -115,7 +118,10 @@ impl Parser {
             };
 
             if self
-                .consume(&Token::Semicolon, "Expected ';' after import statement.")
+                .consume(
+                    &LogosToken::Semicolon,
+                    "Expected ';' after import statement.",
+                )
                 .is_some()
             {
                 Ok(Statement::Import(ImportStatement {
@@ -131,13 +137,13 @@ impl Parser {
     }
 
     fn parse_function_statement(&mut self) -> Result<Statement, ()> {
-        let exported = self.match_expr(&[Token::Export]);
+        let exported = self.match_expr(&[LogosToken::Export]);
         self.parse_function(exported)
     }
 
     fn parse_struct_statement(&mut self, exported: bool) -> Result<Statement, ()> {
-        let type_name = if let Some(Token::Identifier(id)) = self.consume(
-            &Token::Identifier(String::new()),
+        let type_name = if let Some(LogosToken::Identifier(id)) = self.consume(
+            &LogosToken::Identifier(String::new()),
             "Expected <type identifier> after 'struct'.",
         ) {
             id.clone()
@@ -146,24 +152,27 @@ impl Parser {
         };
 
         if let None = self.consume(
-            &Token::LeftBrace,
+            &LogosToken::LeftBrace,
             "Expected '{' after struct type identifier.",
         ) {
             return Err(());
         }
 
         let mut fields: Vec<StructField> = Vec::new();
-        while let Some(Token::Identifier(name)) = self.advance() {
+        while let Some(LogosToken::Identifier(name)) = self.advance() {
             // Copy here because of other mutable borrows below ...
             let field_name = name.clone();
 
-            if let None = self.consume(&Token::Colon, "Expected ':' after field identifier.") {
+            if let None = self.consume(&LogosToken::Colon, "Expected ':' after field identifier.") {
                 return Err(());
             }
 
             let field_type = self.parse_type()?;
 
-            if let None = self.consume(&Token::Semicolon, "Expected ';' after field type name.") {
+            if let None = self.consume(
+                &LogosToken::Semicolon,
+                "Expected ';' after field type name.",
+            ) {
                 return Err(());
             }
 
@@ -180,7 +189,7 @@ impl Parser {
     fn parse_block(&mut self) -> Result<BlockStatement, ()> {
         let mut statements: Vec<Statement> = Vec::new();
 
-        while !self.match_expr(&[Token::RightBrace]) {
+        while !self.match_expr(&[LogosToken::RightBrace]) {
             statements.push(self.parse_if_statement()?);
         }
 
@@ -188,20 +197,20 @@ impl Parser {
     }
 
     fn parse_if_statement(&mut self) -> Result<Statement, ()> {
-        if self.match_expr(&[Token::If]) {
+        if self.match_expr(&[LogosToken::If]) {
             let condition = self.or()?;
             let then_branch = if let Statement::Block(b) = self.parse_block_statement()? {
                 b
             } else {
-                println!("Expected block after if condition.");
+                self.put_error_at_current_token("Expected block after if condition.");
                 return Err(());
             };
 
-            if let Some(_) = self.expect(&Token::Else) {
+            if let Some(_) = self.expect(&LogosToken::Else) {
                 let else_branch = if let Statement::Block(b) = self.parse_block_statement()? {
                     b
                 } else {
-                    println!("Expected block after if condition.");
+                    self.put_error_at_current_token("Expected block after if condition.");
                     return Err(());
                 };
 
@@ -223,19 +232,19 @@ impl Parser {
     }
 
     fn parse_for_statement(&mut self) -> Result<Statement, ()> {
-        if self.match_expr(&[Token::For]) {
+        if self.match_expr(&[LogosToken::For]) {
             let init_expr =
                 if let Statement::VariableDeclaration(dec) = self.parse_declaration_statement()? {
                     dec
                 } else {
-                    println!("Expected variable declaration atfer for.");
+                    self.put_error_at_current_token("Expected variable declaration atfer for.");
                     return Err(());
                 };
 
             let loop_condition = self.or()?;
 
-            if let None = self.expect(&Token::Semicolon) {
-                println!("Expected ';' after loop condition.");
+            if let None = self.expect(&LogosToken::Semicolon) {
+                self.put_error_at_current_token("Expected ';' after loop condition.");
                 return Err(());
             }
 
@@ -244,7 +253,7 @@ impl Parser {
             let block_stmt = if let Statement::Block(b) = self.parse_block_statement()? {
                 b
             } else {
-                println!("Expected block statement in for statement.");
+                self.put_error_at_current_token("Expected block statement in for statement.");
                 return Err(());
             };
 
@@ -260,12 +269,12 @@ impl Parser {
     }
 
     fn parse_while_statement(&mut self) -> Result<Statement, ()> {
-        if self.match_expr(&[Token::While]) {
+        if self.match_expr(&[LogosToken::While]) {
             let condition = self.or()?;
             let loop_block = if let Statement::Block(b) = self.parse_block_statement()? {
                 b
             } else {
-                println!("Expected block after 'while' condition.");
+                self.put_error_at_current_token("Expected block after 'while' condition.");
                 return Err(());
             };
 
@@ -279,8 +288,8 @@ impl Parser {
     }
 
     fn parse_loop_statement(&mut self) -> Result<Statement, ()> {
-        if self.match_expr(&[Token::Loop]) {
-            self.consume(&Token::LeftBrace, "Expected '{' after 'loop'");
+        if self.match_expr(&[LogosToken::Loop]) {
+            self.consume(&LogosToken::LeftBrace, "Expected '{' after 'loop'");
             let loop_block = self.parse_block()?;
 
             // A loop is just a while true {}
@@ -294,7 +303,7 @@ impl Parser {
     }
 
     fn parse_block_statement(&mut self) -> Result<Statement, ()> {
-        if self.match_expr(&[Token::LeftBrace]) {
+        if self.match_expr(&[LogosToken::LeftBrace]) {
             return Ok(Statement::Block(self.parse_block()?));
         }
 
@@ -302,10 +311,13 @@ impl Parser {
     }
 
     fn parse_return_statement(&mut self) -> Result<Statement, ()> {
-        if self.match_expr(&[Token::Return]) {
+        if self.match_expr(&[LogosToken::Return]) {
             let expr = self.or()?;
 
-            if let None = self.consume(&Token::Semicolon, "Expected ';' after return expression.") {
+            if let None = self.consume(
+                &LogosToken::Semicolon,
+                "Expected ';' after return expression.",
+            ) {
                 return Err(());
             }
 
@@ -316,30 +328,30 @@ impl Parser {
     }
 
     fn parse_declaration_statement(&mut self) -> Result<Statement, ()> {
-        if self.match_expr(&[Token::Let]) {
+        if self.match_expr(&[LogosToken::Let]) {
             let identifier = match self.consume(
-                &Token::Identifier(String::new()),
+                &LogosToken::Identifier(String::new()),
                 "Expected identifier after Let",
             ) {
-                Some(Token::Identifier(name)) => name.clone(),
+                Some(LogosToken::Identifier(name)) => name.clone(),
                 _ => {
                     return Err(());
                 }
             };
 
-            if let None = self.consume(&Token::Colon, "Expected ':' after identifier.") {
+            if let None = self.consume(&LogosToken::Colon, "Expected ':' after identifier.") {
                 return Err(());
             }
 
             let variable_type = self.parse_type()?;
 
-            if let None = self.consume(&Token::Equal, "Expected '=' after typename.") {
+            if let None = self.consume(&LogosToken::Equal, "Expected '=' after typename.") {
                 return Err(());
             }
 
             let init_expr = self.or()?;
 
-            if let None = self.consume(&Token::Semicolon, "Expected ';' after <init_expr>.") {
+            if let None = self.consume(&LogosToken::Semicolon, "Expected ';' after <init_expr>.") {
                 return Err(());
             }
 
@@ -354,8 +366,8 @@ impl Parser {
     }
 
     fn parse_expression_statement(&mut self) -> Result<Statement, ()> {
-        if self.match_expr(&[Token::Break]) {
-            if let None = self.consume(&Token::Semicolon, "Expected ';' after assigment.") {
+        if self.match_expr(&[LogosToken::Break]) {
+            if let None = self.consume(&LogosToken::Semicolon, "Expected ';' after assigment.") {
                 return Err(());
             }
 
@@ -364,10 +376,10 @@ impl Parser {
 
         let expr = self.or()?;
 
-        if self.match_expr(&[Token::Equal]) {
+        if self.match_expr(&[LogosToken::Equal]) {
             let rhs = self.or()?;
 
-            if let None = self.consume(&Token::Semicolon, "Expected ';' after assigment.") {
+            if let None = self.consume(&LogosToken::Semicolon, "Expected ';' after assigment.") {
                 return Err(());
             }
 
@@ -377,7 +389,7 @@ impl Parser {
             }));
         }
 
-        if let None = self.consume(&Token::Semicolon, "Expected ';' after <expression>") {
+        if let None = self.consume(&LogosToken::Semicolon, "Expected ';' after <expression>") {
             return Err(());
         }
 
