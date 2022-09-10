@@ -59,7 +59,7 @@ fn handle_comment(lex: &mut Lexer<LogosToken>) -> Skip {
 
 fn handle_newline(lex: &mut Lexer<LogosToken>) -> Skip {
     // We increase the line count and set its position in the source code
-    lex.extras.increase_line_number(lex.span().start);
+    lex.extras.increase_line_number(lex.span().end);
 
     Skip {}
 }

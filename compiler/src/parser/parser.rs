@@ -93,11 +93,14 @@ impl Parser {
             if !self.is_at_the_end() {
                 let current_tk = &self.lexer[self.current_token];
                 println!(
-                    "{}:{} Error: {}",
-                    current_tk.line_number, current_tk.column_number, error_message
+                    "{}:{}:{} Error: {}",
+                    self.module_path,
+                    current_tk.line_number,
+                    current_tk.column_number,
+                    error_message
                 );
             } else {
-                println!("Error: {}", error_message);
+                println!("{}: Error: {}", self.module_path, error_message);
             }
 
             return None;
@@ -114,8 +117,8 @@ impl Parser {
         };
 
         println!(
-            "{}:{} Error: {}",
-            current_tk.line_number, current_tk.column_number, error_message
+            "{}:{}:{} Error: {}",
+            self.module_path, current_tk.line_number, current_tk.column_number, error_message
         );
     }
 
