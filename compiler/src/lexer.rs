@@ -64,7 +64,7 @@ fn handle_newline(lex: &mut Lexer<LogosToken>) -> Skip {
     Skip {}
 }
 
-struct TokenInfo {
+pub struct TokenInfo {
     pub line_count: usize,
     last_newline_position: usize,
 }
@@ -104,13 +104,14 @@ pub struct Token {
 
 impl Token {
     pub fn lex_string(string: &str) -> Vec<Self> {
-        let lexer = LogosToken::lexer_with_extras(string, TokenInfo::new());
+        let mut lexer = LogosToken::lexer_with_extras(string, TokenInfo::new());
         let mut result: Vec<Self> = Vec::new();
 
-        for tk in lexer {
+        while let Some(tk) = lexer.next() {
+            let line_number = lexer.extras.line_count;
             result.push(Self {
                 logos_tk: tk,
-                line_number: lexer.extras.line_count,
+                line_number,
                 column_number: lexer.extras.last_newline_index(lexer.span().start),
             })
         }
