@@ -4,7 +4,7 @@ use compiler::{lexer::Token, parser::parser::Parser, type_system::type_check::Ty
 fn minimal_valid_if() {
     let source = "if true {}";
     let tokens = Token::lex_string(source);
-    let mut parser = Parser::new(tokens, "");
+    let mut parser = Parser::new(tokens, "", "");
 
     if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
@@ -18,7 +18,7 @@ fn minimal_valid_if() {
 fn minimal_valid_if_else() {
     let source = "if true {} else {}";
     let tokens = Token::lex_string(source);
-    let mut parser = Parser::new(tokens, "");
+    let mut parser = Parser::new(tokens, "", "");
 
     if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
@@ -38,7 +38,7 @@ fn return_if_function() {
                   }";
 
     let tokens = Token::lex_string(source);
-    let mut parser = Parser::new(tokens, "");
+    let mut parser = Parser::new(tokens, "", "");
 
     if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
@@ -60,7 +60,7 @@ fn return_if_else_function() {
                   }";
 
     let tokens = Token::lex_string(source);
-    let mut parser = Parser::new(tokens, "");
+    let mut parser = Parser::new(tokens, "", "");
 
     if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
@@ -82,7 +82,7 @@ fn valid_nested_if() {
                   }";
 
     let tokens = Token::lex_string(source);
-    let mut parser = Parser::new(tokens, "");
+    let mut parser = Parser::new(tokens, "", "");
 
     if let Some(mut ast) = parser.parse() {
         let mut type_check = TypeChecker::new();
@@ -97,7 +97,7 @@ fn no_condition_if() {
     let source = "if  {}";
 
     let tokens = Token::lex_string(source);
-    let mut parser = Parser::new(tokens, "");
+    let mut parser = Parser::new(tokens, "", "");
 
     assert!(parser.parse().is_none());
 }
@@ -107,7 +107,7 @@ fn no_body_then_if() {
     let source = "if true ";
 
     let tokens = Token::lex_string(source);
-    let mut parser = Parser::new(tokens, "");
+    let mut parser = Parser::new(tokens, "", "");
 
     assert!(parser.parse().is_none());
 }
@@ -117,7 +117,7 @@ fn no_body_else_if() {
     let source = "if true {} else";
 
     let tokens = Token::lex_string(source);
-    let mut parser = Parser::new(tokens, "");
+    let mut parser = Parser::new(tokens, "", "");
 
     assert!(parser.parse().is_none());
 }

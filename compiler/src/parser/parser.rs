@@ -5,6 +5,7 @@ use super::visitors::Statement;
 pub struct Parser {
     pub lexer: Vec<Token>,
     pub(crate) module_path: String,
+    pub(crate) file: String,
     current_token: usize,
 }
 
@@ -15,11 +16,12 @@ impl Parser {
     ///
     /// The module path arguments is used by the parser for import statements
     /// nodes of the AST.
-    pub fn new(lexer: Vec<Token>, module_path: &str) -> Self {
+    pub fn new(lexer: Vec<Token>, module_path: &str, file: &str) -> Self {
         Self {
             lexer,
             module_path: module_path.to_string(),
             current_token: 0,
+            file: file.to_string(),
         }
     }
 
@@ -132,7 +134,7 @@ impl Parser {
 
         println!(
             "{}:{}:{} Error: {}",
-            self.module_path, current_tk.line_number, current_tk.column_number, error_message
+            self.file, current_tk.line_number, current_tk.column_number, error_message
         );
     }
 

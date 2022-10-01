@@ -25,7 +25,7 @@ pub fn repl_loop() {
     for line in stdin.lock().lines() {
         if let Ok(str) = line {
             let tokens = Token::lex_string(&str);
-            let mut parser = Parser::new(tokens, "./module.lht");
+            let mut parser = Parser::new(tokens, "./module.lht", "./module.lht");
             let mut import_resolver = ImportResolver::new();
 
             if let Some(mut stmts) = parser.parse() {

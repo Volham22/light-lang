@@ -84,7 +84,7 @@ impl Parser {
                     is_exported: exported,
                     line: debug_tk.line_number,
                     column: debug_tk.column_number,
-                    filename: self.module_path.clone(),
+                    filename: self.file.clone(),
                 }));
             }
 
@@ -99,7 +99,7 @@ impl Parser {
                 is_exported: exported,
                 line: debug_tk.line_number,
                 column: debug_tk.column_number,
-                filename: self.module_path.clone(),
+                filename: self.file.clone(),
             }));
         }
 
@@ -139,7 +139,7 @@ impl Parser {
                     module_path: name,
                     line: debug_tk.line_number,
                     column: debug_tk.column_number,
-                    filename: self.module_path.clone(),
+                    filename: self.file.clone(),
                 }))
             } else {
                 Err(())
@@ -199,7 +199,7 @@ impl Parser {
             exported,
             line: debug_tk.line_number,
             column: debug_tk.column_number,
-            filename: self.module_path.clone(),
+            filename: self.file.clone(),
         }))
     }
 
@@ -215,7 +215,7 @@ impl Parser {
             statements,
             line: debug_tk.line_number,
             column: debug_tk.column_number,
-            filename: self.module_path.clone(),
+            filename: self.file.clone(),
         })
     }
 
@@ -244,7 +244,7 @@ impl Parser {
                     else_branch: Some(else_branch),
                     line: debug_tk.line_number,
                     column: debug_tk.column_number,
-                    filename: self.module_path.clone(),
+                    filename: self.file.clone(),
                 }));
             }
 
@@ -255,7 +255,7 @@ impl Parser {
                 else_branch: None,
                 line: debug_tk.line_number,
                 column: debug_tk.column_number,
-                filename: self.module_path.clone(),
+                filename: self.file.clone(),
             }));
         }
 
@@ -296,7 +296,7 @@ impl Parser {
                 block_stmt,
                 line: debug_tk.line_number,
                 column: debug_tk.column_number,
-                filename: self.module_path.clone(),
+                filename: self.file.clone(),
             }));
         }
 
@@ -319,7 +319,7 @@ impl Parser {
                 loop_block,
                 line: debug_tk.line_number,
                 column: debug_tk.column_number,
-                filename: self.module_path.clone(),
+                filename: self.file.clone(),
             }));
         }
 
@@ -339,12 +339,12 @@ impl Parser {
                     value: true,
                     line: debug_tk.line_number,
                     column: debug_tk.column_number,
-                    filename: self.module_path.clone(),
+                    filename: self.file.clone(),
                 })),
                 loop_block,
                 line: debug_tk.line_number,
                 column: debug_tk.column_number,
-                filename: self.module_path.clone(),
+                filename: self.file.clone(),
             }));
         }
 
@@ -375,7 +375,7 @@ impl Parser {
                 expr,
                 line: debug_tk.line_number,
                 column: debug_tk.column_number,
-                filename: self.module_path.clone(),
+                filename: self.file.clone(),
             }));
         }
 
@@ -417,7 +417,7 @@ impl Parser {
                 init_expr,
                 line: debug_tk.line_number,
                 column: debug_tk.column_number,
-                filename: self.module_path.clone(),
+                filename: self.file.clone(),
             }));
         }
 
@@ -434,7 +434,7 @@ impl Parser {
             return Ok(Statement::BreakStatement(BreakStatement {
                 line: debug_tk.line_number,
                 column: debug_tk.column_number,
-                filename: self.module_path.clone(),
+                filename: self.file.clone(),
             }));
         }
 
@@ -453,7 +453,7 @@ impl Parser {
                 new_value: rhs,
                 line: debug_tk.line_number,
                 column: debug_tk.column_number,
-                filename: self.module_path.clone(),
+                filename: self.file.clone(),
             }));
         }
 

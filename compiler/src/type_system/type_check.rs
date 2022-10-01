@@ -1,4 +1,5 @@
 use crate::{
+    debug::LineDebugInfo,
     parser::visitors::{
         ArrayAccess, Expression, MutableExpressionVisitor, MutableStatementVisitor, Statement,
         StructLiteral, StructStatement,
@@ -76,7 +77,7 @@ impl TypeChecker {
             Statement::IfStatement(if_stmt) => self.visit_if_statement(if_stmt),
             Statement::WhileStatement(while_stmt) => self.visit_while_statement(while_stmt),
             Statement::ForStatement(for_stmt) => self.visit_for_statement(for_stmt),
-            Statement::BreakStatement(_) => self.visit_break_statement(),
+            Statement::BreakStatement(b) => self.visit_break_statement(b),
             Statement::Struct(struct_stmt) => self.visit_struct_statement(struct_stmt),
             Statement::Import(_) => todo!(),
         }
@@ -258,7 +259,13 @@ impl TypeChecker {
     }
 
     #[inline]
-    pub fn build_error_message(line: usize, column: usize, file_name: &str, msg: String) -> String {
-        format!("{}:{}:{} Error: {}", file_name, line, column, msg)
+    pub fn build_error_message<T: LineDebugInfo>(msg: &str, element: &T) -> String {
+        format!(
+            "{}:{}:{} Error: {}",
+            element.file_name(),
+            element.line(),
+            element.column(),
+            msg
+        )
     }
 }

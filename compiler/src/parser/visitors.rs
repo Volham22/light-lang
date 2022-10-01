@@ -244,7 +244,7 @@ pub trait StatementVisitor<T> {
     fn visit_if_statement(&mut self, if_stmt: &IfStatement) -> T;
     fn visit_while_statement(&mut self, while_stmt: &WhileStatement) -> T;
     fn visit_for_statement(&mut self, for_stmt: &ForStatement) -> T;
-    fn visit_break_statement(&mut self) -> T;
+    fn visit_break_statement(&mut self, break_stmt: &BreakStatement) -> T;
     fn visit_import_statement(&mut self, import_stmt: &ImportStatement) -> T;
 }
 
@@ -259,7 +259,7 @@ pub trait MutableStatementVisitor<T> {
     fn visit_if_statement(&mut self, if_stmt: &mut IfStatement) -> T;
     fn visit_while_statement(&mut self, while_stmt: &mut WhileStatement) -> T;
     fn visit_for_statement(&mut self, for_stmt: &mut ForStatement) -> T;
-    fn visit_break_statement(&mut self) -> T;
+    fn visit_break_statement(&mut self, break_stmt: &mut BreakStatement) -> T;
     fn visit_import_statement(&mut self, import_stmt: &mut ImportStatement) -> T;
 }
 

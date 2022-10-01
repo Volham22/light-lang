@@ -36,7 +36,7 @@ impl<'m> FileBuilder<'m> {
 
         let tokens = Token::lex_string(&content);
         let module_dir = Self::extract_module_directory(path);
-        let mut parser = Parser::new(tokens, &module_dir);
+        let mut parser = Parser::new(tokens, &module_dir, path);
         let mut import_resolve = ImportResolver::new();
 
         if let Some(mut stmts) = parser.parse() {

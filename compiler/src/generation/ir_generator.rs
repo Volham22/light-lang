@@ -244,7 +244,7 @@ impl<'a> IRGenerator<'a> {
                 None
             }
             Statement::ForStatement(_) => unreachable!(),
-            Statement::BreakStatement(_) => self.visit_break_statement(),
+            Statement::BreakStatement(b) => self.visit_break_statement(b),
             Statement::Struct(struct_stmt) => self.visit_struct_statement(struct_stmt),
             Statement::Import(_) => todo!(),
         }

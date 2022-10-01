@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use crate::parser::visitors::{
-    BlockStatement, Expression, ForStatement, FunctionStatement, IfStatement, ImportStatement,
-    MutableExpressionVisitor, MutableStatementVisitor, ReturnStatement, Statement, StructStatement,
-    VariableAssignment, VariableDeclaration, WhileStatement,
+    BlockStatement, BreakStatement, Expression, ForStatement, FunctionStatement, IfStatement,
+    ImportStatement, MutableExpressionVisitor, MutableStatementVisitor, ReturnStatement, Statement,
+    StructStatement, VariableAssignment, VariableDeclaration, WhileStatement,
 };
 
 use super::{
@@ -20,16 +20,21 @@ impl MutableStatementVisitor<TypeCheckerReturn> for TypeChecker {
         let init_type = self.check_expr(&mut expr.init_expr)?;
 
         if !ValueType::is_compatible_for_init(&expr.variable_type, &init_type) {
-            let message = format!(
-                "variable '{}' is declared as '{}' but init expression has type '{}'",
-                expr.identifier, expr.variable_type, init_type
-            );
-
-            return Err(message);
+            return Err(Self::build_error_message(
+                format!(
+                    "variable '{}' is declared as '{}' but init expression has type '{}'",
+                    expr.identifier, expr.variable_type, init_type
+                )
+                .as_str(),
+                expr,
+            ));
         }
 
         if let Some(_) = self.find_variable_type(&expr.identifier) {
-            return Err(format!("Redifinition of variable '{}'.", expr.identifier));
+            return Err(Self::build_error_message(
+                format!("Redifinition of variable '{}'.", expr.identifier).as_str(),
+                expr,
+            ));
         }
 
         self.variables_table
@@ -55,9 +60,13 @@ impl MutableStatementVisitor<TypeCheckerReturn> for TypeChecker {
                 let init_ty = self.check_expr(&mut expr.new_value)?;
 
                 if !ValueType::is_compatible(&deref_ty, &init_ty) {
-                    return Err(format!(
-                        "Cannot assign type '{}' with a dereferenced pointer of type '{}'",
-                        init_ty, deref_ty
+                    return Err(Self::build_error_message(
+                        format!(
+                            "Cannot assign type '{}' with a dereferenced pointer of type '{}'",
+                            init_ty, deref_ty
+                        )
+                        .as_str(),
+                        expr,
                     ));
                 }
 
@@ -70,9 +79,13 @@ impl MutableStatementVisitor<TypeCheckerReturn> for TypeChecker {
                 self.is_lvalue = false;
 
                 if !ValueType::is_compatible(&member_ty, &init_ty) {
-                    return Err(format!(
-                        "Cannot assign on member '{}' of type '{}' with type '{}'",
-                        member_access.member, member_ty, init_ty
+                    return Err(Self::build_error_message(
+                        format!(
+                            "Cannot assign on member '{}' of type '{}' with type '{}'",
+                            member_access.member, member_ty, init_ty
+                        )
+                        .as_str(),
+                        expr,
                     ));
                 }
 
@@ -91,7 +104,10 @@ impl MutableStatementVisitor<TypeCheckerReturn> for TypeChecker {
 
     fn visit_function_statement(&mut self, expr: &mut FunctionStatement) -> TypeCheckerReturn {
         if let Some(_) = self.in_function {
-            return Err(format!("Nested function is not allowed."));
+            return Err(Self::build_error_message(
+                format!("Nested function is not allowed.").as_str(),
+                expr,
+            ));
         }
 
         self.variables_table
@@ -153,7 +169,10 @@ impl MutableStatementVisitor<TypeCheckerReturn> for TypeChecker {
                 }
 
                 self.in_function = None;
-                return Err(format!("Function '{}' returns no values", expr.callee));
+                return Err(Self::build_error_message(
+                    format!("Function '{}' returns no values", expr.callee).as_str(),
+                    expr,
+                ));
             }
         } else {
             self.in_function = None;
@@ -174,16 +193,23 @@ impl MutableStatementVisitor<TypeCheckerReturn> for TypeChecker {
 
     fn visit_return_statement(&mut self, return_stmt: &mut ReturnStatement) -> TypeCheckerReturn {
         if self.in_function.is_none() {
-            return Err(format!("Return statement is valid only in a function."));
+            return Err(Self::build_error_message(
+                format!("Return statement is valid only in a function.").as_str(),
+                return_stmt,
+            ));
         }
 
         let expr_type = self.check_expr(&mut return_stmt.expr)?;
         let return_type = self.in_function.as_ref().unwrap();
 
         if !ValueType::is_compatible(&expr_type, &return_type) {
-            return Err(format!(
-                "Returned '{}' is not compatible with function return type '{}'",
-                expr_type, return_type
+            return Err(Self::build_error_message(
+                format!(
+                    "Returned '{}' is not compatible with function return type '{}'",
+                    expr_type, return_type
+                )
+                .as_str(),
+                return_stmt,
             ));
         }
 
@@ -194,9 +220,13 @@ impl MutableStatementVisitor<TypeCheckerReturn> for TypeChecker {
         let condition_type = self.check_expr(&mut if_stmt.condition)?;
 
         if condition_type != ValueType::Bool {
-            return Err(format!(
-                "If condition has type '{}' but the type bool is needed.",
-                condition_type
+            return Err(Self::build_error_message(
+                format!(
+                    "If condition has type '{}' but the type bool is needed.",
+                    condition_type
+                )
+                .as_str(),
+                if_stmt,
             ));
         }
 
@@ -215,9 +245,13 @@ impl MutableStatementVisitor<TypeCheckerReturn> for TypeChecker {
         self.loop_count += 1;
 
         if condition_type != ValueType::Bool {
-            return Err(format!(
-                "While condition has type '{}' but the type bool is needed.",
-                condition_type
+            return Err(Self::build_error_message(
+                format!(
+                    "While condition has type '{}' but the type bool is needed.",
+                    condition_type
+                )
+                .as_str(),
+                while_stmt,
             ));
         }
 
@@ -245,25 +279,36 @@ impl MutableStatementVisitor<TypeCheckerReturn> for TypeChecker {
         self.loop_count -= 1;
 
         if init_type != ValueType::Number && init_type != ValueType::Real {
-            return Err(format!(
-                "For init declaration has type '{}' but type 'number' or 'real' is required.",
-                init_type
+            return Err(Self::build_error_message(
+                format!(
+                    "For init declaration has type '{}' but type 'number' or 'real' is required.",
+                    init_type
+                )
+                .as_str(),
+                for_stmt,
             ));
         }
 
         if loop_type != ValueType::Bool {
-            return Err(format!(
-                "For loop expression has type '{}' but type 'bool' is required.",
-                loop_type
+            return Err(Self::build_error_message(
+                format!(
+                    "For loop expression has type '{}' but type 'bool' is required.",
+                    loop_type
+                )
+                .as_str(),
+                for_stmt,
             ));
         }
 
         Ok(ValueType::Void)
     }
 
-    fn visit_break_statement(&mut self) -> TypeCheckerReturn {
+    fn visit_break_statement(&mut self, break_stmt: &mut BreakStatement) -> TypeCheckerReturn {
         if self.loop_count == 0 {
-            return Err(format!("Break statement outside a loop."));
+            return Err(Self::build_error_message(
+                format!("Break statement outside a loop.").as_str(),
+                break_stmt,
+            ));
         }
 
         Ok(ValueType::Void)
@@ -271,7 +316,10 @@ impl MutableStatementVisitor<TypeCheckerReturn> for TypeChecker {
 
     fn visit_struct_statement(&mut self, stct: &StructStatement) -> TypeCheckerReturn {
         if self.structs_table.contains_key(&stct.type_name) {
-            return Err(format!("Redefinition of struct '{}'", &stct.type_name));
+            return Err(Self::build_error_message(
+                format!("Redefinition of struct '{}'", &stct.type_name).as_str(),
+                stct,
+            ));
         }
 
         self.structs_table

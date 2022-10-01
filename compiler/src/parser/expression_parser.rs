@@ -197,7 +197,7 @@ impl Parser {
                 args: if !args.is_empty() { Some(args) } else { None },
                 line: debug_tk.line_number,
                 column: debug_tk.column_number,
-                filename: self.module_path.clone(),
+                filename: self.file.clone(),
             }));
         }
 
@@ -216,7 +216,7 @@ impl Parser {
                 ty: None,
                 line: debug_tk.line_number,
                 column: debug_tk.column_number,
-                filename: self.module_path.clone(),
+                filename: self.file.clone(),
             }));
         }
 
@@ -241,7 +241,7 @@ impl Parser {
                         index: Box::new(index.clone()),
                         line: debug_tk.line_number,
                         column: debug_tk.column_number,
-                        filename: self.module_path.clone(),
+                        filename: self.file.clone(),
                     }));
                 }
                 _ => unreachable!(),
@@ -271,44 +271,44 @@ impl Parser {
                     value: true,
                     line,
                     column,
-                    filename: self.module_path.clone(),
+                    filename: self.file.clone(),
                 }))),
                 LogosToken::False => Ok(Expression::Literal(Literal::Bool(Bool {
                     value: false,
                     line,
                     column,
-                    filename: self.module_path.clone(),
+                    filename: self.file.clone(),
                 }))),
                 LogosToken::Number(value) => Ok(Expression::Literal(Literal::Number(Number {
                     value: *value,
                     line,
                     column,
-                    filename: self.module_path.clone(),
+                    filename: self.file.clone(),
                 }))),
                 LogosToken::CharLiteral(value) => Ok(Expression::Literal(Literal::Char(Char {
                     value: *value,
                     line,
                     column,
-                    filename: self.module_path.clone(),
+                    filename: self.file.clone(),
                 }))),
                 LogosToken::Real(value) => Ok(Expression::Literal(Literal::Real(Real {
                     value: *value,
                     line,
                     column,
-                    filename: self.module_path.clone(),
+                    filename: self.file.clone(),
                 }))),
                 LogosToken::Quote(s) => {
                     Ok(Expression::Literal(Literal::StringLiteral(StringLiteral {
                         value: s.clone(),
                         line,
                         column,
-                        filename: self.module_path.clone(),
+                        filename: self.file.clone(),
                     })))
                 }
                 LogosToken::Null => Ok(Expression::Null(Null {
                     line,
                     column,
-                    filename: self.module_path.clone(),
+                    filename: self.file.clone(),
                 })),
                 LogosToken::AddressOf => {
                     let identifier = self.or()?;
@@ -318,7 +318,7 @@ impl Parser {
                         ty: None,
                         line: debug_tk.line_number,
                         column: debug_tk.column_number,
-                        filename: self.module_path.clone(),
+                        filename: self.file.clone(),
                     }))
                 }
                 LogosToken::Dereference => {
@@ -330,7 +330,7 @@ impl Parser {
                         ty: None,
                         line,
                         column,
-                        filename: self.module_path.clone(),
+                        filename: self.file.clone(),
                     }))
                 }
                 LogosToken::Identifier(value) => {
@@ -342,7 +342,7 @@ impl Parser {
                         ty: None,
                         column,
                         line,
-                        filename: self.module_path.clone(),
+                        filename: self.file.clone(),
                     })))
                 }
                 LogosToken::LeftParenthesis => {
@@ -358,7 +358,7 @@ impl Parser {
                         inner_expression: Box::new(inner_expr),
                         line,
                         column,
-                        filename: self.module_path.clone(),
+                        filename: self.file.clone(),
                     }))
                 }
                 LogosToken::Struct => {
@@ -406,7 +406,7 @@ impl Parser {
                         expressions,
                         line,
                         column,
-                        filename: self.module_path.clone(),
+                        filename: self.file.clone(),
                     })))
                 }
                 _ => {

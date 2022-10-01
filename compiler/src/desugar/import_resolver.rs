@@ -70,7 +70,8 @@ impl ImportResolver {
         };
 
         let tokens = Token::lex_string(file_content.as_str());
-        let mut parser = Parser::new(tokens, Path::new(path).parent().unwrap().to_str().unwrap());
+        let p = Path::new(path).parent().unwrap().to_str().unwrap();
+        let mut parser = Parser::new(tokens, p, p);
 
         match parser.parse() {
             Some(stmts) => Ok(stmts),
