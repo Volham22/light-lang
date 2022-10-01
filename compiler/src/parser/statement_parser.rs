@@ -1,11 +1,12 @@
 use crate::lexer::LogosToken;
 
 use super::{
+    literals::Bool,
     parser::Parser,
     visitors::{
-        Argument, BlockStatement, Expression, ForStatement, FunctionStatement, IfStatement,
-        ImportStatement, Literal, ReturnStatement, Statement, StructField, StructStatement,
-        VariableAssignment, VariableDeclaration, WhileStatement,
+        Argument, BlockStatement, BreakStatement, Expression, ForStatement, FunctionStatement,
+        IfStatement, ImportStatement, Literal, ReturnStatement, Statement, StructField,
+        StructStatement, VariableAssignment, VariableDeclaration, WhileStatement,
     },
 };
 
@@ -74,23 +75,31 @@ impl Parser {
                     return Err(());
                 }
 
+                let debug_tk = self.peek_token_with_info_debug();
                 return Ok(Statement::Function(FunctionStatement {
                     callee,
                     args: if !args.is_empty() { Some(args) } else { None },
                     block: None,
                     return_type,
                     is_exported: exported,
+                    line: debug_tk.line_number,
+                    column: debug_tk.column_number,
+                    filename: self.module_path.clone(),
                 }));
             }
 
             let block = self.parse_block()?;
 
+            let debug_tk = self.peek_token_with_info_debug();
             return Ok(Statement::Function(FunctionStatement {
                 callee,
                 args: if !args.is_empty() { Some(args) } else { None },
                 block: Some(block),
                 return_type,
                 is_exported: exported,
+                line: debug_tk.line_number,
+                column: debug_tk.column_number,
+                filename: self.module_path.clone(),
             }));
         }
 
@@ -124,9 +133,13 @@ impl Parser {
                 )
                 .is_some()
             {
+                let debug_tk = self.peek_token_with_info_debug();
                 Ok(Statement::Import(ImportStatement {
                     file_path: self.module_path.clone(),
                     module_path: name,
+                    line: debug_tk.line_number,
+                    column: debug_tk.column_number,
+                    filename: self.module_path.clone(),
                 }))
             } else {
                 Err(())
@@ -179,10 +192,14 @@ impl Parser {
             fields.push((field_name, field_type));
         }
 
+        let debug_tk = self.peek_token_with_info_debug();
         Ok(Statement::Struct(StructStatement {
             type_name,
             fields,
             exported,
+            line: debug_tk.line_number,
+            column: debug_tk.column_number,
+            filename: self.module_path.clone(),
         }))
     }
 
@@ -193,7 +210,13 @@ impl Parser {
             statements.push(self.parse_if_statement()?);
         }
 
-        Ok(BlockStatement { statements })
+        let debug_tk = self.peek_token_with_info_debug();
+        Ok(BlockStatement {
+            statements,
+            line: debug_tk.line_number,
+            column: debug_tk.column_number,
+            filename: self.module_path.clone(),
+        })
     }
 
     fn parse_if_statement(&mut self) -> Result<Statement, ()> {
@@ -214,17 +237,25 @@ impl Parser {
                     return Err(());
                 };
 
+                let debug_tk = self.peek_token_with_info_debug();
                 return Ok(Statement::IfStatement(IfStatement {
                     condition,
                     then_branch,
                     else_branch: Some(else_branch),
+                    line: debug_tk.line_number,
+                    column: debug_tk.column_number,
+                    filename: self.module_path.clone(),
                 }));
             }
 
+            let debug_tk = self.peek_token_with_info_debug();
             return Ok(Statement::IfStatement(IfStatement {
                 condition,
                 then_branch,
                 else_branch: None,
+                line: debug_tk.line_number,
+                column: debug_tk.column_number,
+                filename: self.module_path.clone(),
             }));
         }
 
@@ -257,11 +288,15 @@ impl Parser {
                 return Err(());
             };
 
+            let debug_tk = self.peek_token_with_info_debug();
             return Ok(Statement::ForStatement(ForStatement {
                 init_expr,
                 loop_condition,
                 next_expr: Box::new(next_expr),
                 block_stmt,
+                line: debug_tk.line_number,
+                column: debug_tk.column_number,
+                filename: self.module_path.clone(),
             }));
         }
 
@@ -278,9 +313,13 @@ impl Parser {
                 return Err(());
             };
 
+            let debug_tk = self.peek_token_with_info_debug();
             return Ok(Statement::WhileStatement(WhileStatement {
                 condition,
                 loop_block,
+                line: debug_tk.line_number,
+                column: debug_tk.column_number,
+                filename: self.module_path.clone(),
             }));
         }
 
@@ -292,10 +331,20 @@ impl Parser {
             self.consume(&LogosToken::LeftBrace, "Expected '{' after 'loop'");
             let loop_block = self.parse_block()?;
 
+            let debug_tk = self.peek_token_with_info_debug();
+
             // A loop is just a while true {}
             return Ok(Statement::WhileStatement(WhileStatement {
-                condition: Expression::Literal(Literal::Bool(true)),
+                condition: Expression::Literal(Literal::Bool(Bool {
+                    value: true,
+                    line: debug_tk.line_number,
+                    column: debug_tk.column_number,
+                    filename: self.module_path.clone(),
+                })),
                 loop_block,
+                line: debug_tk.line_number,
+                column: debug_tk.column_number,
+                filename: self.module_path.clone(),
             }));
         }
 
@@ -321,7 +370,13 @@ impl Parser {
                 return Err(());
             }
 
-            return Ok(Statement::Return(ReturnStatement { expr }));
+            let debug_tk = self.peek_token_with_info_debug();
+            return Ok(Statement::Return(ReturnStatement {
+                expr,
+                line: debug_tk.line_number,
+                column: debug_tk.column_number,
+                filename: self.module_path.clone(),
+            }));
         }
 
         self.parse_declaration_statement()
@@ -355,10 +410,14 @@ impl Parser {
                 return Err(());
             }
 
+            let debug_tk = self.peek_token_with_info_debug();
             return Ok(Statement::VariableDeclaration(VariableDeclaration {
                 identifier,
                 variable_type,
                 init_expr,
+                line: debug_tk.line_number,
+                column: debug_tk.column_number,
+                filename: self.module_path.clone(),
             }));
         }
 
@@ -371,7 +430,12 @@ impl Parser {
                 return Err(());
             }
 
-            return Ok(Statement::BreakStatement);
+            let debug_tk = self.peek_token_with_info_debug();
+            return Ok(Statement::BreakStatement(BreakStatement {
+                line: debug_tk.line_number,
+                column: debug_tk.column_number,
+                filename: self.module_path.clone(),
+            }));
         }
 
         let expr = self.or()?;
@@ -383,9 +447,13 @@ impl Parser {
                 return Err(());
             }
 
+            let debug_tk = self.peek_token_with_info_debug();
             return Ok(Statement::VariableAssignment(VariableAssignment {
                 identifier: expr,
                 new_value: rhs,
+                line: debug_tk.line_number,
+                column: debug_tk.column_number,
+                filename: self.module_path.clone(),
             }));
         }
 

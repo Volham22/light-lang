@@ -30,7 +30,7 @@ pub fn repl_loop() {
 
             if let Some(mut stmts) = parser.parse() {
                 print_ast(&stmts);
-                match import_resolver.resolve_imports(&mut stmts) {
+                match import_resolver.resolve_imports(&mut stmts, "./module.lht") {
                     Ok(r) => stmts = r,
                     Err(msg) => {
                         eprintln!("{}", msg);

@@ -18,10 +18,14 @@ impl ImportResolver {
         }
     }
 
-    pub fn resolve_imports(&mut self, stmts: &Vec<Statement>) -> Result<Vec<Statement>, String> {
+    pub fn resolve_imports(
+        &mut self,
+        stmts: &Vec<Statement>,
+        file_name: &str,
+    ) -> Result<Vec<Statement>, String> {
         for stmt in stmts {
             if let Statement::Import(is) = stmt {
-                self.resolve_statement(is)?;
+                self.resolve_statement(is, file_name)?;
             }
         }
 
@@ -77,7 +81,11 @@ impl ImportResolver {
         }
     }
 
-    fn resolve_statement(&mut self, import_stmt: &ImportStatement) -> ImportResolverReturn {
+    fn resolve_statement(
+        &mut self,
+        import_stmt: &ImportStatement,
+        file_name: &str,
+    ) -> ImportResolverReturn {
         // the file_path is relative to the module path so we need
         // to concat the path.
         let path = Path::new(&import_stmt.file_path).join(import_stmt.module_path.as_str());
@@ -92,6 +100,10 @@ impl ImportResolver {
                         block: None, // forward declaration
                         return_type: f.return_type,
                         is_exported: false,
+                        line: f.line,
+                        column: f.column,
+                        // Path is the actual module path
+                        filename: file_name.to_string(),
                     };
 
                     if f.is_exported {

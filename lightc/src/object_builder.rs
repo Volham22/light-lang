@@ -40,7 +40,7 @@ impl<'m> FileBuilder<'m> {
         let mut import_resolve = ImportResolver::new();
 
         if let Some(mut stmts) = parser.parse() {
-            match import_resolve.resolve_imports(&stmts) {
+            match import_resolve.resolve_imports(&stmts, path) {
                 Ok(s) => stmts = s,
                 Err(msg) => {
                     eprintln!("{}", msg);

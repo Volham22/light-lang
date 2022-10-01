@@ -1,3 +1,4 @@
+mod debug;
 pub mod desugar;
 pub mod generation;
 pub mod lexer;

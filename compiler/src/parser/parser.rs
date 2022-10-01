@@ -45,6 +45,20 @@ impl Parser {
         Some(&self.lexer[self.current_token].logos_tk)
     }
 
+    pub fn peek_token_with_info_debug(&self) -> &Token {
+        if self.is_at_the_end() {
+            &self.lexer[self.current_token - 1]
+        } else {
+            &self.lexer[self.current_token]
+        }
+    }
+
+    pub fn get_current_token_postion(&self) -> (usize, usize) {
+        let tk = self.peek_token_with_info_debug();
+
+        (tk.line_number, tk.column_number)
+    }
+
     pub fn expect(&mut self, token: &LogosToken) -> Option<&LogosToken> {
         if self.is_at_the_end() {
             return None;

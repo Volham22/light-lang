@@ -1,10 +1,11 @@
 use crate::lexer::LogosToken;
 
 use super::{
+    literals::{Bool, Char, Number, Real, StringLiteral},
     parser::Parser,
     visitors::{
         AddressOf, ArrayAccess, Binary, BinaryLogic, Call, DeReference, Expression, Group,
-        Identifier, Literal, MemberAccess, StructLiteral, Unary,
+        Identifier, Literal, MemberAccess, Null, StructLiteral, Unary,
     },
 };
 
@@ -189,10 +190,14 @@ impl Parser {
                 }
             };
 
+            let debug_tk = self.peek_token_with_info_debug();
             return Ok(Expression::Call(Call {
                 name: identifier.name,
                 ty: None,
                 args: if !args.is_empty() { Some(args) } else { None },
+                line: debug_tk.line_number,
+                column: debug_tk.column_number,
+                filename: self.module_path.clone(),
             }));
         }
 
@@ -204,10 +209,14 @@ impl Parser {
                 return Err(());
             };
 
+            let debug_tk = self.peek_token_with_info_debug();
             return Ok(Expression::MemberAccess(MemberAccess {
                 object: Box::new(primary_expr),
                 member: rhs.to_string(),
                 ty: None,
+                line: debug_tk.line_number,
+                column: debug_tk.column_number,
+                filename: self.module_path.clone(),
             }));
         }
 
@@ -224,11 +233,15 @@ impl Parser {
                         return Err(());
                     }
 
+                    let debug_tk = self.peek_token_with_info_debug();
                     return Ok(Expression::ArrayAccess(ArrayAccess {
                         ty: None,
                         identifier: Box::new(primary_expr),
                         is_lvalue: false,
                         index: Box::new(index.clone()),
+                        line: debug_tk.line_number,
+                        column: debug_tk.column_number,
+                        filename: self.module_path.clone(),
                     }));
                 }
                 _ => unreachable!(),
@@ -249,109 +262,163 @@ impl Parser {
     }
 
     fn primary(&mut self) -> Result<Expression, ()> {
-        let token = self.advance();
+        let (line, column) = self.get_current_token_postion();
+        let tk = self.advance();
 
-        match token {
-            Some(LogosToken::True) => Ok(Expression::Literal(Literal::Bool(true))),
-            Some(LogosToken::False) => Ok(Expression::Literal(Literal::Bool(false))),
-            Some(LogosToken::Number(value)) => Ok(Expression::Literal(Literal::Number(*value))),
-            Some(LogosToken::CharLiteral(value)) => Ok(Expression::Literal(Literal::Char(*value))),
-            Some(LogosToken::Real(value)) => Ok(Expression::Literal(Literal::Real(*value))),
-            Some(LogosToken::Quote(s)) => {
-                Ok(Expression::Literal(Literal::StringLiteral(s.clone())))
-            }
-            Some(LogosToken::Null) => Ok(Expression::Null),
-            Some(LogosToken::AddressOf) => {
-                let identifier = self.or()?;
-                Ok(Expression::AddressOf(AddressOf {
-                    identifier: Box::new(identifier),
-                    ty: None,
-                }))
-            }
-            Some(LogosToken::Dereference) => {
-                let identifier = self.or()?;
-
-                Ok(Expression::DeReference(DeReference {
-                    identifier: Box::new(identifier),
-                    is_lvalue: false,
-                    ty: None,
-                }))
-            }
-            Some(LogosToken::Identifier(value)) => {
-                let name = value.clone(); // Copy the literal's name to avoid borrow checker errors
-
-                Ok(Expression::Literal(Literal::Identifier(Identifier {
-                    name,
-                    is_lvalue: false,
-                    ty: None,
-                })))
-            }
-            Some(LogosToken::LeftParenthesis) => {
-                let inner_expr = self.or()?;
-
-                if let None = self.consume(&LogosToken::RightParenthesis, "Unclosed parenthesis.") {
-                    return Err(());
+        if tk.is_some() {
+            match tk.unwrap() {
+                LogosToken::True => Ok(Expression::Literal(Literal::Bool(Bool {
+                    value: true,
+                    line,
+                    column,
+                    filename: self.module_path.clone(),
+                }))),
+                LogosToken::False => Ok(Expression::Literal(Literal::Bool(Bool {
+                    value: false,
+                    line,
+                    column,
+                    filename: self.module_path.clone(),
+                }))),
+                LogosToken::Number(value) => Ok(Expression::Literal(Literal::Number(Number {
+                    value: *value,
+                    line,
+                    column,
+                    filename: self.module_path.clone(),
+                }))),
+                LogosToken::CharLiteral(value) => Ok(Expression::Literal(Literal::Char(Char {
+                    value: *value,
+                    line,
+                    column,
+                    filename: self.module_path.clone(),
+                }))),
+                LogosToken::Real(value) => Ok(Expression::Literal(Literal::Real(Real {
+                    value: *value,
+                    line,
+                    column,
+                    filename: self.module_path.clone(),
+                }))),
+                LogosToken::Quote(s) => {
+                    Ok(Expression::Literal(Literal::StringLiteral(StringLiteral {
+                        value: s.clone(),
+                        line,
+                        column,
+                        filename: self.module_path.clone(),
+                    })))
                 }
-
-                Ok(Expression::Group(Group {
-                    inner_expression: Box::new(inner_expr),
-                }))
-            }
-            Some(LogosToken::Struct) => {
-                let type_name = if let Some(LogosToken::Identifier(name)) = self.consume(
-                    &LogosToken::Identifier(String::new()),
-                    "Expected type name after 'struct' keyword in expression",
-                ) {
-                    name.to_string()
-                } else {
-                    return Err(());
-                };
-
-                if let None = self.consume(
-                    &LogosToken::LeftBrace,
-                    "Expected '{' in struct initialization",
-                ) {
-                    return Err(());
+                LogosToken::Null => Ok(Expression::Null(Null {
+                    line,
+                    column,
+                    filename: self.module_path.clone(),
+                })),
+                LogosToken::AddressOf => {
+                    let identifier = self.or()?;
+                    let debug_tk = self.peek_token_with_info_debug();
+                    Ok(Expression::AddressOf(AddressOf {
+                        identifier: Box::new(identifier),
+                        ty: None,
+                        line: debug_tk.line_number,
+                        column: debug_tk.column_number,
+                        filename: self.module_path.clone(),
+                    }))
                 }
+                LogosToken::Dereference => {
+                    let identifier = self.or()?;
 
-                let mut expressions: Vec<Expression> = Vec::new();
-                loop {
-                    // A right brace mark the end of the expression list.
-                    if self.check(&LogosToken::RightBrace) {
-                        break;
+                    Ok(Expression::DeReference(DeReference {
+                        identifier: Box::new(identifier),
+                        is_lvalue: false,
+                        ty: None,
+                        line,
+                        column,
+                        filename: self.module_path.clone(),
+                    }))
+                }
+                LogosToken::Identifier(value) => {
+                    let name = value.clone(); // Copy the literal's name to avoid borrow checker errors
+
+                    Ok(Expression::Literal(Literal::Identifier(Identifier {
+                        name,
+                        is_lvalue: false,
+                        ty: None,
+                        column,
+                        line,
+                        filename: self.module_path.clone(),
+                    })))
+                }
+                LogosToken::LeftParenthesis => {
+                    let inner_expr = self.or()?;
+
+                    if let None =
+                        self.consume(&LogosToken::RightParenthesis, "Unclosed parenthesis.")
+                    {
+                        return Err(());
                     }
-                    expressions.push(self.or()?);
 
-                    // Expect a comma
+                    Ok(Expression::Group(Group {
+                        inner_expression: Box::new(inner_expr),
+                        line,
+                        column,
+                        filename: self.module_path.clone(),
+                    }))
+                }
+                LogosToken::Struct => {
+                    let type_name = if let Some(LogosToken::Identifier(name)) = self.consume(
+                        &LogosToken::Identifier(String::new()),
+                        "Expected type name after 'struct' keyword in expression",
+                    ) {
+                        name.to_string()
+                    } else {
+                        return Err(());
+                    };
 
-                    if !self.match_expr(&[LogosToken::Comma]) {
-                        break;
+                    if let None = self.consume(
+                        &LogosToken::LeftBrace,
+                        "Expected '{' in struct initialization",
+                    ) {
+                        return Err(());
                     }
-                }
 
-                if let None = self.consume(
-                    &&LogosToken::RightBrace,
-                    "Unclosed '}' in struct initialization",
-                ) {
-                    return Err(());
-                }
+                    let mut expressions: Vec<Expression> = Vec::new();
+                    loop {
+                        // A right brace mark the end of the expression list.
+                        if self.check(&LogosToken::RightBrace) {
+                            break;
+                        }
+                        expressions.push(self.or()?);
 
-                Ok(Expression::Literal(Literal::StructLiteral(StructLiteral {
-                    literal_type: None,
-                    type_name,
-                    expressions,
-                })))
-            }
-            _ => {
-                if let Some(bad_tk) = token {
-                    let msg = format!("Error: Unexpected {:?}", bad_tk);
+                        // Expect a comma
+
+                        if !self.match_expr(&[LogosToken::Comma]) {
+                            break;
+                        }
+                    }
+
+                    if let None = self.consume(
+                        &&LogosToken::RightBrace,
+                        "Unclosed '}' in struct initialization",
+                    ) {
+                        return Err(());
+                    }
+
+                    Ok(Expression::Literal(Literal::StructLiteral(StructLiteral {
+                        literal_type: None,
+                        type_name,
+                        expressions,
+                        line,
+                        column,
+                        filename: self.module_path.clone(),
+                    })))
+                }
+                _ => {
+                    // We can unwrap safely here we are in `is_token` branch
+                    let msg = format!("Error: Unexpected {:?}", tk.unwrap());
                     self.put_error_at_current_token(&msg);
-                } else {
-                    self.put_error_at_current_token("Error: Unexpected EOF");
+                    Err(())
                 }
-
-                Err(())
             }
+        } else {
+            self.put_error_at_current_token("Error: Unexpected EOF");
+            Err(())
         }
     }
 }

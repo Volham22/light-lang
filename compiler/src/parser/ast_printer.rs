@@ -19,7 +19,7 @@ impl AstPrinter {
             Statement::IfStatement(if_stmt) => self.visit_if_statement(if_stmt),
             Statement::WhileStatement(while_stmt) => self.visit_while_statement(while_stmt),
             Statement::ForStatement(for_stmt) => self.visit_for_statement(for_stmt),
-            Statement::BreakStatement => self.visit_break_statement(),
+            Statement::BreakStatement(_) => self.visit_break_statement(),
             Statement::Struct(struct_stmt) => self.visit_struct_statement(struct_stmt),
             Statement::Import(_) => todo!(),
         }
@@ -34,7 +34,7 @@ impl AstPrinter {
             Expression::Unary(val) => self.visit_unary(val),
             Expression::Call(call) => self.visit_call(call),
             Expression::ArrayAccess(access) => self.visit_array_access(access),
-            Expression::Null => self.visit_null_expression(),
+            Expression::Null(_) => self.visit_null_expression(),
             Expression::AddressOf(address_of) => self.visit_address_of_expression(address_of),
             Expression::DeReference(deref) => self.visit_dereference_expression(deref),
             Expression::MemberAccess(member_access) => self.visit_member_access(member_access),

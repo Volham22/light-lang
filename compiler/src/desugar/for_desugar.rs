@@ -23,10 +23,16 @@ impl ForDesugar {
     fn desugar_for(for_stmt: &mut ForStatement) -> Statement {
         let mut block = BlockStatement {
             statements: Vec::new(),
+            line: for_stmt.line,
+            column: for_stmt.column,
+            filename: for_stmt.filename.clone(),
         };
 
         let mut while_block = BlockStatement {
             statements: Vec::new(),
+            line: for_stmt.line,
+            column: for_stmt.column,
+            filename: for_stmt.filename.clone(),
         };
 
         while_block
@@ -41,6 +47,9 @@ impl ForDesugar {
         let desugar_while = WhileStatement {
             condition: for_stmt.loop_condition.clone(),
             loop_block: while_block,
+            line: for_stmt.line,
+            column: for_stmt.column,
+            filename: for_stmt.filename.clone(),
         };
 
         block
