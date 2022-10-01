@@ -1,12 +1,11 @@
 use compiler::{lexer::Token, parser::parser::Parser, type_system::type_check::TypeChecker};
-use logos::Logos;
 
 #[test]
 fn simple_pointer_declaration() {
     let source = "let my_ptr: ptr number = null;";
-    let lexer = Token::lexer(source);
-    let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens, "");
+    let tokens = Token::lex_string(source);
+
+    let mut parser = Parser::new(tokens, "", "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -18,9 +17,9 @@ fn simple_pointer_declaration() {
 #[test]
 fn simple_pointer_addrof() {
     let source = "let answer: number = 42; let ans_ptr: ptr number = addrof answer;";
-    let lexer = Token::lexer(source);
-    let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens, "");
+    let tokens = Token::lex_string(source);
+
+    let mut parser = Parser::new(tokens, "", "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -32,9 +31,9 @@ fn simple_pointer_addrof() {
 #[test]
 fn wrong_pointer_addrof() {
     let source = "let answer: number = 42; let ans_ptr: ptr real = addrof answer;";
-    let lexer = Token::lexer(source);
-    let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens, "");
+    let tokens = Token::lex_string(source);
+
+    let mut parser = Parser::new(tokens, "", "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -46,9 +45,9 @@ fn wrong_pointer_addrof() {
 #[test]
 fn addrof_of_non_pointer_type() {
     let source = "let answer: number = 42; let ans_ptr: number = addrof answer;";
-    let lexer = Token::lexer(source);
-    let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens, "");
+    let tokens = Token::lex_string(source);
+
+    let mut parser = Parser::new(tokens, "", "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -61,9 +60,9 @@ fn addrof_of_non_pointer_type() {
 fn pointer_dereference_assignment() {
     let source =
         "let answer: number = 42; let ans_ptr: ptr number = addrof answer; deref ans_ptr = 32;";
-    let lexer = Token::lexer(source);
-    let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens, "");
+    let tokens = Token::lex_string(source);
+
+    let mut parser = Parser::new(tokens, "", "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -76,9 +75,9 @@ fn pointer_dereference_assignment() {
 fn wrong_type_pointer_dereference_assignment() {
     let source =
         "let answer: number = 42; let ans_ptr: ptr bool = addrof answer; deref ans_ptr = 32;";
-    let lexer = Token::lexer(source);
-    let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens, "");
+    let tokens = Token::lex_string(source);
+
+    let mut parser = Parser::new(tokens, "", "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -93,9 +92,9 @@ fn pointer_array_subscript() {
     // Homewer this will segfault at runtime. This test is just to make
     // sure pointers can be used as arrays
     let source = "let ans_ptr: ptr number = null; ans_ptr[1];";
-    let lexer = Token::lexer(source);
-    let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens, "");
+    let tokens = Token::lex_string(source);
+
+    let mut parser = Parser::new(tokens, "", "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -107,9 +106,9 @@ fn pointer_array_subscript() {
 #[test]
 fn void_pointer_init() {
     let source = "let answer: number = 42; let ans_ptr: ptr void = addrof answer;";
-    let lexer = Token::lexer(source);
-    let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens, "");
+    let tokens = Token::lex_string(source);
+
+    let mut parser = Parser::new(tokens, "", "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -121,9 +120,9 @@ fn void_pointer_init() {
 #[test]
 fn pointer_init_from_void() {
     let source = "fn malloc(size: number): ptr void; let dyn_arr: ptr number = malloc(8 * 3);";
-    let lexer = Token::lexer(source);
-    let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens, "");
+    let tokens = Token::lex_string(source);
+
+    let mut parser = Parser::new(tokens, "", "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -135,9 +134,9 @@ fn pointer_init_from_void() {
 #[test]
 fn malloc_array_and_assign() {
     let source = "fn malloc(size: number): ptr void; let dyn_arr: ptr number = malloc(8 * 3); dyn_arr[0] = 2;";
-    let lexer = Token::lexer(source);
-    let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens, "");
+    let tokens = Token::lex_string(source);
+
+    let mut parser = Parser::new(tokens, "", "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -149,9 +148,9 @@ fn malloc_array_and_assign() {
 #[test]
 fn valid_deref_lvalue_number() {
     let source = "let a: number = 3; let ptr_a: ptr number = addrof a; (deref ptr_a) = 42;";
-    let lexer = Token::lexer(source);
-    let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens, "");
+    let tokens = Token::lex_string(source);
+
+    let mut parser = Parser::new(tokens, "", "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -164,9 +163,9 @@ fn valid_deref_lvalue_number() {
 fn dynamic_string_allocation() {
     let source =
         "fn malloc(size: number): ptr void; fn main(): void { let str: string = malloc(100); }";
-    let lexer = Token::lexer(source);
-    let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens, "");
+    let tokens = Token::lex_string(source);
+
+    let mut parser = Parser::new(tokens, "", "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -179,9 +178,9 @@ fn dynamic_string_allocation() {
 fn dynamic_string_array_access() {
     let source =
         "fn malloc(size: number): ptr void; fn main(): void { let str: string = malloc(100); str[0]; }";
-    let lexer = Token::lexer(source);
-    let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens, "");
+    let tokens = Token::lex_string(source);
+
+    let mut parser = Parser::new(tokens, "", "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();
@@ -194,9 +193,9 @@ fn dynamic_string_array_access() {
 fn dynamic_string_free() {
     let source =
         "fn free(p: ptr void): void; fn main(): void { let str: string = \"\"; free(str); }";
-    let lexer = Token::lexer(source);
-    let tokens = lexer.collect();
-    let mut parser = Parser::new(tokens, "");
+    let tokens = Token::lex_string(source);
+
+    let mut parser = Parser::new(tokens, "", "");
     let mut type_check = TypeChecker::new();
 
     let ast_opt = parser.parse();

@@ -23,9 +23,13 @@ impl MutableExpressionVisitor<Result<ValueType, String>> for TypeChecker {
                     identifier.set_type(var_type.clone());
                     Ok(var_type.clone())
                 } else {
-                    Err(format!(
-                        "'{}' is not declared. Declare it 'let {}: <typename> = <init_expr>;'",
-                        identifier, identifier
+                    Err(Self::build_error_message(
+                        format!(
+                            "'{}' is not declared. Declare it 'let {}: <typename> = <init_expr>;'",
+                            identifier, identifier
+                        )
+                        .as_str(),
+                        identifier,
                     ))
                 }
             }
@@ -81,9 +85,13 @@ impl MutableExpressionVisitor<Result<ValueType, String>> for TypeChecker {
 
     fn visit_call(&mut self, call_expr: &mut Call) -> TypeCheckerReturn {
         if !self.function_table.contains_key(&call_expr.name) {
-            return Err(format!(
-                "Function '{}' is not declared in this module.",
-                &call_expr.name
+            return Err(Self::build_error_message(
+                format!(
+                    "Function '{}' is not declared in this module.",
+                    &call_expr.name
+                )
+                .as_str(),
+                call_expr,
             ));
         }
 
@@ -105,9 +113,13 @@ impl MutableExpressionVisitor<Result<ValueType, String>> for TypeChecker {
             let call_arg_count = call_expr.args.as_ref().unwrap().len();
 
             if call_arg_count != expected_arg_count {
-                return Err(format!(
-                    "Expected {} arguments for function '{}' call but got {} arguments.",
-                    expected_arg_count, fn_name, call_arg_count
+                return Err(Self::build_error_message(
+                    format!(
+                        "Expected {} arguments for function '{}' call but got {} arguments.",
+                        expected_arg_count, fn_name, call_arg_count
+                    )
+                    .as_str(),
+                    call_expr,
                 ));
             }
 
@@ -122,10 +134,10 @@ impl MutableExpressionVisitor<Result<ValueType, String>> for TypeChecker {
                 let fn_args = &self.function_table.get(&call_expr.name).unwrap().args_type;
 
                 if !ValueType::is_compatible(&expr_type, &fn_args[i]) {
-                    return Err(format!(
+                    return Err(Self::build_error_message(format!(
                         "Expression of type '{}' cannot be applied to function argument of type '{}' in the call to '{}'",
                         expr_type, fn_args[i], fn_name
-                    ));
+                    ).as_str(), call_expr));
                 }
             }
         }
@@ -158,7 +170,10 @@ impl MutableExpressionVisitor<Result<ValueType, String>> for TypeChecker {
                 array_access.set_type(ptr_ty.as_ref().clone());
                 Ok(*ptr_ty)
             }
-            _ => Err(format!("'{}' is not a subscriptable type.", id_ty)),
+            _ => Err(Self::build_error_message(
+                format!("'{}' is not a subscriptable type.", id_ty).as_str(),
+                array_access,
+            )),
         }
     }
 
@@ -176,11 +191,20 @@ impl MutableExpressionVisitor<Result<ValueType, String>> for TypeChecker {
             ValueType::Real => Ok(ValueType::Pointer(Box::new(ValueType::Real))),
             ValueType::String => Ok(ValueType::Pointer(Box::new(ValueType::String))),
             ValueType::Char => Ok(ValueType::Pointer(Box::new(ValueType::Char))),
-            ValueType::Function => Err(format!("Function pointers are not supported yet.")),
+            ValueType::Function => Err(Self::build_error_message(
+                format!("Function pointers are not supported yet.").as_str(),
+                address_of,
+            )),
             ValueType::Pointer(ptr) => Ok(ValueType::Pointer(Box::new(ValueType::Pointer(ptr)))),
             ValueType::Struct(strct) => Ok(ValueType::Pointer(Box::new(ValueType::Struct(strct)))),
-            ValueType::Void => Err(format!("Addrof cannot be applied to void types.")),
-            ValueType::Null => Err(format!("Addrof 'null' is forbidden.")),
+            ValueType::Void => Err(Self::build_error_message(
+                format!("Addrof cannot be applied to void types.").as_str(),
+                address_of,
+            )),
+            ValueType::Null => Err(Self::build_error_message(
+                format!("Addrof 'null' is forbidden.").as_str(),
+                address_of,
+            )),
         }
     }
 
@@ -192,9 +216,13 @@ impl MutableExpressionVisitor<Result<ValueType, String>> for TypeChecker {
             dereference.is_lvalue = self.is_lvalue;
             Ok(*ptr.clone())
         } else {
-            Err(format!(
-                "'{}' Cannot be dereferenced as it's not a pointer type.",
-                deref_ty
+            Err(Self::build_error_message(
+                format!(
+                    "'{}' Cannot be dereferenced as it's not a pointer type.",
+                    deref_ty
+                )
+                .as_str(),
+                dereference,
             ))
         }
     }
@@ -224,11 +252,17 @@ impl MutableExpressionVisitor<Result<ValueType, String>> for TypeChecker {
                     self.structs_table.get(s).unwrap()
                 }
                 _ => {
-                    return Err(format!("Member access on a non-struct type"));
+                    return Err(Self::build_error_message(
+                        format!("Member access on a non-struct type").as_str(),
+                        member_access,
+                    ));
                 }
             },
             _ => {
-                return Err(format!("Member access on a non-struct type"));
+                return Err(Self::build_error_message(
+                    format!("Member access on a non-struct type").as_str(),
+                    member_access,
+                ));
             }
         };
 
@@ -239,9 +273,13 @@ impl MutableExpressionVisitor<Result<ValueType, String>> for TypeChecker {
         {
             Ok(field.1.clone())
         } else {
-            Err(format!(
-                "Type '{}' has no field '{}'",
-                declaration_type.type_name, member_access.member
+            Err(Self::build_error_message(
+                format!(
+                    "Type '{}' has no field '{}'",
+                    declaration_type.type_name, member_access.member
+                )
+                .as_str(),
+                member_access,
             ))
         }
     }

@@ -13,7 +13,6 @@ use inkwell::{
     targets::{CodeModel, FileType, InitializationConfig, RelocMode, Target, TargetMachine},
     OptimizationLevel,
 };
-use logos::Logos;
 
 pub struct FileBuilder<'m> {
     pub context: &'m Context,
@@ -35,14 +34,13 @@ impl<'m> FileBuilder<'m> {
             return false;
         };
 
-        let lexer = Token::lexer(content.as_str());
-        let tokens = lexer.collect();
+        let tokens = Token::lex_string(&content);
         let module_dir = Self::extract_module_directory(path);
-        let mut parser = Parser::new(tokens, &module_dir);
+        let mut parser = Parser::new(tokens, &module_dir, path);
         let mut import_resolve = ImportResolver::new();
 
         if let Some(mut stmts) = parser.parse() {
-            match import_resolve.resolve_imports(&stmts) {
+            match import_resolve.resolve_imports(&stmts, path) {
                 Ok(s) => stmts = s,
                 Err(msg) => {
                     eprintln!("{}", msg);

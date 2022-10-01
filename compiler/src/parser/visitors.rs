@@ -1,16 +1,19 @@
 use std::fmt::Display;
 
-use crate::type_system::value_type::ValueType;
+use crate::{debug::LineDebugInfo, type_system::value_type::ValueType};
+use compiler_macro::line_debug_info;
+
+use super::literals::{Bool, Char, Number, Real, StringLiteral};
 
 pub type Argument = (String, ValueType);
 
-#[derive(Clone)]
+#[line_debug_info]
 pub enum Literal {
-    Number(i64),
-    Real(f64),
-    Bool(bool),
-    Char(char),
-    StringLiteral(String),
+    Number(Number),
+    Real(Real),
+    Bool(Bool),
+    Char(Char),
+    StringLiteral(StringLiteral),
     StructLiteral(StructLiteral),
     Identifier(Identifier),
 }
@@ -29,7 +32,7 @@ impl Display for Literal {
     }
 }
 
-#[derive(Clone)]
+#[line_debug_info]
 pub struct Identifier {
     pub name: String,
     pub(crate) ty: Option<ValueType>,
@@ -42,14 +45,14 @@ impl Display for Identifier {
     }
 }
 
-#[derive(Clone)]
+#[line_debug_info]
 pub struct StructLiteral {
     pub type_name: String,
     pub expressions: Vec<Expression>,
     pub literal_type: Option<ValueType>,
 }
 
-#[derive(Clone)]
+#[line_debug_info]
 pub enum Binary {
     Plus(Box<Expression>, Box<Expression>),
     Minus(Box<Expression>, Box<Expression>),
@@ -58,12 +61,12 @@ pub enum Binary {
     Modulo(Box<Expression>, Box<Expression>),
 }
 
-#[derive(Clone)]
+#[line_debug_info]
 pub struct Group {
     pub inner_expression: Box<Expression>,
 }
 
-#[derive(Clone)]
+#[line_debug_info]
 pub enum BinaryLogic {
     And(Box<Expression>, Box<Expression>),
     Or(Box<Expression>, Box<Expression>),
@@ -75,20 +78,20 @@ pub enum BinaryLogic {
     LessEqual(Box<Expression>, Box<Expression>),
 }
 
-#[derive(Clone)]
+#[line_debug_info]
 pub enum Unary {
     Not(Box<Expression>),
     Negate(Box<Expression>),
 }
 
-#[derive(Clone)]
+#[line_debug_info]
 pub struct Call {
     pub name: String,
     pub args: Option<Vec<Expression>>,
     pub ty: Option<ValueType>,
 }
 
-#[derive(Clone)]
+#[line_debug_info]
 pub struct ArrayAccess {
     pub identifier: Box<Expression>,
     pub index: Box<Expression>,
@@ -96,25 +99,28 @@ pub struct ArrayAccess {
     pub is_lvalue: bool,
 }
 
-#[derive(Clone)]
+#[line_debug_info]
 pub struct AddressOf {
     pub identifier: Box<Expression>,
     pub ty: Option<ValueType>,
 }
 
-#[derive(Clone)]
+#[line_debug_info]
 pub struct DeReference {
     pub identifier: Box<Expression>,
     pub ty: Option<ValueType>,
     pub is_lvalue: bool,
 }
 
-#[derive(Clone)]
+#[line_debug_info]
 pub struct MemberAccess {
     pub object: Box<Expression>,
     pub member: String,
     pub ty: Option<ValueType>,
 }
+
+#[line_debug_info]
+pub struct Null;
 
 // TODO: Namespace support
 // #[derive(Clone)]
@@ -123,7 +129,7 @@ pub struct MemberAccess {
 //     pub right: Box<Expression>,
 // }
 
-#[derive(Clone)]
+#[line_debug_info]
 pub enum Expression {
     Literal(Literal),
     Binary(Binary),
@@ -136,28 +142,28 @@ pub enum Expression {
     DeReference(DeReference),
     MemberAccess(MemberAccess),
     // ModuleAccess(ModuleAccess), // TODO: Namespace support
-    Null,
+    Null(Null),
 }
 
-#[derive(Clone)]
+#[line_debug_info]
 pub struct VariableDeclaration {
     pub identifier: String,
     pub variable_type: ValueType,
     pub init_expr: Expression,
 }
 
-#[derive(Clone)]
+#[line_debug_info]
 pub struct VariableAssignment {
     pub identifier: Expression,
     pub new_value: Expression,
 }
 
-#[derive(Clone)]
+#[line_debug_info]
 pub struct BlockStatement {
     pub statements: Vec<Statement>,
 }
 
-#[derive(Clone)]
+#[line_debug_info]
 pub struct FunctionStatement {
     pub callee: String,
     pub args: Option<Vec<Argument>>,
@@ -169,32 +175,32 @@ pub struct FunctionStatement {
 
 pub type StructField = (String, ValueType);
 
-#[derive(Clone)]
+#[line_debug_info]
 pub struct StructStatement {
     pub type_name: String,
     pub fields: Vec<StructField>,
     pub exported: bool,
 }
 
-#[derive(Clone)]
+#[line_debug_info]
 pub struct ReturnStatement {
     pub expr: Expression,
 }
 
-#[derive(Clone)]
+#[line_debug_info]
 pub struct IfStatement {
     pub condition: Expression,
     pub then_branch: BlockStatement,
     pub else_branch: Option<BlockStatement>,
 }
 
-#[derive(Clone)]
+#[line_debug_info]
 pub struct WhileStatement {
     pub condition: Expression,
     pub loop_block: BlockStatement,
 }
 
-#[derive(Clone)]
+#[line_debug_info]
 pub struct ForStatement {
     pub init_expr: VariableDeclaration,
     pub loop_condition: Expression,
@@ -202,13 +208,16 @@ pub struct ForStatement {
     pub block_stmt: BlockStatement,
 }
 
-#[derive(Clone)]
+#[line_debug_info]
 pub struct ImportStatement {
     pub file_path: String,
     pub module_path: String,
 }
 
-#[derive(Clone)]
+#[line_debug_info]
+pub struct BreakStatement;
+
+#[line_debug_info]
 pub enum Statement {
     Expression(Expression),
     VariableDeclaration(VariableDeclaration),
@@ -221,7 +230,7 @@ pub enum Statement {
     WhileStatement(WhileStatement),
     ForStatement(ForStatement),
     Import(ImportStatement),
-    BreakStatement,
+    BreakStatement(BreakStatement),
 }
 
 pub trait StatementVisitor<T> {
@@ -235,7 +244,7 @@ pub trait StatementVisitor<T> {
     fn visit_if_statement(&mut self, if_stmt: &IfStatement) -> T;
     fn visit_while_statement(&mut self, while_stmt: &WhileStatement) -> T;
     fn visit_for_statement(&mut self, for_stmt: &ForStatement) -> T;
-    fn visit_break_statement(&mut self) -> T;
+    fn visit_break_statement(&mut self, break_stmt: &BreakStatement) -> T;
     fn visit_import_statement(&mut self, import_stmt: &ImportStatement) -> T;
 }
 
@@ -250,7 +259,7 @@ pub trait MutableStatementVisitor<T> {
     fn visit_if_statement(&mut self, if_stmt: &mut IfStatement) -> T;
     fn visit_while_statement(&mut self, while_stmt: &mut WhileStatement) -> T;
     fn visit_for_statement(&mut self, for_stmt: &mut ForStatement) -> T;
-    fn visit_break_statement(&mut self) -> T;
+    fn visit_break_statement(&mut self, break_stmt: &mut BreakStatement) -> T;
     fn visit_import_statement(&mut self, import_stmt: &mut ImportStatement) -> T;
 }
 

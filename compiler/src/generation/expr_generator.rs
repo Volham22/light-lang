@@ -16,22 +16,22 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
             Literal::Number(val) => self
                 .context
                 .i64_type()
-                .const_int(*val as u64, true)
+                .const_int(val.value as u64, true)
                 .as_any_value_enum(),
             Literal::Real(val) => self
                 .context
                 .f64_type()
-                .const_float(*val)
+                .const_float(val.value)
                 .as_any_value_enum(),
             Literal::Char(c) => self
                 .context
                 .i8_type()
-                .const_int(*c as u64, false)
+                .const_int(c.value as u64, false)
                 .as_any_value_enum(),
             Literal::Bool(val) => self
                 .context
                 .i8_type()
-                .const_int(if *val { 1 } else { 0 }, false)
+                .const_int(if val.value { 1 } else { 0 }, false)
                 .as_any_value_enum(),
             Literal::Identifier(name) => {
                 let val_ptr = self.variables.get(&name.name).unwrap();
@@ -55,7 +55,7 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
             }
             Literal::StringLiteral(s) => self
                 .builder
-                .build_global_string_ptr(s.as_str(), "string_literal")
+                .build_global_string_ptr(s.value.as_str(), "string_literal")
                 .as_any_value_enum(),
             Literal::StructLiteral(s) => self.visit_struct_literal(s),
         }
@@ -492,7 +492,7 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
             Expression::Literal(l) => match l {
                 Literal::StringLiteral(sl) => self
                     .builder
-                    .build_global_string_ptr(sl.as_str(), "addrof_string_literal")
+                    .build_global_string_ptr(sl.value.as_str(), "addrof_string_literal")
                     .as_any_value_enum(),
                 Literal::Identifier(id) => {
                     self.variables.get(&id.name).unwrap().as_any_value_enum()
@@ -530,7 +530,7 @@ impl<'a> ExpressionVisitor<AnyValueEnum<'a>> for IRGenerator<'a> {
                     .unwrap()
                     .as_any_value_enum()
             }
-            Expression::Null => self
+            Expression::Null(_) => self
                 .context
                 .i64_type()
                 .ptr_type(AddressSpace::Generic)

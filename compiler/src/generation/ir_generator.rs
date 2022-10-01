@@ -64,7 +64,7 @@ impl<'a> IRGenerator<'a> {
                 self.visit_while_statement(while_stmt);
             }
             Statement::ForStatement(_) => unreachable!(),
-            Statement::BreakStatement => unreachable!(),
+            Statement::BreakStatement(_) => unreachable!(),
             Statement::Struct(struct_stmt) => {
                 self.visit_struct_statement(struct_stmt);
             }
@@ -118,7 +118,7 @@ impl<'a> IRGenerator<'a> {
             Expression::Unary(unary) => self.visit_unary(&unary),
             Expression::Call(call) => self.visit_call(call),
             Expression::ArrayAccess(array) => self.visit_array_access(array),
-            Expression::Null => self.visit_null_expression(),
+            Expression::Null(_) => self.visit_null_expression(),
             Expression::AddressOf(addr_of) => self.visit_address_of_expression(addr_of),
             Expression::DeReference(deref) => self.visit_dereference_expression(deref),
             Expression::MemberAccess(member_access) => self.visit_member_access(member_access),
@@ -134,7 +134,7 @@ impl<'a> IRGenerator<'a> {
             Expression::Unary(unary) => self.visit_unary(&unary),
             Expression::Call(call) => self.visit_call(call),
             Expression::ArrayAccess(array) => self.visit_array_access(array),
-            Expression::Null => self.visit_null_expression(),
+            Expression::Null(_) => self.visit_null_expression(),
             Expression::AddressOf(addr_of) => self.visit_address_of_expression(addr_of),
             Expression::DeReference(deref) => self.visit_dereference_expression(deref),
             Expression::MemberAccess(member_access) => self.visit_member_access(member_access),
@@ -244,7 +244,7 @@ impl<'a> IRGenerator<'a> {
                 None
             }
             Statement::ForStatement(_) => unreachable!(),
-            Statement::BreakStatement => self.visit_break_statement(),
+            Statement::BreakStatement(b) => self.visit_break_statement(b),
             Statement::Struct(struct_stmt) => self.visit_struct_statement(struct_stmt),
             Statement::Import(_) => todo!(),
         }

@@ -1,4 +1,5 @@
 use crate::{
+    debug::LineDebugInfo,
     parser::visitors::{
         ArrayAccess, Expression, MutableExpressionVisitor, MutableStatementVisitor, Statement,
         StructLiteral, StructStatement,
@@ -76,7 +77,7 @@ impl TypeChecker {
             Statement::IfStatement(if_stmt) => self.visit_if_statement(if_stmt),
             Statement::WhileStatement(while_stmt) => self.visit_while_statement(while_stmt),
             Statement::ForStatement(for_stmt) => self.visit_for_statement(for_stmt),
-            Statement::BreakStatement => self.visit_break_statement(),
+            Statement::BreakStatement(b) => self.visit_break_statement(b),
             Statement::Struct(struct_stmt) => self.visit_struct_statement(struct_stmt),
             Statement::Import(_) => todo!(),
         }
@@ -91,7 +92,7 @@ impl TypeChecker {
             Expression::Unary(e) => self.visit_unary(e),
             Expression::Call(e) => self.visit_call(e),
             Expression::ArrayAccess(a) => self.visit_array_access(a),
-            Expression::Null => self.visit_null_expression(),
+            Expression::Null(_) => self.visit_null_expression(),
             Expression::AddressOf(address_of) => self.visit_address_of_expression(address_of),
             Expression::DeReference(deref) => self.visit_dereference_expression(deref),
             Expression::MemberAccess(member_access) => self.visit_member_access(member_access),
@@ -107,7 +108,7 @@ impl TypeChecker {
             Expression::Unary(e) => self.visit_unary(e),
             Expression::Call(e) => self.visit_call(e),
             Expression::ArrayAccess(a) => self.visit_array_access(a),
-            Expression::Null => self.visit_null_expression(),
+            Expression::Null(_) => self.visit_null_expression(),
             Expression::AddressOf(address_of) => self.visit_address_of_expression(address_of),
             Expression::DeReference(deref) => self.visit_dereference_expression(deref),
             Expression::MemberAccess(member_access) => self.visit_member_access(member_access),
@@ -255,5 +256,16 @@ impl TypeChecker {
         }
 
         Ok(ValueType::Struct(struct_dec.type_name))
+    }
+
+    #[inline]
+    pub fn build_error_message<T: LineDebugInfo>(msg: &str, element: &T) -> String {
+        format!(
+            "{}:{}:{} Error: {}",
+            element.file_name(),
+            element.line(),
+            element.column(),
+            msg
+        )
     }
 }

@@ -9,9 +9,9 @@ use inkwell::{
 
 use crate::{
     parser::visitors::{
-        BlockStatement, Expression, ForStatement, FunctionStatement, IfStatement, ImportStatement,
-        Literal, ReturnStatement, StatementVisitor, StructStatement, VariableAssignment,
-        VariableDeclaration, WhileStatement,
+        BlockStatement, BreakStatement, Expression, ForStatement, FunctionStatement, IfStatement,
+        ImportStatement, Literal, ReturnStatement, StatementVisitor, StructStatement,
+        VariableAssignment, VariableDeclaration, WhileStatement,
     },
     type_system::{
         typed::Typed,
@@ -656,7 +656,7 @@ impl<'a> StatementVisitor<Option<AnyValueEnum<'a>>> for IRGenerator<'a> {
         unreachable!()
     }
 
-    fn visit_break_statement(&mut self) -> Option<AnyValueEnum<'a>> {
+    fn visit_break_statement(&mut self, _break_stmt: &BreakStatement) -> Option<AnyValueEnum<'a>> {
         self.builder
             .build_unconditional_branch(*self.loop_bb_stack.last().unwrap());
         self.has_branched = true;

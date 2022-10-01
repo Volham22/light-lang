@@ -1,6 +1,9 @@
-use crate::parser::visitors::{
-    AddressOf, ArrayAccess, Binary, BinaryLogic, Call, DeReference, Expression, Group, Identifier,
-    Literal, MemberAccess, StructLiteral, Unary,
+use crate::parser::{
+    literals::{Bool, Char, Number, Real, StringLiteral},
+    visitors::{
+        AddressOf, ArrayAccess, Binary, BinaryLogic, Call, DeReference, Expression, Group,
+        Identifier, Literal, MemberAccess, StructLiteral, Unary,
+    },
 };
 
 use super::value_type::ValueType;
@@ -10,7 +13,7 @@ pub trait Typed {
     fn set_type(&mut self, new_type: ValueType);
 }
 
-impl Typed for i64 {
+impl Typed for Number {
     fn get_type(&self) -> ValueType {
         ValueType::Number
     }
@@ -20,7 +23,7 @@ impl Typed for i64 {
     }
 }
 
-impl Typed for f64 {
+impl Typed for Real {
     fn get_type(&self) -> ValueType {
         ValueType::Real
     }
@@ -30,7 +33,7 @@ impl Typed for f64 {
     }
 }
 
-impl Typed for bool {
+impl Typed for Bool {
     fn get_type(&self) -> ValueType {
         ValueType::Bool
     }
@@ -40,7 +43,7 @@ impl Typed for bool {
     }
 }
 
-impl Typed for char {
+impl Typed for Char {
     fn get_type(&self) -> ValueType {
         ValueType::Char
     }
@@ -50,7 +53,7 @@ impl Typed for char {
     }
 }
 
-impl Typed for String {
+impl Typed for StringLiteral {
     fn get_type(&self) -> ValueType {
         ValueType::String
     }
@@ -233,7 +236,7 @@ impl Typed for Expression {
             Expression::DeReference(dr) => dr.get_type(),
             Expression::MemberAccess(ma) => ma.get_type(),
             // Expression::ModuleAccess(ma) => ma.get_type(), // TODO Namespace support
-            Expression::Null => ValueType::Null,
+            Expression::Null(_) => ValueType::Null,
         }
     }
 

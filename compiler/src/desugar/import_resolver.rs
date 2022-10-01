@@ -1,7 +1,5 @@
 use std::{fs, path::Path};
 
-use logos::Logos;
-
 use crate::parser::visitors::{FunctionStatement, ImportStatement, Statement, StructStatement};
 use crate::{lexer::Token, parser::parser::Parser};
 
@@ -20,10 +18,14 @@ impl ImportResolver {
         }
     }
 
-    pub fn resolve_imports(&mut self, stmts: &Vec<Statement>) -> Result<Vec<Statement>, String> {
+    pub fn resolve_imports(
+        &mut self,
+        stmts: &Vec<Statement>,
+        file_name: &str,
+    ) -> Result<Vec<Statement>, String> {
         for stmt in stmts {
             if let Statement::Import(is) = stmt {
-                self.resolve_statement(is)?;
+                self.resolve_statement(is, file_name)?;
             }
         }
 
@@ -67,11 +69,9 @@ impl ImportResolver {
             }
         };
 
-        let lexer = Token::lexer(file_content.as_str());
-        let mut parser = Parser::new(
-            lexer.collect(),
-            Path::new(path).parent().unwrap().to_str().unwrap(),
-        );
+        let tokens = Token::lex_string(file_content.as_str());
+        let p = Path::new(path).parent().unwrap().to_str().unwrap();
+        let mut parser = Parser::new(tokens, p, p);
 
         match parser.parse() {
             Some(stmts) => Ok(stmts),
@@ -82,7 +82,11 @@ impl ImportResolver {
         }
     }
 
-    fn resolve_statement(&mut self, import_stmt: &ImportStatement) -> ImportResolverReturn {
+    fn resolve_statement(
+        &mut self,
+        import_stmt: &ImportStatement,
+        file_name: &str,
+    ) -> ImportResolverReturn {
         // the file_path is relative to the module path so we need
         // to concat the path.
         let path = Path::new(&import_stmt.file_path).join(import_stmt.module_path.as_str());
@@ -97,6 +101,10 @@ impl ImportResolver {
                         block: None, // forward declaration
                         return_type: f.return_type,
                         is_exported: false,
+                        line: f.line,
+                        column: f.column,
+                        // Path is the actual module path
+                        filename: file_name.to_string(),
                     };
 
                     if f.is_exported {
