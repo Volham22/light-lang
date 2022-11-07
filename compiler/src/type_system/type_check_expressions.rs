@@ -184,28 +184,31 @@ impl MutableExpressionVisitor<Result<ValueType, String>> for TypeChecker {
     fn visit_address_of_expression(&mut self, address_of: &mut AddressOf) -> TypeCheckerReturn {
         let identifier_ty = self.check_expr(&mut address_of.identifier)?;
 
-        match identifier_ty {
-            ValueType::Array(a) => Ok(ValueType::Pointer(Box::new(ValueType::Array(a)))),
-            ValueType::Bool => Ok(ValueType::Pointer(Box::new(ValueType::Bool))),
-            ValueType::Number => Ok(ValueType::Pointer(Box::new(ValueType::Number))),
-            ValueType::Real => Ok(ValueType::Pointer(Box::new(ValueType::Real))),
-            ValueType::String => Ok(ValueType::Pointer(Box::new(ValueType::String))),
-            ValueType::Char => Ok(ValueType::Pointer(Box::new(ValueType::Char))),
-            ValueType::Function => Err(Self::build_error_message(
+        let ty = match identifier_ty {
+            ValueType::Array(a) => ValueType::Pointer(Box::new(ValueType::Array(a))),
+            ValueType::Bool => ValueType::Pointer(Box::new(ValueType::Bool)),
+            ValueType::Number => ValueType::Pointer(Box::new(ValueType::Number)),
+            ValueType::Real => ValueType::Pointer(Box::new(ValueType::Real)),
+            ValueType::String => ValueType::Pointer(Box::new(ValueType::String)),
+            ValueType::Char => ValueType::Pointer(Box::new(ValueType::Char)),
+            ValueType::Function => return Err(Self::build_error_message(
                 format!("Function pointers are not supported yet.").as_str(),
                 address_of,
-            )),
-            ValueType::Pointer(ptr) => Ok(ValueType::Pointer(Box::new(ValueType::Pointer(ptr)))),
-            ValueType::Struct(strct) => Ok(ValueType::Pointer(Box::new(ValueType::Struct(strct)))),
-            ValueType::Void => Err(Self::build_error_message(
+                )),
+            ValueType::Pointer(ptr) => ValueType::Pointer(Box::new(ValueType::Pointer(ptr))),
+            ValueType::Struct(strct) => ValueType::Pointer(Box::new(ValueType::Struct(strct))),
+            ValueType::Void => return Err(Self::build_error_message(
                 format!("Addrof cannot be applied to void types.").as_str(),
                 address_of,
             )),
-            ValueType::Null => Err(Self::build_error_message(
+            ValueType::Null => return Err(Self::build_error_message(
                 format!("Addrof 'null' is forbidden.").as_str(),
                 address_of,
             )),
-        }
+        };
+
+        address_of.set_type(ty.clone());
+        Ok(ty)
     }
 
     fn visit_dereference_expression(&mut self, dereference: &mut DeReference) -> TypeCheckerReturn {
